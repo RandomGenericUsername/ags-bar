@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "app": "bar",
+  "instance": "ags",
+  "configDir": "ags",
+  "mode": "restart",
+  "holdsUnsavedState": false
+}
