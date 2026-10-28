@@ -50,14 +50,15 @@ AD-37: installed tags are immutable and writable state lives under XDG.
   `dotfiles-assets` tuple. Provisioning verifies it; no second producer.
 - `audio/audio-panel.css` is deployed into the config dir; `app.tsx` applies it
   from `$XDG_CONFIG_HOME/ags/audio/audio-panel.css`, not from the tag.
-- `wifi-speedtest.json` at the repo root is a legacy **seed default**, not user
-  state. The service reads/writes
-  `$XDG_CONFIG_HOME/ags/wifi-speedtest.json` and
-  `$XDG_CONFIG_HOME/ags/wifi-speedtest-last.json`; today those resolve inside
-  the tag because `config/ags` points at it. The cutover ticket
-  (`tickets/OPS-001-cutover-state-migration/`) moves them to XDG state and
-  migrates existing values before the link flip. Do not add writable state
-  files to this repo.
+- `wifi-speedtest.json` at the repo root is a legacy **seed default** owned by
+  provisioning, not user state. The service reads/writes
+  `$XDG_STATE_HOME/ags/wifi-speedtest.json` and
+  `$XDG_STATE_HOME/ags/wifi-speedtest-last.json` (via
+  `services/speedtest-state.ts`), with a one-time migration from the old
+  `$XDG_CONFIG_HOME/ags/` files, which under the old deployment resolved inside
+  the tag. The migration never writes the tag, never overwrites existing state,
+  and never deletes the legacy source. Do not add writable state files to this
+  repo, and do not reintroduce a config-dir read/write target.
 
 ## 4. Ticket flow
 
@@ -93,7 +94,7 @@ run. `.dev/` is gitignored; never commit a fetched platform, `node_modules/`,
 
 ## 6. Release
 
-Releases are immutable annotated tags (`v0.1.0`, …). A published tag is never
+Releases are immutable annotated tags (`v0.1.1`, …). A published tag is never
 moved. Installed tags are read-only; writable state lives under XDG paths, never
 inside the tag. Tag only after `make gates` passes, and record the evidence in
 the release ticket.

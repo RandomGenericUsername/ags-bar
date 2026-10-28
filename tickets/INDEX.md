@@ -18,7 +18,7 @@
 
 ## Ops tasks
 
-- [OPS-001-cutover-state-migration/ticket.md](./OPS-001-cutover-state-migration/ticket.md) — Move wifi-speedtest state and verify install-time artifacts before cutover | `proposed` | links: worktree none, branch none
+- [OPS-001-cutover-state-migration/ticket.md](./OPS-001-cutover-state-migration/ticket.md) — Move wifi-speedtest state and verify install-time artifacts before cutover | `done` | links: worktree `.worktrees/OPS-001/`, branch `ticket/OPS-001-cutover-state-migration`
 
 ## Spikes
 

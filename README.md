@@ -54,32 +54,59 @@ AD-37: installed tags are immutable; writable state lives under XDG.
   `$XDG_CONFIG_HOME/ags/colors.css`, created/verified by the runtime seeder at
   install time. It is not committed here, and the app never writes it.
 - **`icons.json`** — the bar's icon artifact. It is produced from the pinned
-  `dotfiles-assets` tuple; provisioning verifies it and never authors a second
-  copy. Treat it as generated, not hand-authored.
+  `dotfiles-assets` tuple; provisioning verifies **byte equality** and never
+  authors a second copy. Treat it as generated, not hand-authored.
 - **`audio/audio-panel.css`** — deployed into the config dir and applied from
   `$XDG_CONFIG_HOME/ags/audio/audio-panel.css` at runtime.
-- **`wifi-speedtest.json`** — a legacy seed default tracked at the repo root.
-  It is **not** user state. See the cutover section.
+- **`wifi-speedtest.json`** — a legacy **seed default** tracked at the repo root
+  for provisioning. It is **not** user state and never a read/write target; the
+  service state lives under `$XDG_STATE_HOME/ags/`. See the cutover section.
 
 ## Cutover state migration (wifi-speedtest)
 
-This repo is created only; no host, provisioning or runtime change is made
-here. Before the cutover flips `config/ags` to this app:
+AD-37: installed tags are immutable; writable state lives under XDG.
 
-1. `bar/services/speedtest-service.ts` currently reads/writes
-   `$XDG_CONFIG_HOME/ags/wifi-speedtest.json` and
-   `$XDG_CONFIG_HOME/ags/wifi-speedtest-last.json`. Under the old deployment
-   `config/ags` is the tag, so those writes land **inside the immutable tag**
-   and a tag bump resets the user's interval/server mode and last measurement.
-2. Move the service's writable paths to XDG state outside the install tree
-   (for example `$XDG_STATE_HOME/ags/wifi-speedtest.json` and
-   `wifi-speedtest-last.json`), with a one-time migration from the current
-   `$XDG_CONFIG_HOME/ags/` files.
-3. Keep the tracked `wifi-speedtest.json` here as a seed only, or retire it once
-   the external default is owned by provisioning. A tag-bump test must prove the
-   user's interval, server mode and last measurement survive.
-4. Verify `colors.css` is the stable runtime pointer outside the tag and that
-   `icons.json` has one producer. These are install-time checks, not app code.
+Before this change the speed-test service read/wrote
+`$XDG_CONFIG_HOME/ags/wifi-speedtest.json` and `wifi-speedtest-last.json`.
+Because the deployed `config/ags` link points at the installed tag, those paths
+resolved **inside the tag**, so every tag bump reset the user's interval,
+server mode and last measurement.
+
+The service now owns these paths:
+
+| Purpose | Path | Writer |
+| --- | --- | --- |
+| Settings | `$XDG_STATE_HOME/ags/wifi-speedtest.json` | bar service |
+| Last measurement | `$XDG_STATE_HOME/ags/wifi-speedtest-last.json` | bar service |
+| Legacy source | `$XDG_CONFIG_HOME/ags/wifi-speedtest*.json` | read once by migration |
+
+Migration behavior (`services/speedtest-state.ts`,
+`migrateLegacySpeedTestState`), run before the first read on every start. It is
+a one-time migration per file because the target's existence is the gate:
+
+1. If the XDG state target already exists, the legacy file is ignored. This is
+   what makes the migration one-time and ensures a later user edit wins.
+2. If the target is absent and the legacy file exists, the bytes are copied and
+   the state directory is created on demand. The legacy file is **never**
+   deleted or modified — the old tag may be read-only and a rollback to it must
+   work.
+3. A legacy file that is not a JSON object is not copied; the target stays
+   absent so the migration retries after the source is fixed.
+4. Failures are logged and never block startup; defaults remain usable.
+
+The tracked `wifi-speedtest.json` at the repo root is an explicit provisioning
+**seed default**, not user state. It is never the read/write target after
+cutover; deleting it cannot lose a user setting.
+
+`tests/ts/speedtest-state.test.ts` is the tag-bump/persistence proof: it seeds
+the old config dir, migrates, deletes that directory (a tag bump or rollback),
+creates a fresh empty one, and asserts the interval, server mode and last
+measurement survive.
+
+`colors.css` is verified as the stable runtime pointer outside the tag — the app
+only applies it through `theme.apply()` and never writes it. `icons.json` keeps
+its single `dotfiles-assets` producer, with provisioning verifying byte
+equality. Both are install-time checks, not app code.
 
 Full acceptance lives in `tickets/OPS-001-cutover-state-migration/ticket.md`.
 

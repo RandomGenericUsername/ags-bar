@@ -137,6 +137,9 @@ test("colors.css is an install-time pointer, not a repo file", () => {
   assert.equal(existsSync(join(ROOT, "colors.css")), false, "colors.css must not be committed");
   const app = readText("app.tsx");
   assert.match(app, /theme\.apply\(\)/);
+  // AD-37: provisioning creates/verifies the pointer outside the tag; the app
+  // only applies it through the Theme port and must never write it.
+  assert.doesNotMatch(app, /file_set_contents\([^)]*colors\.css/);
   const readme = readText("README.md");
   assert.match(readme, /colors\.css/);
   assert.match(readme, /XDG_CONFIG_HOME\/ags\/colors\.css/);
@@ -148,24 +151,60 @@ test("icons.json is the bar artifact and stays valid JSON", () => {
   const icons = JSON.parse(readText("icons.json"));
   assert.ok(icons["app-icons"], "icons.json lost its app-icons group");
   assert.ok(icons.volume, "icons.json lost its volume group");
+  // AD-37: one producer (the pinned dotfiles-assets tuple); provisioning
+  // verifies byte equality and the app neither authors nor writes it.
+  assert.doesNotMatch(readText("app.tsx"), /icons\.json/);
   const readme = readText("README.md");
   assert.match(readme, /icons\.json/);
   assert.match(readme, /dotfiles-assets/);
   assert.match(readme, /provisioning verifies/i);
+  assert.match(readme, /byte equality/i);
 });
 
-test("wifi-speedtest writable state is outside the repo and migration is documented", () => {
+test("wifi-speedtest writable state is XDG state with a one-time legacy migration", () => {
   const service = readText("services", "speedtest-service.ts");
-  assert.match(service, /get_user_config_dir\(\)\}\/ags\/wifi-speedtest\.json/);
-  assert.match(service, /get_user_config_dir\(\)\}\/ags\/wifi-speedtest-last\.json/);
+  const state = readText("services", "speedtest-state.ts");
+
+  // Writable targets come from the XDG STATE root. The config dir is where the
+  // installed tag lives, so it is only ever a migration source.
+  assert.match(
+    service,
+    /speedTestStatePaths\(\s*GLib\.get_user_state_dir\(\),\s*GLib\.get_user_config_dir\(\),\s*\)/,
+  );
+  assert.match(service, /const configPath = statePaths\.configPath/);
+  assert.match(service, /const lastRunPath = statePaths\.lastRunPath/);
+  assert.doesNotMatch(service, /get_user_config_dir\(\)\}\/ags\/wifi-speedtest\.json/);
+  assert.doesNotMatch(service, /get_user_config_dir\(\)\}\/ags\/wifi-speedtest-last\.json/);
+
+  // Migration runs before the first read, is idempotent, and never writes the
+  // legacy location.
+  assert.match(service, /migrateLegacyState\(\)\s*\n\s*const c = loadConfig\(\)/);
+  assert.match(service, /migrateLegacySpeedTestState\(statePaths, stateFs\)/);
+  assert.match(state, /stateDir = `\$\{stateHome\}\/ags`/);
+  assert.match(state, /legacyConfigPath: `\$\{legacyDir\}\/wifi-speedtest\.json`/);
+  assert.match(state, /legacyLastRunPath: `\$\{legacyDir\}\/wifi-speedtest-last\.json`/);
+
+  // The tracked file is an explicit provisioning seed, never a read/write target.
   assert.equal(existsSync(join(ROOT, "wifi-speedtest-last.json")), false);
-  assert.ok(existsSync(join(ROOT, "wifi-speedtest.json")), "legacy seed default is missing");
+  assert.ok(existsSync(join(ROOT, "wifi-speedtest.json")), "seed default is missing");
+  const seed = JSON.parse(readText("wifi-speedtest.json"));
+  assert.equal(seed.interval_ms, 900000);
+  assert.equal(seed.run_on_connect, true);
+  assert.equal(seed.server_mode, "auto");
+
+  // The tag-bump proof exists and is part of `make test`.
+  assert.ok(
+    existsSync(join(ROOT, "tests", "ts", "speedtest-state.test.ts")),
+    "tag-bump/persistence test is missing",
+  );
 
   const readme = readText("README.md");
   assert.match(readme, /Cutover state migration \(wifi-speedtest\)/);
   assert.match(readme, /XDG_STATE_HOME\/ags/);
   assert.match(readme, /tag bump/i);
+  assert.match(readme, /one-time migration/i);
   assert.match(readme, /seed default/);
+  assert.match(readme, /tests\/ts\/speedtest-state\.test\.ts/);
 
   const ticket = readText(
     "tickets",
@@ -174,6 +213,7 @@ test("wifi-speedtest writable state is outside the repo and migration is documen
   );
   assert.match(ticket, /wifi-speedtest\.json/);
   assert.match(ticket, /XDG_STATE_HOME/);
+  assert.match(ticket, /tag-bump test/i);
 });
 
 test("the audio stylesheet is applied from the deployed config dir", () => {

@@ -11,6 +11,11 @@ import { execAsync } from "ags/process"
 //: is a pass-through, notification-app -> wifi-service would be new coupling
 //: across an instance boundary.
 import { wifiNetworks } from "./wifi-service"
+import {
+  migrateLegacySpeedTestState,
+  speedTestStatePaths,
+  type StateFs,
+} from "./speedtest-state"
 
 export type SpeedTestResult = {
   down_mbps: number
@@ -61,7 +66,19 @@ const [running, setRunning] = createState(false)
 const [timerId, setTimerId] = createState(0)
 let serviceUsers = 0
 
-let configPath = `${GLib.get_user_config_dir()}/ags/wifi-speedtest.json`
+//: AD-37: installed tags are immutable, so writable state lives under
+//: `$XDG_STATE_HOME/ags/`, never inside the tag. This matters here because the
+//: deployed `config/ags` link points AT the installed tag: the old
+//: `get_user_config_dir()/ags` path resolved inside it, and every tag bump
+//: silently reset the user's interval, server mode and last measurement.
+//: `get_user_state_dir()` is the same root `app.tsx` already uses for
+//: `panel-debug.json`.
+const statePaths = speedTestStatePaths(
+  GLib.get_user_state_dir(),
+  GLib.get_user_config_dir(),
+)
+
+const configPath = statePaths.configPath
 
 //: The last measurement is persisted separately from the config. The interval
 //: is a *setting* and must survive restarts; the measurement is *data* and used
@@ -69,7 +86,67 @@ let configPath = `${GLib.get_user_config_dir()}/ags/wifi-speedtest.json`
 //: Speed/Ran rows to "—" and left them empty until the next scheduled run a
 //: whole interval away. Kept in its own file so a corrupt or hand-edited
 //: measurement can never take the interval down with it.
-let lastRunPath = `${GLib.get_user_config_dir()}/ags/wifi-speedtest-last.json`
+const lastRunPath = statePaths.lastRunPath
+
+//: The GLib adapter for the pure migration port (see `speedtest-state.ts`).
+//: `file_set_contents` reports failure via its boolean return; `file_get_contents`
+//: throws on a missing file in GJS — both are normalised here so the pure core
+//: never needs a try/catch or a GLib import.
+const stateFs: StateFs = {
+  exists: (path) => GLib.file_test(path, GLib.FileTest.EXISTS),
+  read: (path) => {
+    try {
+      const data = GLib.file_get_contents(path)?.[1]
+      return data ? new TextDecoder().decode(data) : null
+    } catch {
+      return null
+    }
+  },
+  write: (path, contents) => {
+    try {
+      return GLib.file_set_contents(path, contents)
+    } catch {
+      return false
+    }
+  },
+  mkdirp: (path) => {
+    try {
+      return GLib.mkdir_with_parents(path, 0o755) === 0
+    } catch {
+      return false
+    }
+  },
+}
+
+//: Create the XDG state dir before a write. The migration creates it when it
+//: has something to adopt, but a fresh user with no legacy file still gets a
+//: state directory the first time they change a setting.
+function ensureStateDir(): boolean {
+  const ok = stateFs.mkdirp(statePaths.stateDir)
+  if (!ok) console.error(`speedtest-service: cannot create state dir ${statePaths.stateDir}`)
+  return ok
+}
+
+/**
+ * One-time adoption of the pre-cutover files from the installed tag.
+ *
+ * Called before the first `loadConfig()`. Existing state always wins, so
+ * running it on every start is what makes it idempotent, and a corrupt legacy
+ * file is left alone (the target stays absent and is retried next start).
+ * Failures are logged but never block the service: defaults are always usable.
+ */
+function migrateLegacyState(): void {
+  const outcome = migrateLegacySpeedTestState(statePaths, stateFs)
+  for (const path of outcome.migrated) {
+    console.info(`speedtest-service: migrated legacy state to ${path}`)
+  }
+  for (const path of outcome.invalid) {
+    console.error(`speedtest-service: legacy state is not a JSON object, not migrating: ${path}`)
+  }
+  for (const path of outcome.failed) {
+    console.error(`speedtest-service: legacy state migration failed for ${path}`)
+  }
+}
 
 type PersistedRun = {
   result: SpeedTestResult
@@ -102,6 +179,7 @@ function loadLastRun(): PersistedRun | null {
 }
 
 function saveLastRun(result: SpeedTestResult, ranAt: number): void {
+  if (!ensureStateDir()) return
   try {
     const payload: PersistedRun = { result, ran_at: ranAt }
     const ok = GLib.file_set_contents(lastRunPath, JSON.stringify(payload, null, 2))
@@ -145,6 +223,7 @@ function loadConfig(): SpeedTestConfig {
 }
 
 function saveConfig(c: SpeedTestConfig): void {
+  if (!ensureStateDir()) return
   //: file_set_contents reports failure via its boolean return (it does NOT
   //: throw), so check it explicitly — a silent failed write is exactly what
   //: makes the UI revert on the next loadConfig (snap-back shape).
@@ -469,6 +548,9 @@ function stopScheduler(): void {
 export function startSpeedTestService(): void {
   serviceUsers += 1
   if (serviceUsers > 1) return
+  // Adopt the pre-cutover files BEFORE the first read, so an existing user's
+  // interval/server mode/last measurement are what the service starts with.
+  migrateLegacyState()
   const c = loadConfig()
   setConfig(c)
   // Restore the last measurement so the Speed/Ran rows are populated

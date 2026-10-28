@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.1 — 2026-10-28
+
+- Move the speed-test service's writable state out of the installed tag (AD-37):
+  settings and last measurement now live at
+  `$XDG_STATE_HOME/ags/wifi-speedtest.json` and
+  `$XDG_STATE_HOME/ags/wifi-speedtest-last.json`.
+- Add a one-time migration from the old `$XDG_CONFIG_HOME/ags/` files. Existing
+  state always wins, the legacy source is never written or deleted, and a
+  corrupt source is retried instead of adopted.
+- Add the pure `services/speedtest-state.ts` path/migration core and
+  `tests/ts/speedtest-state.test.ts`, including the tag-bump persistence proof
+  for interval, server mode and last measurement.
+- Keep `wifi-speedtest.json` as an explicit provisioning-owned seed default and
+  document that it is never the read/write target after cutover.
+
 ## v0.1.0 — 2026-10-27
 
 - Extract the bar from `ags-apps` v0.5.0 into the standalone `ags-bar` repo
