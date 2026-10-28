@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.3 — 2026-10-28
+
+- Fix the stale conformance test and docs that rejected the committed
+  `colors.css` runtime-pointer symlink shipped in v0.1.2. The test now asserts
+  the link target (`<state>/dotfiles/current/colors.gtk.css`) and that it stays
+  outside the immutable tag, matching the engine's `barPalettePointer` contract.
+- Document the committed symlink in `AGENTS.md` and `README.md`; the app still
+  never writes it.
+
+## v0.1.2 — 2026-10-28
+
+- Ship `colors.css` as the stable runtime-pointer symlink the AGS app-role
+  verifies (`barPalettePointer`). The target lives under the runtime's current
+  state dir, outside the immutable tag.
+
 ## v0.1.1 — 2026-10-28
 
 - Move the speed-test service's writable state out of the installed tag (AD-37):

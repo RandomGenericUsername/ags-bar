@@ -19,6 +19,7 @@
 ## Ops tasks
 
 - [OPS-001-cutover-state-migration/ticket.md](./OPS-001-cutover-state-migration/ticket.md) — Move wifi-speedtest state and verify install-time artifacts before cutover | `done` | links: worktree `.worktrees/OPS-001/`, branch `ticket/OPS-001-cutover-state-migration`
+- [OPS-002-green-colors-pointer-conformance/ticket.md](./OPS-002-green-colors-pointer-conformance/ticket.md) — Green the conformance gate for the committed colors.css pointer | `done` | links: worktree none, branch main
 
 ## Spikes
 

@@ -50,9 +50,10 @@ Every overlay registered in `overlays.ts` is closed by `popup-close` through
 
 AD-37: installed tags are immutable; writable state lives under XDG.
 
-- **`colors.css`** — a stable runtime-owned pointer at
-  `$XDG_CONFIG_HOME/ags/colors.css`, created/verified by the runtime seeder at
-  install time. It is not committed here, and the app never writes it.
+- **`colors.css`** — committed as a symlink to the stable runtime-owned pointer
+  `$XDG_STATE_HOME/dotfiles/current/colors.gtk.css`, surfaced at
+  `$XDG_CONFIG_HOME/ags/colors.css`. The engine's `barPalettePointer` contract
+  verifies the link target at install time; the app never writes it.
 - **`icons.json`** — the bar's icon artifact. It is produced from the pinned
   `dotfiles-assets` tuple; provisioning verifies **byte equality** and never
   authors a second copy. Treat it as generated, not hand-authored.
@@ -103,10 +104,11 @@ the old config dir, migrates, deletes that directory (a tag bump or rollback),
 creates a fresh empty one, and asserts the interval, server mode and last
 measurement survive.
 
-`colors.css` is verified as the stable runtime pointer outside the tag — the app
-only applies it through `theme.apply()` and never writes it. `icons.json` keeps
-its single `dotfiles-assets` producer, with provisioning verifying byte
-equality. Both are install-time checks, not app code.
+The committed `colors.css` symlink is verified to point at the stable runtime
+pointer outside the tag — the app only applies it through `theme.apply()` and
+never writes it. `icons.json` keeps its single `dotfiles-assets` producer, with
+provisioning verifying byte equality. Both are install-time checks, not app
+code.
 
 Full acceptance lives in `tickets/OPS-001-cutover-state-migration/ticket.md`.
 

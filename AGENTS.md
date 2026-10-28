@@ -42,10 +42,12 @@ mode=restart  holdsUnsavedState=false
 
 AD-37: installed tags are immutable and writable state lives under XDG.
 
-- `colors.css` is **not** in this repo. It is a stable runtime-owned pointer
-  (`$XDG_CONFIG_HOME/ags/colors.css`) created/verified at install time; this
-  repo only re-applies it through the Theme port. Never commit it, and never
-  write it from the app.
+- `colors.css` is committed as a **symlink** to the stable runtime-owned
+  pointer (`$XDG_STATE_HOME/dotfiles/current/colors.gtk.css`), surfaced at
+  `$XDG_CONFIG_HOME/ags/colors.css`. The engine's `barPalettePointer` contract
+  verifies the link target at install time; the app only reapplies it through
+  the Theme port. Never replace it with a palette copy, and never write it
+  from the app.
 - `icons.json` is a build/install artifact produced from the pinned
   `dotfiles-assets` tuple. Provisioning verifies it; no second producer.
 - `audio/audio-panel.css` is deployed into the config dir; `app.tsx` applies it

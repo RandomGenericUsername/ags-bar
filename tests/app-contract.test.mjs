@@ -18,7 +18,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseAgsAppManifest } from "ags-platform/ports/app-manifest";
@@ -133,12 +133,29 @@ test("app startup keeps the bar windows and the debug surface", () => {
 
 // ── 3. Install-time concerns and writable state ────────────────────────────
 
-test("colors.css is an install-time pointer, not a repo file", () => {
-  assert.equal(existsSync(join(ROOT, "colors.css")), false, "colors.css must not be committed");
+test("colors.css is the committed runtime pointer symlink", () => {
+  const colorsPath = join(ROOT, "colors.css");
+  assert.equal(
+    lstatSync(colorsPath).isSymbolicLink(),
+    true,
+    "colors.css must be committed as a symlink, never a palette copy",
+  );
+  const target = readlinkSync(colorsPath);
+  // AD-37 + the engine's barPalettePointer contract: the tag points at the
+  // runtime-owned current palette, outside the immutable install dir.
+  assert.match(
+    target,
+    /dotfiles\/current\/colors\.gtk\.css$/,
+    "colors.css must point at <state>/dotfiles/current/colors.gtk.css",
+  );
+  assert.ok(
+    !target.startsWith(ROOT),
+    "colors.css must not point inside the immutable tag",
+  );
   const app = readText("app.tsx");
   assert.match(app, /theme\.apply\(\)/);
-  // AD-37: provisioning creates/verifies the pointer outside the tag; the app
-  // only applies it through the Theme port and must never write it.
+  // Provisioning verifies the pointer outside the tag; the app only applies it
+  // through the Theme port and must never write it.
   assert.doesNotMatch(app, /file_set_contents\([^)]*colors\.css/);
   const readme = readText("README.md");
   assert.match(readme, /colors\.css/);
