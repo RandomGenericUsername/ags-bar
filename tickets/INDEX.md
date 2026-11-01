@@ -11,6 +11,7 @@
 ## Requirements
 
 - [REQ-001-standalone-bar-extraction/ticket.md](./REQ-001-standalone-bar-extraction/ticket.md) — Extract the bar into the standalone ags-bar repo | `done` | links: worktree none, branch main
+- [REQ-002-theme-roles/ticket.md](./REQ-002-theme-roles/ticket.md) — Migrate the bar CSS to semantic tpr roles (Phase B) | `in-progress` | links: worktree `.worktrees/REQ-002/`, branch `ticket/REQ-002-theme-roles`
 
 ## Bugs
 
