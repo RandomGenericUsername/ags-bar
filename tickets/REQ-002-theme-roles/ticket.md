@@ -2,7 +2,7 @@
 id: REQ-002
 title: "Migrate the bar CSS to semantic tpr roles (Phase B)"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
@@ -27,19 +27,19 @@ changes.
 
 ## Acceptance
 
-- [ ] `style.css` and `audio/audio-panel.css` contain zero `@color_*` tokens
+- [x] `style.css` and `audio/audio-panel.css` contain zero `@color_*` tokens
       (including comments); no other CSS/TS/TSX file references them.
-- [ ] Every replacement is a role in the live `palette.v1` vocabulary
+- [x] Every replacement is a role in the live `palette.v1` vocabulary
       (`@surface`, `@on_surface`, `@primary`, `@on_primary`, `@tertiary`, …).
-- [ ] The palette is still applied once at startup through the platform Theme
+- [x] The palette is still applied once at startup through the platform Theme
       port; no `palette-refresh` handler, no `colors.css` edit, no `app.tsx`
       change.
-- [ ] Slider/switch/selection contrast is preserved where the old token was a
+- [x] Slider/switch/selection contrast is preserved where the old token was a
       fill behind text; deviations from the carrier-index table are recorded
       below with old-palette evidence.
-- [ ] `make test`, `make conformance`, `make drift`, `make bundle` and
+- [x] `make test`, `make conformance`, `make drift`, `make bundle` and
       `make typecheck` pass on the branch.
-- [ ] Before/after visual evidence is captured where Hyprland IPC allows it;
+- [x] Before/after visual evidence is captured where Hyprland IPC allows it;
       otherwise the exact eyeball checklist is recorded.
 
 ## Migration table
@@ -107,6 +107,121 @@ palette the comments themselves cite (`bf8d752…`, where `color_13 = #dbab67`).
 - `@color_15` knob on a light `@primary` switch track: `on_surface` is the
   prescribed near-white knob and is kept; the knob shadow provides separation.
 
+## Implementation
+
+- `style.css`, `audio/audio-panel.css`: every `@color_*` reference replaced by a
+  role from the list above; comments rewritten to the role vocabulary.
+- `tests/validation/theme-roles.test.mjs` (new): walks every `.css`/`.ts`/`.tsx`
+  file, fails on any `@color_*`, and pins the role set the stylesheets rely on.
+- `Makefile`, `.github/workflows/ci.yml`, `README.md`, `AGENTS.md`,
+  `tests/app-contract.test.mjs`: platform tuple bumped to v0.4.0 (contracts
+  stays v0.3.0); the conformance assertion now pins that split.
+- `CHANGELOG.md`: Unreleased entry. No `app.tsx`, `colors.css`, geometry,
+  selector or refresh-path change.
+
 ## Evidence
 
-Pending: gates, live palette role check and screenshots.
+### Token and role checks
+
+- `rg -n '@color_' . --glob '*.css' --glob '*.ts' --glob '*.tsx'` (from the
+  worktree root, with the gitignored `.dev`/`node_modules`/`@girs` visible to
+  `rg` as ignore rules) → **no matches**. `git grep -n '@color_' -- '*.css'
+  '*.ts' '*.tsx'` → exit 1 (no matches).
+- Used roles: `@error`, `@on_primary`, `@on_primary_container`, `@on_surface`,
+  `@primary`, `@primary_container`, `@secondary`, `@surface`,
+  `@surface_container_high`, `@surface_container_highest`, `@tertiary`.
+  `dotfiles-runtime inspect palette` → `palette vocabulary v1: conforming (51
+  declared roles)`; a script over the live `colors.gtk.css` reports
+  `undefined: []` for that role set.
+- The legacy sheet is untouched: `colors.css` is still the committed runtime
+  pointer, `app.tsx` still calls `theme.apply()` once, and the conformance suite
+  still asserts no `palette-refresh` handler. `app.tsx` has no diff.
+
+### Contrast (live palette, WCAG relative luminance)
+
+Log: `/tmp/opencode/ags-bar-req002-contrast.log`.
+
+| Pair | Ratio |
+|---|---|
+| `on_primary` on `primary` (workspace active, selected ink) | 7.71:1 |
+| `on_primary_container` on `primary_container` (selected row/menu) | 7.25:1 |
+| `on_surface` on `surface_container_high` (cards / join button) | 11.06:1 |
+| `on_surface` on `surface_container_highest` (input field) | 9.55:1 |
+| `on_surface` on `secondary_container` (badge/container fill) | 7.18:1 |
+| `secondary` on `surface` (danger hover ink) | 10.91:1 |
+| `tertiary` on `surface` (attention/danger ink) | 10.91:1 |
+| `error` on `surface` (speed-test error ink) | 10.93:1 |
+| `on_surface` on `primary` (switch knob; shadow carries separation) | 1.32:1 |
+
+The last row is the one deliberate low-contrast decorative pair: the switch knob
+is the prescribed near-white `@on_surface` over the `@primary` track and keeps
+the existing 0 1px 4px black shadow. No text uses that pair.
+
+### Gates
+
+Command (worktree root): `make gates` → exit 0, log
+`/tmp/opencode/ags-bar-req002-gates.log`.
+
+- `make test`: 145/145 `tests/ts` tests, 21/21 `tests/validation` tests
+  (including the new `theme-roles` gate), `SYMBOL CHECK OK`, test-program `tsc`
+  → 0 errors.
+- `make conformance`: 14/14 pass, including the platform `checkAppRepo` gate and
+  the v0.4.0 platform / v0.3.0 contracts pin.
+- `make drift`: all 20 checks pass against contracts v0.3.0.
+- `make bundle`: `build/ags-bar.js`, 2,604,920 bytes.
+- `make typecheck`: 0 errors in the ags-bar tree (29 tolerated
+  `/usr/share/ags/js` errors, 0 platform errors).
+- Local contracts symlink used by the worktree gates:
+  `.dev/contracts/v0.3.0` → `/home/inumaki/Development/dotfiles/contracts`
+  (gitignored). The platform was fetched from the v0.4.0 tag by
+  `make platform-dev`.
+
+### Visual evidence (Hyprland IPC, grim)
+
+The installed bar was left running and was hidden with
+`ags toggle -i ags bar` only while the worktree app was photographed; it was
+restored in a `trap`. The worktree instance ran under isolated
+`XDG_CONFIG_HOME=/tmp/opencode/ags-visual-config` and
+`XDG_STATE_HOME=/tmp/opencode/ags-visual-state`, with the live palette pointer
+and new audio CSS. No wallpaper was changed.
+
+| Shot | Path | Shows |
+|---|---|---|
+| before bar | `/tmp/opencode/ags-bar-visual-shots/before-bar.png` | legacy tokens: active workspace is `@color_01` = error (salmon) |
+| after bar | `/tmp/opencode/ags-bar-visual-shots/after-bar.png` | active workspace is `@primary` + `@on_primary` (lavender/dark) |
+| before Wi-Fi panel | `/tmp/opencode/ags-bar-visual-shots/before-settings-wifi.png` | legacy selected row `@color_10` (mauve) and the muted cards |
+| after Wi-Fi panel | `/tmp/opencode/ags-bar-visual-shots/after-settings-wifi.png` | `@primary_container` selected row, neutral cards, readable badge |
+| before audio panel | `/tmp/opencode/ags-bar-visual-shots/before-audio.png` | legacy `@color_01` card tint (brown/mauve) |
+| after audio panel | `/tmp/opencode/ags-bar-visual-shots/after-audio.png` | neutral cards + `@primary` slider fill |
+
+Full-screen originals: `before-full.png`, `after-full.png`,
+`before-settings-wifi-full.png`, `after-settings-wifi-full.png`,
+`before-audio-full.png`, `after-audio-full.png` in the same directory.
+
+The settings/audio panels have no public request handlers, so the visual
+harness used a **test-only** uncommitted copy of `app.tsx` that added
+`settings-open` / `settings-wifi` branches (the committed `app.tsx` is
+unchanged). The after screenshots therefore show the real worktree app, CSS and
+platform v0.4.0, only with a temporary instance name (`ags-mig-visual`) so the
+user's `ags` instance was never replaced.
+
+### What the user should eyeball after deploying
+
+1. Active workspace: light `@primary` pill with dark `@on_primary` text (not the
+   old salmon `@color_01`).
+2. Settings → Wi-Fi: the connected row is a dark blue `@primary_container`
+   (not the old mauve `@tertiary_container`); the Connected badge is a
+   `@primary` tint; the "Other Networks" / "Speed Test Settings" rows are
+   neutral raised surfaces.
+3. Wi-Fi password prompt: the field is a raised neutral
+   `@surface_container_highest` (not bright red `@color_01`), the caret is
+   `@primary`, and the Join button is a neutral `@surface_container_high` with a
+   `@primary` border.
+4. Switch ON: `@primary` track with the near-white `@on_surface` knob; the knob
+   shadow is the only separation at 1.32:1, as recorded above.
+5. Capture paused/stop, settings field errors and the danger Unpair hover should
+   read as `@tertiary` (attention pink); the speed-test error line should read
+   `@error`.
+6. Audio panel: neutral cards, `@primary` slider fills, `@on_surface` thumbs.
+7. Any remaining `@color_*` in a deployed stylesheet would mean the deployed
+   file is stale; the repo and the new validation gate are clean.
