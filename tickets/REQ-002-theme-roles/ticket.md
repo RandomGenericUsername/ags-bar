@@ -159,8 +159,9 @@ the existing 0 1px 4px black shadow. No text uses that pair.
 
 ### Gates
 
-Command (worktree root): `make gates` → exit 0, log
-`/tmp/opencode/ags-bar-req002-gates.log`.
+Command (worktree root): `make gates` → exit 0 on branch HEAD `5e0cdcb`,
+logs `/tmp/opencode/ags-bar-req002-gates.log` and
+`/tmp/opencode/ags-bar-req002-gates-final.log`.
 
 - `make test`: 145/145 `tests/ts` tests, 21/21 `tests/validation` tests
   (including the new `theme-roles` gate), `SYMBOL CHECK OK`, test-program `tsc`
