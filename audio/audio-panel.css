@@ -12,20 +12,20 @@
 .audio-panel-title {
   font-size: 16px;
   font-weight: 650;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .audio-panel-caption,
 .audio-section-hint {
   font-size: 10px;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
 }
 
 .audio-section {
   min-width: 0;
   padding: 10px;
-  background-color: alpha(@color_01, 0.18);
-  border: 1px solid alpha(@color_foreground, 0.12);
+  background-color: alpha(@surface_container_high, 0.18);
+  border: 1px solid alpha(@on_surface, 0.12);
   border-radius: 14px;
 }
 
@@ -38,7 +38,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.075em;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
 }
 
 /* No `margin-left: auto` here: GTK4 CSS rejects it ("Expected a number") and
@@ -49,16 +49,16 @@
 .audio-device-select {
   min-width: 0;
   padding: 7px 9px;
-  color: @color_foreground;
-  background-color: alpha(@color_foreground, 0.06);
-  border: 1px solid alpha(@color_foreground, 0.14);
+  color: @on_surface;
+  background-color: alpha(@on_surface, 0.06);
+  border: 1px solid alpha(@on_surface, 0.14);
   border-radius: 10px;
   box-shadow: none;
 }
 
 .audio-device-select:hover,
 .audio-device-select:focus-visible {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 .audio-device-select:focus-visible,
@@ -67,19 +67,19 @@
 .audio-menu-option:focus-visible,
 .audio-level-slider:focus-visible,
 .audio-seek-slider:focus-visible {
-  outline: 2px solid @color_10;
+  outline: 2px solid @primary;
   outline-offset: 2px;
 }
 
 .audio-device-select-name {
   min-width: 0;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 12px;
   font-weight: 600;
 }
 
 .audio-device-chevron {
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 12px;
 }
 
@@ -93,7 +93,7 @@
   min-width: 29px;
   min-height: 29px;
   padding: 3px;
-  color: @color_foreground;
+  color: @on_surface;
   background-color: transparent;
   background-image: none;
   border: 1px solid transparent;
@@ -103,12 +103,12 @@
 
 .audio-icon-button:hover,
 .audio-icon-button:active {
-  background-color: alpha(@color_foreground, 0.08);
+  background-color: alpha(@on_surface, 0.08);
 }
 
 .audio-icon-button .audio-control-state {
   font-size: 9px;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
 }
 
 .audio-level-line {
@@ -124,13 +124,13 @@
 .audio-seek-slider trough {
   min-height: 5px;
   border-radius: 999px;
-  background-color: alpha(@color_foreground, 0.16);
+  background-color: alpha(@on_surface, 0.16);
 }
 
 .audio-level-slider trough highlight,
 .audio-seek-slider trough highlight {
   border-radius: 999px;
-  background-color: @color_13;
+  background-color: @primary;
 }
 
 .audio-level-slider trough slider,
@@ -138,16 +138,16 @@
   min-width: 12px;
   min-height: 12px;
   margin: -4px 0;
-  border: 1px solid alpha(@color_foreground, 0.4);
+  border: 1px solid alpha(@on_surface, 0.4);
   border-radius: 999px;
-  background-color: @color_15;
+  background-color: @on_surface;
 }
 
 .audio-percent,
 .audio-time,
 .audio-mixed-value {
   min-width: 34px;
-  color: alpha(@color_foreground, 0.82);
+  color: alpha(@on_surface, 0.82);
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -168,7 +168,7 @@
 }
 
 .audio-app-row + .audio-app-row {
-  border-top: 1px solid alpha(@color_foreground, 0.12);
+  border-top: 1px solid alpha(@on_surface, 0.12);
 }
 
 .audio-app-head {
@@ -187,7 +187,7 @@
   min-width: 43px;
   min-height: 43px;
   border-radius: 8px;
-  background-color: alpha(@color_foreground, 0.1);
+  background-color: alpha(@on_surface, 0.1);
   /* No `overflow: hidden` -- not a property in GTK4; the border-radius and the
      image's own radius do the clipping. */
 }
@@ -201,7 +201,7 @@
 .audio-art-fallback {
   min-width: 43px;
   min-height: 43px;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 16px;
   font-weight: 650;
 }
@@ -212,21 +212,21 @@
 }
 
 .audio-app-name {
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 10px;
   font-weight: 600;
 }
 
 .audio-media-title {
   min-width: 0;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 12px;
   font-weight: 650;
 }
 
 .audio-media-artist {
   min-width: 0;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 10px;
 }
 
@@ -236,22 +236,22 @@
      "No property named max-width"). The label ellipsizes instead. */
   min-height: 29px;
   padding: 3px 7px;
-  color: @color_foreground;
-  background-color: alpha(@color_foreground, 0.06);
+  color: @on_surface;
+  background-color: alpha(@on_surface, 0.06);
   background-image: none;
-  border: 1px solid alpha(@color_foreground, 0.14);
+  border: 1px solid alpha(@on_surface, 0.14);
   border-radius: 8px;
   box-shadow: none;
 }
 
 .audio-route-selector:hover,
 .audio-route-selector:active {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 .audio-route-label {
   min-width: 0;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 10px;
 }
 
@@ -270,11 +270,11 @@
 }
 
 /* The main play/pause button's round filled container is carried by the
-   `media-transport-panel` icon art itself (COLOR_BACKGROUND -> the action
-   token). No CSS background here: adding one draws a second circle whose
+   `media-transport-panel` icon art itself (COLOR_BACKGROUND -> @primary).
+   No CSS background here: adding one draws a second circle whose
    border-radius tracks a non-square button box and reads as an ellipse. */
 .audio-transport .audio-icon-button:nth-child(2) {
-  color: @color_06;
+  color: @on_primary;
 }
 
 .audio-seek-slider {
@@ -292,7 +292,7 @@
 
 .audio-menu-heading {
   padding: 5px 8px 7px;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 10px;
   font-weight: 700;
 }
@@ -300,7 +300,7 @@
 .audio-menu-option {
   min-width: 210px;
   padding: 6px 8px;
-  color: @color_foreground;
+  color: @on_surface;
   background-color: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -309,8 +309,8 @@
 .audio-menu-option:hover,
 .audio-menu-option:focus-visible,
 .audio-menu-option.selected {
-  background-color: @color_10;
-  color: @color_background;
+  background-color: @primary_container;
+  color: @on_primary_container;
 }
 
 .audio-option-mark {
@@ -328,13 +328,13 @@
 
 .audio-consumer-name {
   min-width: 0;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 11px;
 }
 
 .audio-live-label,
 .audio-empty-state {
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 10px;
 }
 

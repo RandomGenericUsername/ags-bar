@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Migrate `style.css` and `audio/audio-panel.css` from legacy CSG `@color_*`
+  carrier names to the semantic `palette.v1` roles the `ags-platform` v0.4.0
+  Theme provider projects (`@surface`, `@on_surface`, `@primary`,
+  `@on_primary`, `@primary_container`, `@tertiary`, …). Geometry, spacing,
+  alpha values, selectors and behavior are unchanged; solid fills use their
+  matching ink (`on_primary` / `on_primary_container`) instead of the page
+  background.
+- Pin the platform tuple at v0.4.0 (contracts stays v0.3.0) so local gates and
+  CI exercise the provider that defines the roles. No refresh mechanism change:
+  the legacy sheet is still applied verbatim and `theme.apply()` still runs
+  once at startup.
+
 ## v0.1.3 — 2026-10-28
 
 - Fix the stale conformance test and docs that rejected the committed

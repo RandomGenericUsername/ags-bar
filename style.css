@@ -1,6 +1,6 @@
 window#bar {
   background-color: transparent;
-  color: @color_foreground;
+  color: @on_surface;
   font-weight: bold;
   min-height: 48px;
 }
@@ -67,12 +67,12 @@ window#bar label {
 
 .workspace-indicator button.workspace-btn {
   background-color: transparent;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .workspace-indicator button.active {
-  background-color: @color_01;
-  color: @color_background;
+  background-color: @primary;
+  color: @on_primary;
 }
 
 /* Clock */
@@ -101,7 +101,7 @@ window#bar label {
 }
 
 .tray-item:hover {
-  background-color: alpha(@color_foreground, 0.12);
+  background-color: alpha(@on_surface, 0.12);
 }
 
 /* Power menu */
@@ -115,22 +115,22 @@ window#bar label {
    GTK4 CSS: color-mix() becomes alpha(), the 2-col grid becomes a homogeneous
    box, backdrop-filter is dropped (GTK has no such property).
 
-   Every surface is a @color_* slot — paused/attention states use @color_03,
+   Every surface is a semantic role — paused/attention states use @tertiary,
    the palette's caution slot already used by .rec-dot.paused. The ONE literal
    in the capture stack is the pulsing record dot (#e0605f): "REC" must read as
    red regardless of wallpaper, and the dot's pulse ring shares it. The dot
    pulse uses @keyframes where the GTK theme engine honors them and degrades to
    a static dot otherwise. */
 .rec-cluster {
-  background-color: alpha(@color_00, 0.55);
-  border: 1px solid alpha(@color_foreground, 0.12);
+  background-color: alpha(@surface, 0.55);
+  border: 1px solid alpha(@on_surface, 0.12);
   border-radius: 10px;
   padding: 4px 8px 4px 10px;
   margin-right: 4px;
 }
 
 .rec-cluster.paused {
-  border-color: alpha(@color_03, 0.45);
+  border-color: alpha(@tertiary, 0.45);
 }
 
 .rec-dot {
@@ -154,7 +154,7 @@ window#bar label {
 }
 
 .rec-dot.paused {
-  background-color: @color_03;
+  background-color: @tertiary;
   animation: none;
   box-shadow: none;
 }
@@ -165,7 +165,7 @@ window#bar label {
   border: none;
   box-shadow: none;
   padding: 0 2px;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .rec-timer {
@@ -174,7 +174,7 @@ window#bar label {
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   min-width: 46px;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .rec-btn {
@@ -186,63 +186,63 @@ window#bar label {
   background-image: none;
   border: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .rec-btn:hover,
 .rec-btn:active,
 .rec-btn:checked,
 .rec-btn:focus {
-  background-color: alpha(@color_foreground, 0.1);
+  background-color: alpha(@on_surface, 0.1);
   background-image: none;
   border: none;
   box-shadow: none;
 }
 
 .rec-btn.stop:hover {
-  background-color: alpha(@color_03, 0.22);
-  color: @color_03;
+  background-color: alpha(@tertiary, 0.22);
+  color: @tertiary;
 }
 
 .rec-popup {
   min-width: 216px;
   padding: 14px 16px;
   border-radius: 14px;
-  background-color: alpha(@color_00, 0.92);
-  border: 1px solid alpha(@color_foreground, 0.12);
+  background-color: alpha(@surface, 0.92);
+  border: 1px solid alpha(@on_surface, 0.12);
 }
 
 .rec-popup.paused {
-  border-color: alpha(@color_03, 0.45);
+  border-color: alpha(@tertiary, 0.45);
 }
 
 .rec-popup-row {
   font-size: 13px;
   font-weight: 600;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .rec-popup-action {
   min-height: 38px;
   padding: 0 8px;
   border-radius: 9px;
-  border: 1px solid alpha(@color_foreground, 0.12);
-  background-color: alpha(@color_background, 0.45);
+  border: 1px solid alpha(@on_surface, 0.12);
+  background-color: alpha(@surface, 0.45);
   background-image: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 12px;
   font-weight: 600;
 }
 
 .rec-popup-action:hover {
-  border-color: alpha(@color_foreground, 0.22);
+  border-color: alpha(@on_surface, 0.22);
 }
 
 .rec-popup-action.danger:hover {
-  background-color: alpha(@color_03, 0.2);
-  border-color: @color_03;
-  color: @color_03;
+  background-color: alpha(@tertiary, 0.2);
+  border-color: @tertiary;
+  color: @tertiary;
 }
 
 /* The former `.power-profile-item` rules (and their `.active` variant) are
@@ -251,23 +251,24 @@ window#bar label {
    the battery panel, whose rows reuse `.settings-net` (and its `.sel`). The
    rules became unreferenced at the same moment, so leaving them would have been
    dead CSS that still reads as if the popover existed. Note the old `.active`
-   inverted the text (background-on-@color_01 + `@color_background`); the
-   settings vocabulary deliberately does NOT — see `.settings-net.sel`. */
+   inverted the text (solid field + inverted ink); the settings vocabulary
+   deliberately does NOT — see `.settings-net.sel`. */
 
 /* ── Settings panel ─────────────────────────────────────────────────────
-   Second window in the always-on bar instance. Surface-panel = alpha(@color_00,
-   .94) + 1.5px @color_04 + radius 12; cards = alpha(@color_01,.18) + hairline.
-   Capability glyphs render bare; ITR bakes their tint into separate variants
-   so on = @color_13 (accent) and off = @color_11 (muted). Selected row =
-   @color_10 fill with FOREGROUND text (background-on-@color10 fails contrast).
-   Slider track =
-   alpha(@color_foreground,.16), fill @color_13, thumb @color_15. colors.css
-   tokens only; no literal colors. */
+   Second window in the always-on bar instance. Surface-panel = alpha(@surface,
+   .94) + 1.5px @primary + radius 12; cards =
+   alpha(@surface_container_high,.18) + hairline. Capability glyphs render
+   bare; ITR bakes their tint into separate variants so on = @primary (accent)
+   and off = @on_surface (neutral, dimmed by opacity). Selected row =
+   @primary_container fill with @on_primary_container text: a light @primary
+   fill would force every nested label and action to flip its ink. Slider
+   track = alpha(@on_surface,.16), fill @primary, thumb @on_surface. Semantic
+   roles only; no literal colors. */
 
 window.settings-catcher,
 window.settings-panel {
   background-color: transparent;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 /* Click-outside catcher fill. A fully transparent (alpha 0) layer surface is
@@ -275,12 +276,12 @@ window.settings-panel {
    imperceptible, but it makes the surface receive pointer events. The surface
    itself excludes the bar (see SettingsCatcher marginTop). */
 .settings-catcher-fill {
-  background-color: alpha(@color_00, 0.01);
+  background-color: alpha(@surface, 0.01);
 }
 
 .settings-surface {
-  background-color: alpha(@color_00, 0.94);
-  border: 1.5px solid @color_04;
+  background-color: alpha(@surface, 0.94);
+  border: 1.5px solid @primary;
   border-radius: 12px;
   padding: 11px;
 }
@@ -294,13 +295,13 @@ window.settings-panel {
 .settings-scroll scrollbar slider {
   min-width: 5px;
   border-radius: 5px;
-  background-color: alpha(@color_foreground, 0.25);
+  background-color: alpha(@on_surface, 0.25);
 }
 
 /* Cards */
 .settings-card {
-  background-color: alpha(@color_01, 0.18);
-  border: 1px solid alpha(@color_foreground, 0.10);
+  background-color: alpha(@surface_container_high, 0.18);
+  border: 1px solid alpha(@on_surface, 0.10);
   border-radius: 9px;
   padding: 10px 11px;
 }
@@ -312,8 +313,8 @@ window.settings-panel {
 
 /* Capability tile — icon is the toggle, row/chevron opens the list */
 .settings-tile {
-  background-color: alpha(@color_01, 0.18);
-  border: 1px solid alpha(@color_foreground, 0.10);
+  background-color: alpha(@surface_container_high, 0.18);
+  border: 1px solid alpha(@on_surface, 0.10);
   border-radius: 9px;
   padding: 8px 11px 8px 10px;
 }
@@ -325,18 +326,18 @@ window.settings-panel {
 
 .settings-tile-sub {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.62);
+  color: alpha(@on_surface, 0.62);
 }
 
 .settings-chevron {
   font-size: 16px;
-  color: alpha(@color_foreground, 0.5);
+  color: alpha(@on_surface, 0.5);
 }
 
 /* Icon toggle — the glyph IS the power switch. It renders bare: the on/off
-   tint is baked by ITR into two variants (`wifi`/`bluetooth` = accent,
-   `-off` = muted), so there is no background, border, or -gtk-icon-filter
-   container here. */
+   tint is baked by ITR into two variants (`wifi`/`bluetooth` = @primary,
+   `-off` = neutral @on_surface), so there is no background, border, or
+   -gtk-icon-filter container here. */
 .settings-icon-toggle {
   min-width: 34px;
   min-height: 34px;
@@ -362,10 +363,10 @@ window.settings-panel {
   min-height: 28px;
 }
 
-/* Off state reads by BRIGHTNESS, not hue: palette tokens can be near-identical
-   (e.g. color11 and color13 both yellow), so the pipeline renders the off
-   variant in the neutral foreground and this dims it — the GUI family's
-   disabled treatment. */
+/* Off state reads by BRIGHTNESS, not hue: roles can be near-identical on some
+   wallpapers (e.g. @secondary_container and @primary can both read as a
+   mid-tone), so the pipeline renders the off variant in neutral @on_surface
+   and this dims it — the GUI family's disabled treatment. */
 .settings-icon-toggle.off .settings-toggle-glyph {
   opacity: 0.4;
 }
@@ -380,16 +381,16 @@ window.settings-panel {
 .settings-mini {
   min-height: 0;
   padding: 10px;
-  background-color: alpha(@color_01, 0.18);
+  background-color: alpha(@surface_container_high, 0.18);
   background-image: none;
-  border: 1px solid alpha(@color_foreground, 0.10);
+  border: 1px solid alpha(@on_surface, 0.10);
   border-radius: 9px;
-  color: @color_foreground;
+  color: @on_surface;
   box-shadow: none;
 }
 
 .settings-mini:hover {
-  border-color: @color_04;
+  border-color: @primary;
 }
 
 /* Hyprmod glyph — bare, no icon box */
@@ -423,15 +424,15 @@ window.settings-panel {
   min-height: 26px;
   padding: 0;
   border-radius: 8px;
-  background-color: alpha(@color_foreground, 0.12);
+  background-color: alpha(@on_surface, 0.12);
   background-image: none;
   border: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .settings-back:hover {
-  background-color: alpha(@color_foreground, 0.2);
+  background-color: alpha(@on_surface, 0.2);
 }
 
 .settings-back-glyph {
@@ -459,7 +460,7 @@ window.settings-panel {
 }
 
 .settings-slider-glyph:hover {
-  background-color: alpha(@color_foreground, 0.1);
+  background-color: alpha(@on_surface, 0.1);
   border-radius: 6px;
 }
 
@@ -471,13 +472,13 @@ window.settings-panel {
   min-height: 10px;
   min-width: 10px;
   border-radius: 99px;
-  background-color: alpha(@color_foreground, 0.16);
+  background-color: alpha(@on_surface, 0.16);
   border: none;
 }
 
 .settings-level-slider trough highlight {
   border-radius: 99px;
-  background-color: @color_13;
+  background-color: @primary;
 }
 
 .settings-level-slider trough slider {
@@ -486,7 +487,7 @@ window.settings-panel {
   margin: -3px 0;
   border: none;
   border-radius: 50%;
-  background-color: @color_15;
+  background-color: @on_surface;
   box-shadow: none;
 }
 
@@ -503,16 +504,16 @@ window.settings-panel {
   border: none;
   border-radius: 7px;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .settings-net:hover {
-  background-color: alpha(@color_foreground, 0.08);
+  background-color: alpha(@on_surface, 0.08);
 }
 
 .settings-net.sel {
-  background-color: @color_10;
-  color: @color_foreground;
+  background-color: @primary_container;
+  color: @on_primary_container;
 }
 
 /* Paired but not currently seen (asleep / out of range): dimmed, Connect is
@@ -532,11 +533,11 @@ window.settings-panel {
 
 .settings-net-sub {
   font-size: 10.5px;
-  color: alpha(@color_foreground, 0.62);
+  color: alpha(@on_surface, 0.62);
 }
 
 .settings-net.sel .settings-net-sub {
-  color: alpha(@color_foreground, 0.85);
+  color: alpha(@on_primary_container, 0.85);
 }
 
 .settings-badge {
@@ -544,14 +545,14 @@ window.settings-panel {
   letter-spacing: 0.05em;
   padding: 2px 6px;
   border-radius: 20px;
-  background-color: alpha(@color_foreground, 0.12);
-  border: 1px solid alpha(@color_foreground, 0.14);
+  background-color: alpha(@on_surface, 0.12);
+  border: 1px solid alpha(@on_surface, 0.14);
 }
 
 .settings-badge.conn {
-  background-color: alpha(@color_13, 0.18);
-  border: 1px solid alpha(@color_13, 0.45);
-  color: @color_foreground;
+  background-color: alpha(@primary, 0.18);
+  border: 1px solid alpha(@primary, 0.45);
+  color: @on_surface;
 }
 
 .settings-rowact {
@@ -559,16 +560,16 @@ window.settings-panel {
   padding: 4px 8px;
   font-size: 11px;
   font-weight: 600;
-  border: 1px solid alpha(@color_foreground, 0.26);
+  border: 1px solid alpha(@on_surface, 0.26);
   border-radius: 7px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .settings-rowact:hover {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 /* In-flight / unavailable affordance: the row itself owns the action now, so
@@ -584,20 +585,20 @@ window.settings-panel {
 
 .settings-rowact.subtle:hover {
   opacity: 1;
-  border-color: alpha(@color_foreground, 0.4);
+  border-color: alpha(@on_surface, 0.4);
 }
 
 /* Destructive confirm (Unpair device). The border and the label carry the
-   weight, matching mock `.act.danger`; @color_03 is the palette's destructive
-   slot, @color_11 its muted counterpart for hover. */
+   weight, matching mock `.act.danger`; @tertiary is the attention/destructive
+   role, @secondary its muted neutral counterpart for hover. */
 .settings-rowact.danger {
-  border-color: @color_03;
-  color: @color_03;
+  border-color: @tertiary;
+  color: @tertiary;
 }
 
 .settings-rowact.danger:hover {
-  border-color: @color_11;
-  color: @color_11;
+  border-color: @secondary;
+  color: @secondary;
 }
 
 /* Row in inline-unpair-confirm state. The mock shows a faint wash so a row that
@@ -606,14 +607,14 @@ window.settings-panel {
    wins over the connected fill: a confirming row is a different mode, not a
    different connection state. */
 .settings-net.confirming {
-  background: alpha(@color_foreground, 0.06);
+  background: alpha(@on_surface, 0.06);
 }
 
 /* In-flight action spinner (connect / pair / disconnect) */
 .settings-spinner {
   min-width: 14px;
   min-height: 14px;
-  color: @color_13;
+  color: @primary;
 }
 
 /* Bluetooth row line 2 (approved mock `l2`): stacked meta block on the left,
@@ -652,11 +653,11 @@ window.settings-panel {
   min-width: 3px;
   min-height: 5px;
   border-radius: 1px;
-  background-color: alpha(@color_foreground, 0.28);
+  background-color: alpha(@on_surface, 0.28);
 }
 
 .settings-signal-bar.on {
-  background-color: @color_foreground;
+  background-color: @on_surface;
 }
 
 .settings-signal-bar:nth-child(2) {
@@ -671,10 +672,11 @@ window.settings-panel {
   min-height: 14px;
 }
 
-/* Wi-Fi password field — fields are surfaces, not holes (solid @color_01) */
+/* Wi-Fi password field — fields are surfaces, not holes
+   (solid @surface_container_highest) */
 .settings-password {
-  background-color: alpha(@color_01, 0.18);
-  border: 1px solid alpha(@color_foreground, 0.10);
+  background-color: alpha(@surface_container_high, 0.18);
+  border: 1px solid alpha(@on_surface, 0.10);
   border-radius: 9px;
   padding: 10px 11px;
 }
@@ -682,12 +684,12 @@ window.settings-panel {
 .settings-field-label {
   font-size: 10.5px;
   letter-spacing: 0.05em;
-  color: alpha(@color_foreground, 0.55);
+  color: alpha(@on_surface, 0.55);
 }
 
 .settings-field-input {
-  background-color: @color_01;
-  border: 1px solid alpha(@color_foreground, 0.22);
+  background-color: @surface_container_highest;
+  border: 1px solid alpha(@on_surface, 0.22);
   border-radius: 8px;
   padding: 8px 10px;
 }
@@ -699,8 +701,8 @@ window.settings-panel {
   box-shadow: none;
   padding: 0;
   min-height: 0;
-  color: @color_foreground;
-  caret-color: @color_13;
+  color: @on_surface;
+  caret-color: @primary;
 }
 
 .settings-field-input entry:focus {
@@ -710,12 +712,12 @@ window.settings-panel {
 }
 
 .settings-field-input entry placeholder {
-  color: alpha(@color_foreground, 0.5);
+  color: alpha(@on_surface, 0.5);
 }
 
 .settings-field-error {
   font-size: 11px;
-  color: @color_03;
+  color: @tertiary;
 }
 
 .settings-btnrow {
@@ -734,61 +736,59 @@ window.settings-panel {
 
 .settings-btn.cancel {
   background-color: transparent;
-  border: 1px solid alpha(@color_foreground, 0.28);
-  color: @color_foreground;
+  border: 1px solid alpha(@on_surface, 0.28);
+  color: @on_surface;
 }
 
 .settings-btn.cancel:hover {
-  border-color: alpha(@color_foreground, 0.45);
+  border-color: alpha(@on_surface, 0.45);
 }
 
 .settings-btn.join {
-  background-color: @color_06;
-  border: 1px solid @color_13;
-  color: @color_foreground;
+  background-color: @surface_container_high;
+  border: 1px solid @primary;
+  color: @on_surface;
 }
 
 .settings-btn.join:hover {
-  border-color: @color_15;
+  border-color: @on_surface;
 }
 
 /* Empty / inline message states */
 .settings-empty {
   padding: 18px 10px;
   font-size: 12px;
-  color: alpha(@color_foreground, 0.6);
+  color: alpha(@on_surface, 0.6);
 }
 
 .settings-message {
   font-size: 11.5px;
-  color: @color_03;
+  color: @tertiary;
 }
 
 
 /* ── Wi-Fi redesign ──────────────────────────────────────────────── */
 
 /* macOS-style power switch (native Gtk.Switch) — mock: 42x24 track,
-   radius 12, white 20px knob with slide transition + shadow, blue ON,
-   dimmed insensitive. ON uses @color_10, NOT @color_13: on the owner's
-   wallpaper @color_13 renders #dbab67 (tan/orange) while the mock's ON is
-   #3a8bfd blue; @color_10 (#549ec8) is the palette's true-blue slot and
-   the closest match. Knob is @color_15 (near-white) + the allowed black
-   shadow literal. (GTK has no `cursor` CSS property, so the insensitive
-   "default cursor" reads via the dim alone.) */
+   radius 12, near-white 20px knob with slide transition + shadow, accent
+   ON, dimmed insensitive. ON uses @primary (the action role); the knob is
+   @on_surface (near-white) plus the allowed black shadow literal. (GTK has
+   no `cursor` CSS property, so the insensitive "default cursor" reads via
+   the dim alone.) */
 .settings-switch {
   min-width: 42px;
   min-height: 24px;
   padding: 0;
   border-radius: 12px;
-  background-color: alpha(@color_foreground, 0.2);
+  background-color: alpha(@on_surface, 0.2);
   background-image: none;
   border: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
   transition: background-color 0.2s ease;
 }
 .settings-switch:checked {
-  background-color: @color_10;
+  background-color: @primary;
   background-image: none;
 }
 .settings-switch slider {
@@ -797,14 +797,14 @@ window.settings-panel {
   margin: 2px;
   padding: 0;
   border-radius: 50%;
-  background-color: @color_15;
+  background-color: @on_surface;
   background-image: none;
   border: none;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   transition: background-color 0.2s ease, margin 0.2s ease;
 }
 .settings-switch:checked slider {
-  background-color: @color_15;
+  background-color: @on_surface;
   background-image: none;
 }
 .settings-switch:disabled {
@@ -814,7 +814,7 @@ window.settings-panel {
 /* Connection details block (state-1-connected table) */
 .settings-divider {
   min-height: 1px;
-  background-color: alpha(@color_foreground, 0.06);
+  background-color: alpha(@on_surface, 0.06);
   margin: 4px 0;
 }
 .settings-conn-details {
@@ -825,7 +825,7 @@ window.settings-panel {
 }
 .settings-detail {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.5);
+  color: alpha(@on_surface, 0.5);
 }
 
 /* Signal icon in rows */
@@ -846,7 +846,7 @@ window.settings-panel {
 .settings-security-text {
   font-size: 12px;
   font-weight: 500;
-  color: @color_03;
+  color: @tertiary;
 }
 
 /* Section labels */
@@ -855,7 +855,7 @@ window.settings-panel {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: alpha(@color_foreground, 0.4);
+  color: alpha(@on_surface, 0.4);
   padding: 4px 16px;
 }
 
@@ -864,7 +864,7 @@ window.settings-panel {
   padding: 8px 16px;
 }
 .settings-chevron-row:hover {
-  background-color: alpha(@color_foreground, 0.05);
+  background-color: alpha(@on_surface, 0.05);
 }
 .settings-chevron-label {
   font-size: 13px;
@@ -879,23 +879,23 @@ window.settings-panel {
 /* Wi-Fi settings footer row */
 .settings-wifi-settings-row {
   padding: 10px 16px;
-  border-top: 1px solid alpha(@color_foreground, 0.06);
+  border-top: 1px solid alpha(@on_surface, 0.06);
 }
 .settings-wifi-settings-row:hover {
-  background-color: alpha(@color_foreground, 0.05);
+  background-color: alpha(@on_surface, 0.05);
 }
 .settings-eye-btn {
-  background-color: alpha(@color_foreground, 0.06);
-  border: 1px solid alpha(@color_foreground, 0.12);
+  background-color: alpha(@on_surface, 0.06);
+  border: 1px solid alpha(@on_surface, 0.12);
   border-radius: 6px;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
   font-size: 11px;
   padding: 3px 8px;
 }
-.settings-eye-btn:hover { border-color: alpha(@color_foreground, 0.28); }
+.settings-eye-btn:hover { border-color: alpha(@on_surface, 0.28); }
 .settings-eye-btn.active {
-  color: @color_13;
-  border-color: alpha(@color_13, 0.65);
+  color: @primary;
+  border-color: alpha(@primary, 0.65);
 }
 .settings-eye-icon {
   min-width: 16px;
@@ -917,14 +917,14 @@ window.settings-panel {
 /* Speed test config */
 .settings-speedtest-config {
   padding: 8px 16px;
-  border-top: 1px solid alpha(@color_foreground, 0.06);
+  border-top: 1px solid alpha(@on_surface, 0.06);
 }
 .settings-stc-title {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: alpha(@color_foreground, 0.4);
+  color: alpha(@on_surface, 0.4);
   margin-bottom: 6px;
 }
 .settings-stc-row {
@@ -932,69 +932,69 @@ window.settings-panel {
 }
 .settings-stc-label {
   font-size: 12px;
-  color: alpha(@color_foreground, 0.6);
+  color: alpha(@on_surface, 0.6);
 }
 .settings-stc-value {
   font-size: 12px;
-  color: alpha(@color_foreground, 0.8);
+  color: alpha(@on_surface, 0.8);
   font-weight: 500;
 }
 /* Millisecond interval field: surface per the GUI-family fields rule */
 .settings-stc-entry {
-  background-color: alpha(@color_foreground, 0.08);
-  border: 1px solid alpha(@color_foreground, 0.12);
+  background-color: alpha(@on_surface, 0.08);
+  border: 1px solid alpha(@on_surface, 0.12);
   border-radius: 6px;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 12px;
   padding: 3px 8px;
   min-height: 22px;
 }
 .settings-stc-hint {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.55);
+  color: alpha(@on_surface, 0.55);
 }
 .settings-stc-caption {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.4);
+  color: alpha(@on_surface, 0.4);
   padding: 2px 0;
 }
 .settings-chip-row {
   padding: 2px 0;
 }
 .settings-chip {
-  background-color: alpha(@color_foreground, 0.06);
-  border: 1px solid alpha(@color_foreground, 0.1);
+  background-color: alpha(@on_surface, 0.06);
+  border: 1px solid alpha(@on_surface, 0.1);
   border-radius: 12px;
-  color: alpha(@color_foreground, 0.7);
+  color: alpha(@on_surface, 0.7);
   font-size: 11px;
   padding: 2px 10px;
 }
 .settings-chip:hover {
-  border-color: alpha(@color_foreground, 0.25);
+  border-color: alpha(@on_surface, 0.25);
 }
 .settings-chip.active {
-  background-color: alpha(@color_13, 0.2);
-  border-color: @color_13;
-  color: @color_13;
+  background-color: alpha(@primary, 0.2);
+  border-color: @primary;
+  color: @primary;
 }
 .settings-stc-run-btn {
   font-size: 11px;
   font-weight: 600;
-  color: @color_10;
-  background: alpha(@color_10, 0.15);
+  color: @primary;
+  background: alpha(@primary, 0.15);
   border: none;
   border-radius: 6px;
   padding: 4px 12px;
 }
 .settings-stc-run-btn .settings-spinner {
-  color: @color_10;
+  color: @primary;
 }
 .settings-stc-run-btn.running {
   opacity: 1;
-  color: alpha(@color_10, 0.7);
+  color: alpha(@primary, 0.7);
 }
 .settings-stc-error {
-  color: @color_11;
+  color: @error;
   font-size: 11px;
 }
 .network-widget.speedtesting {
@@ -1002,7 +1002,7 @@ window.settings-panel {
 }
 @keyframes wifi-speedtesting {
   0%, 100% { background-color: transparent; border-color: transparent; }
-  50% { background-color: alpha(@color_13, 0.22); border-color: alpha(@color_13, 0.55); }
+  50% { background-color: alpha(@primary, 0.22); border-color: alpha(@primary, 0.55); }
 }
 
 /* ── Audio (add-pipewire-audio-control) ────────────────────────────────────
@@ -1016,7 +1016,7 @@ window.settings-panel {
 .audio-popup,
 .audio-catcher {
   background-color: transparent;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .audio-catcher-fill {
@@ -1024,8 +1024,8 @@ window.settings-panel {
 }
 
 .audio-surface {
-  background-color: alpha(@color_00, 0.94);
-  border: 1.5px solid @color_04;
+  background-color: alpha(@surface, 0.94);
+  border: 1.5px solid @primary;
   border-radius: 12px;
   padding: 11px;
 }
@@ -1039,7 +1039,7 @@ window.settings-panel {
 .audio-scroll scrollbar slider {
   min-width: 5px;
   border-radius: 5px;
-  background-color: alpha(@color_foreground, 0.25);
+  background-color: alpha(@on_surface, 0.25);
 }
 
 /* Rows: one layout rule — head line (glyph · name/sub · trailing), then the
@@ -1071,7 +1071,7 @@ window.settings-panel {
 
 .audio-row-sub {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.55);
+  color: alpha(@on_surface, 0.55);
 }
 
 /* Brand app icons are the LITERAL-COLOUR exception (the `app-icons` group is
@@ -1081,7 +1081,7 @@ window.settings-panel {
    mark legible on any wallpaper without altering the brand colours, and reads
    as an app chip against the popup's glass surface. */
 .audio-app-icon {
-  background-color: alpha(@color_foreground, 0.10);
+  background-color: alpha(@on_surface, 0.10);
   border-radius: 6px;
   padding: 2px;
 }
@@ -1098,14 +1098,14 @@ window.settings-panel {
   padding: 1px 7px;
   border-radius: 8px;
   background-color: rgba(162, 30, 36, 0.22);
-  color: @color_15;
+  color: @on_surface;
 }
 
 /* Muted (but present) stream: dim the slider fill, keep the value and the
    interaction — mute never destroys the level. Distinct from `:disabled`
    (stream-less row), which also drops interaction. */
 .audio-level-line.muted .settings-level-slider trough highlight {
-  background-color: alpha(@color_foreground, 0.35);
+  background-color: alpha(@on_surface, 0.35);
 }
 
 .audio-level-line.muted .settings-level-slider trough slider {
@@ -1147,11 +1147,11 @@ window.settings-panel {
 
 /* Routing select: the trailing control on each stream row. */
 .audio-routing {
-  background-color: alpha(@color_foreground, 0.06);
-  border: 1px solid alpha(@color_foreground, 0.14);
+  background-color: alpha(@on_surface, 0.06);
+  border: 1px solid alpha(@on_surface, 0.14);
   border-radius: 8px;
   padding: 2px 7px;
-  color: @color_foreground;
+  color: @on_surface;
   font-size: 11px;
 }
 
@@ -1166,11 +1166,11 @@ window.settings-panel {
 
 .audio-routing:hover,
 .audio-routing:active {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 .audio-routing-chevron {
-  color: alpha(@color_foreground, 0.6);
+  color: alpha(@on_surface, 0.6);
 }
 
 .audio-route-item {
@@ -1180,37 +1180,37 @@ window.settings-panel {
   box-shadow: none;
   border-radius: 6px;
   padding: 6px 10px;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .audio-route-item:hover,
 .audio-route-item:focus {
-  background-color: @color_10;
+  background-color: @primary_container;
 }
 
 /* Device subview rows (decision 1B). */
 .audio-device {
   background-color: transparent;
   background-image: none;
-  border: 1px solid alpha(@color_foreground, 0.10);
+  border: 1px solid alpha(@on_surface, 0.10);
   border-radius: 9px;
   padding: 8px 10px;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .audio-device.active {
-  background-color: @color_10;
-  border-color: @color_10;
+  background-color: @primary_container;
+  border-color: @primary;
 }
 
 .audio-device:hover,
 .audio-device:focus {
-  border-color: alpha(@color_foreground, 0.25);
+  border-color: alpha(@on_surface, 0.25);
 }
 
 .audio-device.active:hover,
 .audio-device.active:focus {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 /* Bar indicators. */
@@ -1231,7 +1231,7 @@ window.settings-panel {
   min-height: 8px;
   border-radius: 999px;
   background-color: #2ecc71;
-  border: 2px solid alpha(@color_00, 0.9);
+  border: 2px solid alpha(@surface, 0.9);
 }
 
 /* Bar dot uses its per-monitor wallpaper appearance; popup keeps the base ring. */
@@ -1240,7 +1240,7 @@ window.settings-panel {
 }
 
 .bar .audio-live-dot.bar-live-dot-ring {
-  border: 2px solid alpha(@color_00, 0.9);
+  border: 2px solid alpha(@surface, 0.9);
 }
 
 .audio-card-head {
@@ -1289,21 +1289,21 @@ window.settings-panel {
 /* D5: a paused row dims the fill; the knob is frozen because the interpolation
    tick only runs while the player is Playing. */
 .audio-transport.paused .settings-level-slider trough highlight {
-  background-color: alpha(@color_foreground, 0.5);
+  background-color: alpha(@on_surface, 0.5);
 }
 
 .audio-time {
   font-size: 11px;
-  color: alpha(@color_foreground, 0.55);
+  color: alpha(@on_surface, 0.55);
   font-variant-numeric: tabular-nums;
   min-width: 64px;
 }
 
 /* D1: master play/pause in the Output card — same glass as the routing pill. */
 .audio-master {
-  background-color: alpha(@color_foreground, 0.06);
+  background-color: alpha(@on_surface, 0.06);
   background-image: none;
-  border: 1px solid alpha(@color_foreground, 0.14);
+  border: 1px solid alpha(@on_surface, 0.14);
   border-radius: 7px;
   box-shadow: none;
   min-width: 26px;
@@ -1313,15 +1313,15 @@ window.settings-panel {
 
 .audio-master:hover,
 .audio-master:focus {
-  background-color: @color_10;
-  border-color: @color_10;
+  background-color: @primary_container;
+  border-color: @primary;
 }
 
 /* D7: default-sink check mark in the device subview; the width is reserved even
    when empty so the rows stay aligned. */
 .audio-check {
   min-width: 16px;
-  color: @color_13;
+  color: @primary;
   font-weight: 700;
 }
 
@@ -1334,8 +1334,8 @@ window.settings-panel {
    `.settings-wifi-settings-*` for the footer deep-link row. Only the things
    this panel has that the settings panel does not are declared here.
 
-   colors.css tokens only; no literal colors (same rule as the settings block
-   above). The rows sit on dark glass (`alpha(@color_00, .94)`), which is why
+   Semantic roles only; no literal colors (same rule as the settings block
+   above). The rows sit on dark glass (`alpha(@surface, .94)`), which is why
    the power-mode glyphs are guard-exempt and untinted here (design.md §2.2). */
 
 .battery-header-icon {
@@ -1349,7 +1349,7 @@ window.settings-panel {
   font-size: 12.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: alpha(@color_foreground, 0.72);
+  color: alpha(@on_surface, 0.72);
 }
 
 /* The hero: the single number the panel exists to answer, so it is the only
@@ -1364,7 +1364,7 @@ window.settings-panel {
   font-size: 30px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 /* `.sub` is empty when there is a number? No — it is always present. It goes
@@ -1374,7 +1374,7 @@ window.settings-panel {
    what tells the reader the number is missing (design.md §4.3). */
 .battery-hero-sub {
   font-size: 12px;
-  color: alpha(@color_foreground, 0.62);
+  color: alpha(@on_surface, 0.62);
 }
 
 /* ── the MODE rail — one 72×54 cell per declared mode ─────────────────────
@@ -1399,13 +1399,13 @@ window.settings-panel {
 }
 
 .battery-mode-cell:hover {
-  background-color: alpha(@color_foreground, 0.08);
+  background-color: alpha(@on_surface, 0.08);
 }
 
 /* The "where you are" indicator, in the row-selected token. No fill behind the
    cell: a solid block behind a 24px glyph would out-weigh the hero. */
 .battery-mode-cell.sel {
-  border-bottom-color: @color_10;
+  border-bottom-color: @primary;
 }
 
 /* Insensitive until the daemon answers: a cell that would silently do nothing
@@ -1419,11 +1419,11 @@ window.settings-panel {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: alpha(@color_foreground, 0.62);
+  color: alpha(@on_surface, 0.62);
 }
 
 .battery-mode-cell.sel .battery-mode-label {
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 /* The mode glyph: the rail sizes it 24px (the retired per-profile row used
@@ -1436,7 +1436,7 @@ window.settings-panel {
 /* ── the VARIANT control — rendered ONLY when the selected mode declares more
    than one variant. Built on the `.settings-rowact` pill geometry: 1px
    hairline, radius 7, 11/600. `.sel` swaps the border to the row-selected
-   token and adds a faint @color_10 wash — two channels, so colour is never
+   role and adds a faint @primary wash — two channels, so colour is never
    alone, and no new hue. */
 .battery-variant {
   padding: 2px 16px 8px 16px;
@@ -1447,21 +1447,21 @@ window.settings-panel {
   font-weight: 600;
   line-height: 1.2;
   padding: 4px 10px;
-  border: 1px solid alpha(@color_foreground, 0.26);
+  border: 1px solid alpha(@on_surface, 0.26);
   border-radius: 7px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @color_foreground;
+  color: @on_surface;
 }
 
 .battery-variant-opt:hover {
-  border-color: @color_10;
+  border-color: @primary;
 }
 
 .battery-variant-opt.sel {
-  border-color: @color_10;
-  background-color: alpha(@color_10, 0.18);
+  border-color: @primary;
+  background-color: alpha(@primary, 0.18);
 }
 
 .battery-variant-opt:disabled {
@@ -1482,7 +1482,7 @@ window.settings-panel {
    chevron alone. */
 .battery-deeplink {
   padding: 10px 16px;
-  border-top: 1px solid alpha(@color_foreground, 0.06);
+  border-top: 1px solid alpha(@on_surface, 0.06);
   background-color: transparent;
   background-image: none;
   border-radius: 0;
@@ -1495,5 +1495,5 @@ window.settings-panel {
 .battery-deeplink:hover,
 .battery-deeplink:active,
 .battery-deeplink:focus {
-  background-color: alpha(@color_foreground, 0.05);
+  background-color: alpha(@on_surface, 0.05);
 }
