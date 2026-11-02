@@ -226,3 +226,14 @@ user's `ags` instance was never replaced.
 6. Audio panel: neutral cards, `@primary` slider fills, `@on_surface` thumbs.
 7. Any remaining `@color_*` in a deployed stylesheet would mean the deployed
    file is stale; the repo and the new validation gate are clean.
+
+## Outcome
+
+Released `v0.2.0` and deployed via PIN-0124 on 2026-11-01:
+- installed bar is `v0.2.0`; deployed `style.css` has **0** `@color_*`
+  references (111 `@on_surface`, 45 `@primary`, 15 `@tertiary`,
+  8 `@surface_container_high`, 4 `@on_primary` …);
+- role set used by the CSS is fully defined by the live palette (conforming);
+- bar instance running, `doctor` clean; before/after screenshots in
+  `/tmp/opencode/ags-bar-visual-shots/` and the comparison page at
+  `/tmp/opencode/bar-compare/index.html`.
