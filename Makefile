@@ -1,10 +1,10 @@
 .PHONY: help platform-dev contracts-dev deps test-deps types test conformance drift ci bundle typecheck gates clean
 
-# The program tuple this app builds/tests against (AD-31/AD-34). v0.4.0 is the
+# The program tuple this app builds/tests against (AD-31/AD-34). v0.5.0 is the
 # theme-provider role tuple (palette.v1) the CSS migration consumes; v0.3.0 is
 # the contracts tuple. Both are LOCAL-ONLY in this run: local gates symlink
 # them from .dev/ (gitignored), CI checks out the tags explicitly once published.
-AGS_PLATFORM_VERSION := v0.4.0
+AGS_PLATFORM_VERSION := v0.5.0
 CONTRACTS_VERSION := v0.3.0
 AGS_PLATFORM_REPO := https://github.com/RandomGenericUsername/ags-platform.git
 AGS_PLATFORM_DEV ?=
@@ -26,7 +26,7 @@ help:
 	@echo "make gates        all gates: test + conformance + drift + bundle + typecheck"
 	@echo ""
 	@echo "Local-only tuple: put checkouts/symlinks at"
-	@echo "  .dev/ags-platform/v0.4.0  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
+	@echo "  .dev/ags-platform/v0.5.0  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
 	@echo "  .dev/contracts/v0.3.0     (or CONTRACTS_ROOT=/path/to/contracts)"
 
 # The platform shortcut. It MUST point outside node_modules: Node refuses to

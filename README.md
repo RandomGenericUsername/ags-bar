@@ -114,12 +114,12 @@ Full acceptance lives in `tickets/OPS-001-cutover-state-migration/ticket.md`.
 
 ## Local development
 
-The program tuple is `ags-platform` `v0.4.0` / `contracts` `v0.3.0` /
+The program tuple is `ags-platform` `v0.5.0` / `contracts` `v0.3.0` /
 `dotfiles-assets` `v0.3.0`. Those tags are local-only in this run; the local
 gates use a gitignored symlink under `.dev/`.
 
 ```sh
-ln -s ../../../ags-platform .dev/ags-platform/v0.4.0   # or use AGS_PLATFORM_DEV
+ln -s ../../../ags-platform .dev/ags-platform/v0.5.0   # or use AGS_PLATFORM_DEV
 ln -s ../../../contracts .dev/contracts/v0.3.0         # or use CONTRACTS_ROOT
 make test          # pure unit + validation suites + symbol check (Node only)
 make conformance   # manifest + restart/no-handler + install-time docs + template gate
