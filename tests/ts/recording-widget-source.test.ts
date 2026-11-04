@@ -43,6 +43,9 @@ test("the bar module keeps only visibility, the slot and the request client", ()
   assert.match(recording, /get_mapped\(\)/)
   assert.match(recording, /compute_bounds\(barWindow\)/)
   assert.match(recording, /set_can_target\(false\)/)
+  assert.match(recording, /preferences\.get\("capture-tool", "recording_controls", "top-bar"\)/)
+  assert.match(recording, /isTopBarControls\(controls\(\)\)/)
+  assert.match(recording, /visible: \(value\) => value !== "idle" && isTopBarControls/)
 })
 
 test("the old cluster CSS is deleted, not left as a duplicate", () => {

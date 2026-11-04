@@ -32,6 +32,7 @@ import {
   type MonitorFrame,
 } from "../../domain/cluster-slot"
 import { captureClusterIpc } from "../../lib/capture-cluster-ipc"
+import { isTopBarControls } from "../../domain/recording-presentation"
 
 type RecordingState = "idle" | "recording" | "paused"
 type DispatchKind = "show" | "update" | "hide"
@@ -65,6 +66,7 @@ function sameAnchor(left: ClusterAnchor | null, right: ClusterAnchor): boolean {
 export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<RecordingState> {
   const [state, setState] = createState<RecordingState>("idle")
   const compact = preferences.get("capture-tool", "bar_compact_controls", false)
+  const controls = preferences.get("capture-tool", "recording_controls", "top-bar")
   const monitorFrame: MonitorFrame = {
     connector: monitor.get_connector() ?? null,
     x: monitor.get_geometry().x,
@@ -202,7 +204,7 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
 
   function sync(force = false): void {
     if (disposed) return
-    if (state() === "idle") {
+    if (state() === "idle" || !isTopBarControls(controls())) {
       hideCurrent()
       return
     }
@@ -311,10 +313,21 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
     syncedAtMs = Date.now()
     jobId = nextJob
     setState(next)
-    if (next === "idle") {
+    if (next === "idle" || !isTopBarControls(controls())) {
       cancelDebounce()
       hideCurrent()
     } else {
+      schedule(0)
+    }
+  })
+
+  // A settings change while recording switches ownership immediately: leaving
+  // top-bar mode must remove the reserved slot and hide the capture cluster.
+  createEffect(() => {
+    if (!isTopBarControls(controls())) {
+      cancelDebounce()
+      hideCurrent()
+    } else if (state() !== "idle") {
       schedule(0)
     }
   })
@@ -335,14 +348,14 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
   // state change here. If capture is down, the retry path eventually flips
   // `shown` off; the next liveness `show` recreates it when capture returns.
   liveness = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, () => {
-    if (!disposed && state() !== "idle") sync(true)
+    if (!disposed && state() !== "idle" && isTopBarControls(controls())) sync(true)
     return true
   })
 
   return {
     id: "recording",
     read: () => state(),
-    visible: (value) => value !== "idle",
+    visible: (value) => value !== "idle" && isTopBarControls(controls()),
     class: "recording-slot",
     content: () => {
       const size = slotSize(compact())
