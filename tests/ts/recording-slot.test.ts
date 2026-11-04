@@ -22,8 +22,8 @@ const monitor: MonitorFrame = {
 test("compact and full slots reserve the documented footprints", () => {
   assert.deepEqual(slotSize(true), COMPACT_SLOT)
   assert.deepEqual(slotSize(false), FULL_SLOT)
-  assert.deepEqual(COMPACT_SLOT, { width: 76, height: 38 })
-  assert.deepEqual(FULL_SLOT, { width: 243, height: 46 })
+  assert.deepEqual(COMPACT_SLOT, { width: 113, height: 44 })
+  assert.deepEqual(FULL_SLOT, { width: 165, height: 44 })
 })
 
 test("a measured allocation becomes a monitor-local anchor", () => {

@@ -276,6 +276,13 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
       }
       hideCurrent()
     })
+    // The widget may already have been mapped before this handler ran (a
+    // reconfigured bar), and a one-shot recheck covers the first layout pass.
+    if (root.get_mapped()) schedule(0)
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+      if (!disposed) schedule(0)
+      return false
+    })
     return true
   }
 

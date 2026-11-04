@@ -41,11 +41,11 @@ export interface SlotSize {
   readonly height: number
 }
 
-/** The reserved slot for the compact (dot + timer) presentation. */
-export const COMPACT_SLOT: SlotSize = { width: 76, height: 38 }
+/** Compact bar card (109px) + its 4px right margin. */
+export const COMPACT_SLOT: SlotSize = { width: 113, height: 44 }
 
-/** The reserved slot for the full (dot + timer + Pause/Stop) presentation. */
-export const FULL_SLOT: SlotSize = { width: 243, height: 46 }
+/** Full bar card (161px) + its 4px right margin. */
+export const FULL_SLOT: SlotSize = { width: 165, height: 44 }
 
 export function slotSize(compact: boolean): SlotSize {
   return compact ? COMPACT_SLOT : FULL_SLOT

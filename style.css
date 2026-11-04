@@ -114,7 +114,7 @@ window#bar label {
    layout does not shift when a recording starts. There is deliberately no dot,
    timer, button, popover or fallback styling here. */
 .recording-slot {
-  padding: 0 8px;
+  padding: 0;
 }
 
 .recording-slot-reserve {
