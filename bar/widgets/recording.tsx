@@ -80,6 +80,7 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
   let rootWired = false
   let debounce: number | null = null
   let retry: number | null = null
+  let liveness: number | null = null
   let retryAttempt = 0
   let loggedFailure = false
   let jobId: string | null = null
@@ -134,36 +135,44 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
     kind: DispatchKind,
   ): void {
     cancelRetry()
-    void captureClusterIpc.send(request).then((result: ClusterResponse) => {
-      if (result.ok) {
-        retryAttempt = 0
-        return
-      }
-
-      if (kind === "hide" || !result.retryable) {
-        reportOnce(`${result.error} on ${kind}`)
-        return
-      }
-
-      if (retryAttempt >= RETRY_DELAYS.length) {
-        reportOnce(`${result.error} on ${kind} after retries`)
-        if (kind === "update" && shown && lastAnchor !== null) {
-          shown = false
-          const anchor = lastAnchor
-          lastAnchor = null
-          dispatch(clusterRequest("hide", nextSeq(), false, anchor, undefined), "hide")
+    void captureClusterIpc
+      .send(request)
+      .then((result: ClusterResponse) => {
+        if (result.ok) {
+          retryAttempt = 0
+          return
         }
-        return
-      }
 
-      const delay = RETRY_DELAYS[retryAttempt] ?? RETRY_DELAYS[2]
-      retryAttempt += 1
-      retry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
-        retry = null
-        if (!disposed) dispatch(request, kind)
-        return false
+        if (kind === "hide" || !result.retryable) {
+          reportOnce(`${result.error} on ${kind}`)
+          return
+        }
+
+        if (retryAttempt >= RETRY_DELAYS.length) {
+          reportOnce(`${result.error} on ${kind} after retries`)
+          if (kind === "update" && shown && lastAnchor !== null) {
+            shown = false
+            const anchor = lastAnchor
+            lastAnchor = null
+            dispatch(
+              clusterRequest("hide", nextSeq(), false, anchor, undefined),
+              "hide",
+            )
+          }
+          return
+        }
+
+        const delay = RETRY_DELAYS[retryAttempt] ?? RETRY_DELAYS[2]
+        retryAttempt += 1
+        retry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+          retry = null
+          if (!disposed) dispatch(request, kind)
+          return false
+        })
       })
-    })
+      .catch((error) => {
+        reportOnce(`transport threw on ${kind}: ${String(error)}`)
+      })
   }
 
   function measure(): ClusterAnchor | null {
@@ -191,7 +200,7 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
     dispatch(clusterRequest("hide", nextSeq(), false, anchor, undefined), "hide")
   }
 
-  function sync(): void {
+  function sync(force = false): void {
     if (disposed) return
     if (state() === "idle") {
       hideCurrent()
@@ -217,7 +226,7 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
       return
     }
 
-    if (!sameAnchor(lastAnchor, anchor) || lastCompact !== compactNow) {
+    if (force || !sameAnchor(lastAnchor, anchor) || lastCompact !== compactNow) {
       lastAnchor = anchor
       lastCompact = compactNow
       retryAttempt = 0
@@ -261,6 +270,10 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
       disposed = true
       cancelDebounce()
       cancelRetry()
+      if (liveness !== null) {
+        GLib.source_remove(liveness)
+        liveness = null
+      }
       hideCurrent()
     })
     return true
@@ -309,6 +322,14 @@ export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<Reco
     setState("idle")
     cancelDebounce()
     hideCurrent()
+  })
+
+  // Liveness: a keepalive update makes a capture restart recover without a
+  // state change here. If capture is down, the retry path eventually flips
+  // `shown` off; the next liveness `show` recreates it when capture returns.
+  liveness = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, () => {
+    if (!disposed && state() !== "idle") sync(true)
+    return true
   })
 
   return {

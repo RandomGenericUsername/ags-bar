@@ -39,7 +39,7 @@ test("the bar recording module does not own a cluster, popover or actions", () =
 test("the bar module keeps only visibility, the slot and the request client", () => {
   assert.match(recording, /domainEvents\.subscribe\("capture\.state"/)
   assert.match(recording, /anchorFromSlot/)
-  assert.match(recording, /captureClusterIpc\.send/)
+  assert.match(recording, /captureClusterIpc\s*\.\s*send/)
   assert.match(recording, /get_mapped\(\)/)
   assert.match(recording, /compute_bounds\(barWindow\)/)
   assert.match(recording, /set_can_target\(false\)/)
