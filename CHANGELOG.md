@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.0 — 2026-11-04
+
+### Added
+
+- The bar reserves a recording slot and asks capture (via the AGS request
+  channel) to draw the cluster at that slot; the bar itself no longer carries
+  the timer, popover or action controls.
+- The bar reads `recording_controls` from the capture-tool config and only
+  reserves a slot in `top-bar` mode. `hover`/`always` hide the slot and use the
+  capture tool's native bar.
+- A 15 s liveness update recovers the capture-drawn cluster after a capture
+  restart.
+
+### Changed
+
+- Platform pin is `v0.5.0` (new `capture-cluster` port). Compact/full controls
+  remain governed by `bar_compact_controls`.
+
 ## Unreleased
 
 - Migrate `style.css` and `audio/audio-panel.css` from legacy CSG `@color_*`

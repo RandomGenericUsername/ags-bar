@@ -1,218 +1,378 @@
+// ---------------------------------------------------------------------------
+// The bar's recording-cluster adapter (SPIKE-003 option B).
+//
+// The bar no longer draws the cluster, owns the timer, opens a popover or sends
+// Pause/Resume/Stop. It keeps:
+//   * a `capture.state` subscription for visibility,
+//   * a transparent slot reservation,
+//   * one measurement of that slot,
+//   * the request client that asks the capture process to draw at that rect.
+//
+// The capture instance owns the window, timer, popover and actions. There is no
+// duplicate fallback: if capture is down, this slot stays empty and one failure
+// is logged.
+// ---------------------------------------------------------------------------
+
 import GLib from "gi://GLib?version=2.0"
-import { createComputed, createEffect, createState } from "ags"
+import type Gdk from "gi://Gdk?version=4.0"
+import { createEffect, createState } from "ags"
 import { Gtk } from "ags/gtk4"
-import { registry } from "ags-platform/adapters/icon-registry"
 import { domainEvents } from "ags-platform/adapters/event-bus"
 import { preferences } from "ags-platform/adapters/preferences"
-import type { BarContext, RichWidgetSpec } from "../../kit/widget"
+import type {
+  ClusterAnchor,
+  ClusterObserved,
+  ClusterResponse,
+} from "ags-platform/ports/capture-cluster"
+import type { RichWidgetSpec } from "../../kit/widget"
+import {
+  anchorFromSlot,
+  clusterRequest,
+  slotSize,
+  type MonitorFrame,
+} from "../../domain/cluster-slot"
+import { captureClusterIpc } from "../../lib/capture-cluster-ipc"
+import { isTopBarControls } from "../../domain/recording-presentation"
 
 type RecordingState = "idle" | "recording" | "paused"
+type DispatchKind = "show" | "update" | "hide"
 
-function formatElapsed(seconds: number): string {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0")
-  const remainder = (seconds % 60).toString().padStart(2, "0")
-  return `${minutes}:${remainder}`
+const RETRY_DELAYS = [250, 1000, 2000]
+const DEBOUNCE_MS = 100
+const EDGE = "top" as const
+
+function recordingState(payload: Record<string, unknown>): RecordingState {
+  const next = payload.state
+  return next === "recording" || next === "paused" ? next : "idle"
 }
 
-function iconPath(variant: "pause" | "play" | "stop"): string {
-  return registry.resolve("capture-tool", variant) ?? ""
+function sameAnchor(left: ClusterAnchor | null, right: ClusterAnchor): boolean {
+  if (left === null) return false
+  return (
+    left.connector === right.connector &&
+    left.monitorX === right.monitorX &&
+    left.monitorY === right.monitorY &&
+    left.monitorWidth === right.monitorWidth &&
+    left.monitorHeight === right.monitorHeight &&
+    left.scale === right.scale &&
+    left.x === right.x &&
+    left.y === right.y &&
+    left.width === right.width &&
+    left.height === right.height &&
+    left.edge === right.edge
+  )
 }
 
-/**
- * Bar feedback mode, from the capture tool's `bar_compact_controls` setting.
- *
- * compact (`true`) — the bar shows only the dot + elapsed time and the popup
- * carries pause/resume/stop (no timer there: the bar already shows it).
- * full (`false`, default) — the bar carries the buttons itself and no popup
- * opens, so nothing is duplicated.
- *
- * Read through the `Preferences` port (spine AD-12): the adapter owns the config
- * file AND its `FileMonitor`, so the bar is a separate AGS instance from the
- * capture tool without reading the file itself or holding a monitor. A missing
- * or corrupt file degrades to the `false` fallback.
- */
-
-/**
- * The recording indicator, as a `RichWidgetSpec` (spine AD-8; doc 101 §5): a
- * dot + elapsed timer + buttons, so it is the rich shape. The shared shell owns
- * the root box (`rec-cluster`), its paused state class and its visibility; the
- * content is the cluster's children.
- *
- * The factory sets up the state and the hub subscription once per bar (the same
- * lifetime the old component had). It is driven by the hub's `capture.state`
- * domain event (AD-5): no polling. Between pushes the elapsed value is
- * interpolated locally from the recorded sync time — a rendered continuous
- * value, not a state read. `domainEvents.subscribe` hydrates
- * subscribe-before-read, so a bar that starts mid-recording renders immediately;
- * a hub restart resets the indicator before re-hydration. Control actions go
- * through the injected `ctx.hub.control` capability (AD-8); when the hub is
- * absent nothing is published (reduced functionality).
- */
-export function createRecordingWidget(): RichWidgetSpec<RecordingState> {
+export function createRecordingWidget(monitor: Gdk.Monitor): RichWidgetSpec<RecordingState> {
   const [state, setState] = createState<RecordingState>("idle")
-  const [elapsed, setElapsed] = createState("00:00")
-  // The port owns the config file + monitor (AD-12); the widget only reads.
   const compact = preferences.get("capture-tool", "bar_compact_controls", false)
+  const controls = preferences.get("capture-tool", "recording_controls", "top-bar")
+  const monitorFrame: MonitorFrame = {
+    connector: monitor.get_connector() ?? null,
+    x: monitor.get_geometry().x,
+    y: monitor.get_geometry().y,
+    width: monitor.get_geometry().width,
+    height: monitor.get_geometry().height,
+    scale: monitor.get_scale_factor(),
+  }
+
+  let reserve: Gtk.Box | null = null
+  let root: Gtk.Widget | null = null
+  let barWindow: Gtk.Widget | null = null
+  let rootWired = false
+  let debounce: number | null = null
+  let retry: number | null = null
+  let liveness: number | null = null
+  let retryAttempt = 0
+  let loggedFailure = false
   let jobId: string | null = null
   let baseElapsed = 0
   let syncedAtMs = Date.now()
-  // Gtk.Popover dismissal (Escape / outside-click) is native; Stop and hub
-  // restarts pop it down explicitly below.
-  let popup: Gtk.Popover | null = null
+  let seq = 0
+  let shown = false
+  let lastAnchor: ClusterAnchor | null = null
+  let lastCompact: boolean | null = null
+  let disposed = false
 
-  // The settings view writes the capture config; the port updates the accessor
-  // when the file changes. Leaving compact mode removes the click affordance, so
-  // close any popup — the behaviour the old in-widget monitor callback owned.
+  function nextSeq(): number {
+    seq += 1
+    return seq
+  }
+
+  function observed(): ClusterObserved {
+    const phase = state()
+    const liveElapsed =
+      phase === "recording"
+        ? baseElapsed + Math.floor((Date.now() - syncedAtMs) / 1000)
+        : baseElapsed
+    return {
+      phase,
+      jobId,
+      elapsedSeconds: Math.max(0, liveElapsed),
+    }
+  }
+
+  function cancelDebounce(): void {
+    if (debounce !== null) {
+      GLib.source_remove(debounce)
+      debounce = null
+    }
+  }
+
+  function cancelRetry(): void {
+    if (retry !== null) {
+      GLib.source_remove(retry)
+      retry = null
+    }
+  }
+
+  function reportOnce(message: string): void {
+    if (loggedFailure) return
+    loggedFailure = true
+    console.warn(`[bar] recording cluster: ${message}`)
+  }
+
+  function dispatch(
+    request: ReturnType<typeof clusterRequest>,
+    kind: DispatchKind,
+  ): void {
+    cancelRetry()
+    void captureClusterIpc
+      .send(request)
+      .then((result: ClusterResponse) => {
+        if (result.ok) {
+          retryAttempt = 0
+          return
+        }
+
+        if (kind === "hide" || !result.retryable) {
+          reportOnce(`${result.error} on ${kind}`)
+          return
+        }
+
+        if (retryAttempt >= RETRY_DELAYS.length) {
+          reportOnce(`${result.error} on ${kind} after retries`)
+          if (kind === "update" && shown && lastAnchor !== null) {
+            shown = false
+            const anchor = lastAnchor
+            lastAnchor = null
+            dispatch(
+              clusterRequest("hide", nextSeq(), false, anchor, undefined),
+              "hide",
+            )
+          }
+          return
+        }
+
+        const delay = RETRY_DELAYS[retryAttempt] ?? RETRY_DELAYS[2]
+        retryAttempt += 1
+        retry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+          retry = null
+          if (!disposed) dispatch(request, kind)
+          return false
+        })
+      })
+      .catch((error) => {
+        reportOnce(`transport threw on ${kind}: ${String(error)}`)
+      })
+  }
+
+  function measure(): ClusterAnchor | null {
+    if (!root || !barWindow || !root.get_mapped()) return null
+    const [ok, bounds] = root.compute_bounds(barWindow)
+    if (!ok) return null
+    return anchorFromSlot(
+      {
+        x: bounds.get_x(),
+        y: bounds.get_y(),
+        width: bounds.get_width(),
+        height: bounds.get_height(),
+      },
+      monitorFrame,
+      EDGE,
+    )
+  }
+
+  function hideCurrent(): void {
+    if (!shown || lastAnchor === null) return
+    shown = false
+    const anchor = lastAnchor
+    lastAnchor = null
+    lastCompact = null
+    dispatch(clusterRequest("hide", nextSeq(), false, anchor, undefined), "hide")
+  }
+
+  function sync(force = false): void {
+    if (disposed) return
+    if (state() === "idle" || !isTopBarControls(controls())) {
+      hideCurrent()
+      return
+    }
+    if (!ensureRoot()) return
+    const anchor = measure()
+    if (anchor === null) {
+      hideCurrent()
+      return
+    }
+
+    const compactNow = compact()
+    if (!shown) {
+      shown = true
+      lastAnchor = anchor
+      lastCompact = compactNow
+      retryAttempt = 0
+      dispatch(
+        clusterRequest("show", nextSeq(), compactNow, anchor, observed()),
+        "show",
+      )
+      return
+    }
+
+    if (force || !sameAnchor(lastAnchor, anchor) || lastCompact !== compactNow) {
+      lastAnchor = anchor
+      lastCompact = compactNow
+      retryAttempt = 0
+      dispatch(
+        clusterRequest("update", nextSeq(), compactNow, anchor, observed()),
+        "update",
+      )
+    }
+  }
+
+  function schedule(delay = DEBOUNCE_MS): void {
+    if (disposed) return
+    cancelDebounce()
+    debounce = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+      debounce = null
+      sync()
+      return false
+    })
+  }
+
+  function wireRoot(): boolean {
+    if (rootWired) return root !== null
+    if (!reserve) return false
+    const parent = reserve.get_parent()
+    if (!parent) return false
+    root = parent
+    barWindow = root.get_root() as Gtk.Widget | null
+    if (!barWindow) {
+      root = null
+      return false
+    }
+    rootWired = true
+    root.connect("map", () => schedule(0))
+    root.connect("unmap", () => {
+      cancelDebounce()
+      hideCurrent()
+    })
+    root.connect("notify::width", () => schedule(50))
+    root.connect("notify::height", () => schedule(50))
+    root.connect("destroy", () => {
+      disposed = true
+      cancelDebounce()
+      cancelRetry()
+      if (liveness !== null) {
+        GLib.source_remove(liveness)
+        liveness = null
+      }
+      hideCurrent()
+    })
+    // The widget may already have been mapped before this handler ran (a
+    // reconfigured bar), and a one-shot recheck covers the first layout pass.
+    if (root.get_mapped()) schedule(0)
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+      if (!disposed) schedule(0)
+      return false
+    })
+    return true
+  }
+
+  function ensureRoot(): boolean {
+    if (rootWired) return root !== null
+    return wireRoot()
+  }
+
+  // The spacer reserves the cluster's footprint. `.widget` adds the bar's
+  // existing 0 8px padding around it; the measured allocation (not this
+  // spacer) is what the capture process receives.
   createEffect(() => {
-    if (!compact()) popup?.popdown()
+    const size = slotSize(compact())
+    reserve?.set_size_request(size.width, size.height)
+    schedule(0)
   })
 
-  function reset(): void {
+  domainEvents.subscribe("capture.state", (_topic, payload) => {
+    const next = recordingState(payload as Record<string, unknown>)
+    const nextJob = typeof payload.job_id === "string" ? payload.job_id : null
+    if (nextJob !== jobId) {
+      loggedFailure = false
+      retryAttempt = 0
+    }
+    baseElapsed = Number(payload.elapsed_seconds) || 0
+    syncedAtMs = Date.now()
+    jobId = nextJob
+    setState(next)
+    if (next === "idle" || !isTopBarControls(controls())) {
+      cancelDebounce()
+      hideCurrent()
+    } else {
+      schedule(0)
+    }
+  })
+
+  // A settings change while recording switches ownership immediately: leaving
+  // top-bar mode must remove the reserved slot and hide the capture cluster.
+  createEffect(() => {
+    if (!isTopBarControls(controls())) {
+      cancelDebounce()
+      hideCurrent()
+    } else if (state() !== "idle") {
+      schedule(0)
+    }
+  })
+
+  // A hub restart invalidates the old job. The bus re-hydrates afterwards.
+  domainEvents.onRestart(() => {
     jobId = null
     baseElapsed = 0
     syncedAtMs = Date.now()
+    retryAttempt = 0
+    loggedFailure = false
     setState("idle")
-    setElapsed("00:00")
-    popup?.popdown()
-  }
-
-  domainEvents.subscribe("capture.state", (_topic, payload) => {
-    const next = payload.state
-    const validState: RecordingState =
-      next === "recording" || next === "paused" ? next : "idle"
-    baseElapsed = Number(payload.elapsed_seconds) || 0
-    syncedAtMs = Date.now()
-    jobId = typeof payload.job_id === "string" ? payload.job_id : null
-    setState(validState)
-    setElapsed(formatElapsed(baseElapsed))
+    cancelDebounce()
+    hideCurrent()
   })
 
-  // A hub restart (new epoch) invalidates the old capture job: clear the
-  // stale indicator, then the bus re-hydrates `capture.state` and re-renders
-  // it if a capture is still live.
-  domainEvents.onRestart(reset)
-
-  GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-    if (state() === "recording") {
-      const interpolated = baseElapsed + Math.floor((Date.now() - syncedAtMs) / 1000)
-      setElapsed(formatElapsed(interpolated))
-    }
+  // Liveness: a keepalive update makes a capture restart recover without a
+  // state change here. If capture is down, the retry path eventually flips
+  // `shown` off; the next liveness `show` recreates it when capture returns.
+  liveness = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, () => {
+    if (!disposed && state() !== "idle" && isTopBarControls(controls())) sync(true)
     return true
   })
-
-  function send(ctx: BarContext, action: "pause" | "resume" | "stop"): void {
-    if (jobId !== null) ctx.hub.control(jobId, action)
-    if (action === "stop") popup?.popdown()
-  }
-
-  function toggle(ctx: BarContext): void {
-    send(ctx, state() === "recording" ? "pause" : "resume")
-  }
-
-  // Derived bindings off the single `state` signal — the popup mirrors the
-  // cluster with no second subscription and no new timer.
-  const dotClass = state((value) => (value === "paused" ? "rec-dot paused" : "rec-dot"))
-  const popupClass = state((value) => (value === "paused" ? "rec-popup paused" : "rec-popup"))
-  const statusText = state((value) => (value === "paused" ? "Recording paused" : "Recording"))
-  const toggleLabel = state((value) => (value === "recording" ? "Pause" : "Resume"))
-  const toggleTip = state((value) =>
-    value === "recording" ? "Pause recording" : "Resume recording",
-  )
-  // The port's accessor is the pure `ReadAccessor` (callable with no argument),
-  // not gnim's selector-callable `Accessor`; derive the full-mode flag from it.
-  const fullMode = createComputed(() => !compact())
 
   return {
     id: "recording",
     read: () => state(),
-    visible: (value) => value !== "idle",
-    class: "rec-cluster",
-    stateClass: (value) => (value === "paused" ? "paused" : null),
-    content: (_value, ctx) => (
-      <>
-        <button
-          class="rec-status"
-          // gnim maps a JSX prop's accessor branch as `Accessor<NonNullable<T>>`,
-          // which strips `null` even though the property itself (`tooltipText`)
-          // is `string | null` and the raw branch accepts null. A reactive tooltip
-          // that is legitimately ABSENT in full mode is therefore not expressible
-          // as a prop. The GObject setter takes `string | null`, so it is driven
-          // directly instead of casting away the null.
+    visible: (value) => value !== "idle" && isTopBarControls(controls()),
+    class: "recording-slot",
+    content: () => {
+      const size = slotSize(compact())
+      return (
+        <box
+          class="recording-slot-reserve"
+          widthRequest={size.width}
+          heightRequest={size.height}
           $={(self) => {
-            createEffect(() =>
-              self.set_tooltip_text(compact() ? "Recording controls" : null),
-            )
+            reserve = self
+            self.set_size_request(size.width, size.height)
+            self.set_can_target(false)
+            wireRoot()
+            schedule(0)
           }}
-          onClicked={() => {
-            // Only the compact mode has a popup: in full mode the controls are
-            // already in the bar, so opening one would just duplicate them.
-            if (compact()) popup?.popup()
-          }}
-        >
-          <box spacing={6}>
-            <box class={dotClass} valign={Gtk.Align.CENTER} />
-            <label class="rec-timer" label={elapsed} />
-          </box>
-        </button>
-        <button
-          visible={fullMode}
-          class="rec-btn"
-          tooltipText={toggleTip}
-          onClicked={() => toggle(ctx)}
-        >
-          <image
-            pixel_size={16}
-            $={(self) => {
-              createEffect(() => {
-                self.set_from_file(iconPath(state() === "recording" ? "pause" : "play"))
-              })
-            }}
-          />
-        </button>
-        <button
-          visible={fullMode}
-          class="rec-btn stop"
-          tooltipText="Stop recording"
-          onClicked={() => send(ctx, "stop")}
-        >
-          <image pixel_size={16} $={(self) => self.set_from_file(iconPath("stop"))} />
-        </button>
-        <popover $={(self) => (popup = self)}>
-          <box orientation={1} class={popupClass}>
-            <box class="rec-popup-row" spacing={8}>
-              <box class={dotClass} valign={Gtk.Align.CENTER} />
-              <label label={statusText} />
-            </box>
-            {/* No big timer: the bar already shows the elapsed time in compact
-                mode, which is the only mode that opens this popup. */}
-            <box class="rec-popup-actions" homogeneous spacing={8}>
-              <button class="rec-popup-action" tooltipText={toggleTip} onClicked={() => toggle(ctx)}>
-                <box spacing={7}>
-                  <image
-                    pixel_size={16}
-                    $={(self) => {
-                      createEffect(() => {
-                        self.set_from_file(iconPath(state() === "recording" ? "pause" : "play"))
-                      })
-                    }}
-                  />
-                  <label label={toggleLabel} />
-                </box>
-              </button>
-              <button
-                class="rec-popup-action danger"
-                tooltipText="Stop recording"
-                onClicked={() => send(ctx, "stop")}
-              >
-                <box spacing={7}>
-                  <image pixel_size={16} $={(self) => self.set_from_file(iconPath("stop"))} />
-                  <label label="Stop" />
-                </box>
-              </button>
-            </box>
-          </box>
-        </popover>
-      </>
-    ),
+        />
+      )
+    },
   }
 }

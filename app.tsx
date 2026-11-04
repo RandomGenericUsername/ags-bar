@@ -16,6 +16,7 @@ import { BatteryPopup, BatteryPopupCatcher } from "./components/battery/BatteryP
 import { closeBatteryPopup } from "./components/battery/state"
 import { closeWifiPopup } from "./components/wifi/state"
 import { theme } from "ags-platform/adapters/theme"
+import { captureClusterIpc } from "./lib/capture-cluster-ipc"
 import "./overlays"
 
 /**
@@ -57,6 +58,9 @@ app.start({
       closeAudio()
       closeWifiPopup()
       closeBatteryPopup()
+      // The recording popover belongs to the capture process now (SPIKE-003
+      // option B). Best-effort: a capture restart must not make Esc fail.
+      void captureClusterIpc.popoverClose()
       res("ok")
       return
     }
