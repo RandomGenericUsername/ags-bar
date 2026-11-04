@@ -1,3 +1,4 @@
+import type Gdk from "gi://Gdk?version=4.0"
 import type { AnyWidgetSpec, BarContext } from "../kit/widget"
 import type { AudioPanelBinding } from "../audio/AudioPopup"
 import type { BarBackdrop } from "../lib/bar-backdrop"
@@ -33,6 +34,8 @@ import { powerMenuWidget } from "./widgets/power-menu"
 export interface BarDeps {
   readonly audio: AudioPanelBinding
   readonly backdrop: BarBackdrop
+  /** The monitor this bar instance is on; the recording slot reports it. */
+  readonly monitor: Gdk.Monitor
 }
 
 export function createWidgetRegistry(
@@ -42,7 +45,7 @@ export function createWidgetRegistry(
   widgets.set("workspaces", workspacesWidget)
   widgets.set("clock", clockWidget)
   widgets.set("tray", createTrayWidget())
-  widgets.set("recording", createRecordingWidget())
+  widgets.set("recording", createRecordingWidget(deps.monitor))
   widgets.set("audio-output", createAudioOutputWidget(deps.audio))
   widgets.set("audio-mic", createAudioMicWidget(deps.audio, deps.backdrop !== "dark"))
   widgets.set("battery", createBatteryWidget())

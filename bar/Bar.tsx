@@ -35,7 +35,7 @@ export default function Bar(gdkmonitor: Gdk.Monitor, audio: AudioPanelBinding) {
     BAR_MANIFEST.capabilities,
   )
   for (const warning of warnings) console.warn(`[bar] layout: ${warning}`)
-  const widgets = createWidgetRegistry({ audio, backdrop })
+  const widgets = createWidgetRegistry({ audio, backdrop, monitor: gdkmonitor })
   const ctx: BarContext = createBarContext()
 
   const renderSection = (entries: readonly BarEntry[] | undefined) =>

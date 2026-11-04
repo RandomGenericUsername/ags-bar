@@ -109,140 +109,19 @@ window#bar label {
   padding: 0 8px;
 }
 
-/* Recording indicator (capture tool) — cluster + popup card, ported from
-   spikes/capture-tool-ui/mockup.css (.rec-cluster, .rec-dot, .rec-timer,
-   .rec-btn, .popup, .popup-row, .popup-time, .popup-actions) and adapted to
-   GTK4 CSS: color-mix() becomes alpha(), the 2-col grid becomes a homogeneous
-   box, backdrop-filter is dropped (GTK has no such property).
-
-   Every surface is a semantic role — paused/attention states use @tertiary,
-   the palette's caution slot already used by .rec-dot.paused. The ONE literal
-   in the capture stack is the pulsing record dot (#e0605f): "REC" must read as
-   red regardless of wallpaper, and the dot's pulse ring shares it. The dot
-   pulse uses @keyframes where the GTK theme engine honors them and degrades to
-   a static dot otherwise. */
-.rec-cluster {
-  background-color: alpha(@surface, 0.55);
-  border: 1px solid alpha(@on_surface, 0.12);
-  border-radius: 10px;
-  padding: 4px 8px 4px 10px;
-  margin-right: 4px;
-}
-
-.rec-cluster.paused {
-  border-color: alpha(@tertiary, 0.45);
-}
-
-.rec-dot {
-  min-width: 9px;
-  min-height: 9px;
-  border-radius: 999px;
-  background-color: #e0605f;
-  animation: rec-pulse 1.6s ease-out infinite;
-}
-
-@keyframes rec-pulse {
-  0% {
-    box-shadow: 0 0 0 0 alpha(#e0605f, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 8px alpha(#e0605f, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 alpha(#e0605f, 0);
-  }
-}
-
-.rec-dot.paused {
-  background-color: @tertiary;
-  animation: none;
-  box-shadow: none;
-}
-
-.rec-status {
-  background-color: transparent;
-  background-image: none;
-  border: none;
-  box-shadow: none;
-  padding: 0 2px;
-  color: @on_surface;
-}
-
-.rec-timer {
-  padding: 0 6px;
-  font-size: 13px;
-  font-weight: bold;
-  font-variant-numeric: tabular-nums;
-  min-width: 46px;
-  color: @on_surface;
-}
-
-.rec-btn {
-  min-width: 26px;
-  min-height: 26px;
-  padding: 0;
-  border-radius: 7px;
-  background-color: transparent;
-  background-image: none;
-  border: none;
-  box-shadow: none;
-  color: @on_surface;
-}
-
-.rec-btn:hover,
-.rec-btn:active,
-.rec-btn:checked,
-.rec-btn:focus {
-  background-color: alpha(@on_surface, 0.1);
-  background-image: none;
-  border: none;
-  box-shadow: none;
-}
-
-.rec-btn.stop:hover {
-  background-color: alpha(@tertiary, 0.22);
-  color: @tertiary;
-}
-
-.rec-popup {
-  min-width: 216px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background-color: alpha(@surface, 0.92);
-  border: 1px solid alpha(@on_surface, 0.12);
-}
-
-.rec-popup.paused {
-  border-color: alpha(@tertiary, 0.45);
-}
-
-.rec-popup-row {
-  font-size: 13px;
-  font-weight: 600;
-  color: @on_surface;
-}
-
-.rec-popup-action {
-  min-height: 38px;
+/* Recording cluster slot (SPIKE-003 option B). The capture process draws the
+   cluster; this bar keeps only an empty, non-targetable reservation so the
+   layout does not shift when a recording starts. There is deliberately no dot,
+   timer, button, popover or fallback styling here. */
+.recording-slot {
   padding: 0 8px;
-  border-radius: 9px;
-  border: 1px solid alpha(@on_surface, 0.12);
-  background-color: alpha(@surface, 0.45);
+}
+
+.recording-slot-reserve {
+  background-color: transparent;
   background-image: none;
+  border: none;
   box-shadow: none;
-  color: @on_surface;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.rec-popup-action:hover {
-  border-color: alpha(@on_surface, 0.22);
-}
-
-.rec-popup-action.danger:hover {
-  background-color: alpha(@tertiary, 0.2);
-  border-color: @tertiary;
-  color: @tertiary;
 }
 
 /* The former `.power-profile-item` rules (and their `.active` variant) are
