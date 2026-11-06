@@ -245,6 +245,7 @@ body.is-closed .audio-pop {
 }
 
 .pop-scroll {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -262,7 +263,8 @@ body.is-closed .audio-pop {
 /* ── hero: output ────────────────────────────────────────────── */
 
 .hero {
-  padding: 12px 16px 14px;
+  flex: 0 0 auto;
+  padding: 10px 16px 10px;
   border-bottom: 1px solid var(--hairline-soft);
 }
 
@@ -270,8 +272,8 @@ body.is-closed .audio-pop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 26px;
-  margin-bottom: 6px;
+  min-height: 24px;
+  margin-bottom: 4px;
 }
 
 .caption-row {
@@ -331,7 +333,7 @@ body.is-closed .audio-pop {
 
 .device {
   width: 100%;
-  min-height: 44px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -366,7 +368,7 @@ body.is-closed .audio-pop {
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 14px;
-  margin-top: 10px;
+  margin-top: 6px;
   min-height: 40px;
 }
 
@@ -390,7 +392,7 @@ body.is-closed .audio-pop {
 .is-output-muted .big-value { opacity: .42; }
 
 .hero-note {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 10.5px;
   color: var(--ink-faint);
 }
@@ -518,13 +520,57 @@ body.is-closed .audio-pop {
   color: var(--ink-dim);
 }
 
-/* ── audio: one horizontally snap-scrolling page per app ─────── */
+/* ── app deck: Playing | Mixer ───────────────────────────────── */
 
-.audio-carousel {
+.deck { border-bottom: 1px solid var(--hairline-soft); }
+
+.deck-head {
+  height: 38px;
+  display: flex;
+  align-items: stretch;
+  padding: 0 16px;
+}
+.mode-tabs { display: flex; align-items: stretch; gap: 20px; }
+.mode-tab {
+  position: relative;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 1px;
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-weight: 650;
+  transition: color .16s;
+}
+.mode-tab:hover { color: var(--ink); }
+.mode-tab.is-selected { color: var(--ink); }
+.mode-tab.is-selected::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.mode-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 138, 106, .12);
+}
+
+/* Playing carousel */
+
+.playing-carousel {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 0 6px 10px;
+  padding: 0 6px 6px;
 }
 .carousel-btn {
   flex: 0 0 24px;
@@ -539,7 +585,7 @@ body.is-closed .audio-pop {
 .carousel-btn:hover { background: var(--control-hover); color: var(--ink); }
 .carousel-btn[hidden] { display: none; }
 
-.page-viewport {
+.playing-viewport {
   flex: 1;
   min-width: 0;
   overflow-x: auto;
@@ -549,34 +595,34 @@ body.is-closed .audio-pop {
   scrollbar-width: none;
   transition: height .18s ease;
 }
-.page-viewport::-webkit-scrollbar { display: none; }
+.playing-viewport::-webkit-scrollbar { display: none; }
+.playing-track { display: flex; align-items: flex-start; }
 
-.page-track { display: flex; align-items: flex-start; }
-
-.app-page {
+.playing-page {
   flex: 0 0 100%;
   width: 100%;
   min-width: 0;
   scroll-snap-align: start;
-  padding: 8px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.page-head {
+.playing-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
+  min-height: 28px;
 }
 .app-art {
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
-  font-size: 11.5px;
+  border-radius: 7px;
+  font-size: 10.5px;
   font-weight: 700;
   color: rgba(255, 255, 255, .94);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
@@ -590,12 +636,12 @@ body.is-closed .audio-pop {
 }
 .app-vlc { background: radial-gradient(circle at 30% 24%, #ffcf7a, #c2410c 74%); }
 
-.page-meta { flex: 1; min-width: 0; display: grid; gap: 3px; }
-.page-name-line {
+.playing-meta {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
 }
 .app-name {
   min-width: 0;
@@ -634,35 +680,12 @@ body.is-closed .audio-pop {
   background: var(--live);
 }
 
-.route {
-  max-width: 120px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: var(--r-control);
-  background: var(--control-bg);
-  color: var(--ink-dim);
-  font-size: 10.5px;
-  font-weight: 550;
-  transition: background .16s, color .16s;
-}
-.route:hover { background: var(--control-hover); color: var(--ink); }
-.route .rt {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.page-player { display: grid; gap: 2px; }
-
 .player-strip {
-  min-height: 60px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 0;
 }
 
 .artwork {
@@ -727,8 +750,6 @@ body.is-closed .audio-pop {
   color: var(--ink-dim);
 }
 
-/* Five actions share one 60px row: the secondary icons keep a
-   40px vertical target but are narrow (24px). Play is 34px. */
 .transport-inline {
   flex: 0 0 auto;
   display: flex;
@@ -761,7 +782,7 @@ body.is-closed .audio-pop {
   filter: brightness(1.06);
 }
 
-.media-seek { padding: 0 0 2px; }
+.media-seek { padding: 0; }
 .range.seek-slim {
   --range-fill: var(--accent);
   height: 18px;
@@ -786,58 +807,183 @@ body.is-closed .audio-pop {
   font-variant-numeric: tabular-nums;
 }
 
-.page-audio-only {
-  padding: 2px 0 2px;
-  font-size: 11.5px;
-  color: var(--ink-faint);
-}
-
-.page-volume {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px;
-}
-.page-value {
+/* Read-only app level; clicking opens Mixer focused on this app. */
+.playing-level {
+  align-self: flex-start;
+  height: 30px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  min-width: 38px;
-}
-.page-pct {
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border-radius: 7px;
+  color: var(--ink-faint);
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  transition: background .16s, color .16s;
 }
-.page-mixed {
-  font-size: 10.5px;
-  color: var(--ink-faint);
-  line-height: 1.2;
-}
+.playing-level:hover { background: var(--control-hover); color: var(--ink-dim); }
+.playing-level .lvl-mixed { font-weight: 400; }
 
-.audio-empty {
+.playing-empty {
   flex: 0 0 100%;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 6px 14px;
+  padding: 10px 8px 14px;
 }
-.audio-empty .empty-art {
+.playing-empty .empty-art {
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
   border-radius: var(--r-control);
   opacity: .7;
 }
-.audio-empty .t {
+.playing-empty .t {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-dim);
 }
-.audio-empty .s {
+.playing-empty .s {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  line-height: 1.4;
+}
+
+/* Mixer list */
+
+.mixer-list { padding: 0 8px 4px; }
+.mixer-row {
+  padding: 4px 8px;
+  border-radius: var(--r-card);
+  transition: background .16s;
+}
+.mixer-row + .mixer-row { border-top: 1px solid var(--hairline-soft); }
+.mixer-row.is-focused { background: rgba(255, 255, 255, .045); }
+
+.mixer-head {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+}
+.mixer-meta { min-width: 0; display: grid; gap: 0; }
+.mixer-name-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.playing-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, .12);
+}
+.mixer-sub {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.route {
+  max-width: 100px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: var(--r-control);
+  background: var(--control-bg);
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  font-weight: 550;
+  transition: background .16s, color .16s;
+}
+.route:hover { background: var(--control-hover); color: var(--ink); }
+.route .rt {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mixer-play {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--ink-dim);
+  transition: background .16s, color .16s;
+}
+.mixer-play:hover { background: var(--control-hover); color: var(--ink); }
+
+.mixer-controls {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding-left: 34px;
+}
+.mixer-mute {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--ink-dim);
+  transition: background .16s, color .16s;
+}
+.mixer-mute:hover { background: var(--control-hover); color: var(--ink); }
+.mixer-mute.is-on { color: var(--accent); background: rgba(255, 138, 106, .12); }
+
+.mixer-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 40px;
+}
+.mixer-pct {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.mixer-mixed {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  line-height: 1.2;
+}
+
+.mixer-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 14px;
+}
+.mixer-empty .empty-art {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-control);
+  opacity: .7;
+}
+.mixer-empty .t {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.mixer-empty .s {
   margin-top: 2px;
   font-size: 10.5px;
   color: var(--ink-faint);
@@ -1075,70 +1221,86 @@ body.is-closed .audio-pop {
 
 <!-- Anchored sound popover -->
 <main class="audio-pop" id="panel" role="dialog" aria-modal="false" aria-label="Sound" tabindex="-1">
+  <!-- Persistent header: the master output never scrolls away. -->
+  <section class="hero" aria-labelledby="outputCaption">
+    <div class="hero-top">
+      <div class="caption-row">
+        <span class="caption" id="outputCaption">Output</span>
+        <span class="muted-pill" id="mutedPill" hidden>Muted</span>
+      </div>
+      <button class="icon-btn" id="outputMute" aria-pressed="false" aria-label="Mute output"></button>
+    </div>
+
+    <button class="device" id="outputDevice" aria-haspopup="menu" aria-expanded="false" aria-label="Choose output device">
+      <span class="dev-icon" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
+          <path d="M17 9.5a4 4 0 0 1 0 5"></path>
+        </svg>
+      </span>
+      <span class="dev-name" id="outputDeviceName">Studio monitors</span>
+      <span class="dev-note">Default</span>
+      <span class="chev" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </span>
+    </button>
+
+    <div class="level-row">
+      <output class="big-value" id="outputValue" aria-live="off">62<span class="unit">%</span></output>
+      <input class="range" type="range" id="outputRange" min="0" max="100" step="1"
+             value="62" aria-label="Output volume">
+    </div>
+    <div class="hero-note" id="mutedNote" hidden>Muted — the level is kept.</div>
+  </section>
+
   <div class="pop-scroll" id="popScroll">
 
-    <!-- HERO: output volume + preferred output -->
-    <section class="hero" aria-labelledby="outputCaption">
-      <div class="hero-top">
-        <div class="caption-row">
-          <span class="caption" id="outputCaption">Output</span>
-          <span class="muted-pill" id="mutedPill" hidden>Muted</span>
+    <!-- APP DECK: one surface, one mode visible -->
+    <section class="deck" aria-label="Audio apps">
+      <div class="deck-head">
+        <div class="mode-tabs" role="tablist" aria-label="Audio mode">
+          <button class="mode-tab is-selected" id="playingTab" data-mode="playing"
+                  role="tab" aria-selected="true" aria-controls="playingView">
+            <span>Playing</span>
+            <span class="mode-dot" id="playingDot" hidden></span>
+          </button>
+          <button class="mode-tab" id="mixerTab" data-mode="mixer"
+                  role="tab" aria-selected="false" aria-controls="mixerView">
+            <span>Mixer</span>
+          </button>
         </div>
-        <button class="icon-btn" id="outputMute" aria-pressed="false" aria-label="Mute output"></button>
       </div>
 
-      <button class="device" id="outputDevice" aria-haspopup="menu" aria-expanded="false" aria-label="Choose output device">
-        <span class="dev-icon" aria-hidden="true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
-            <path d="M17 9.5a4 4 0 0 1 0 5"></path>
-          </svg>
-        </span>
-        <span class="dev-name" id="outputDeviceName">Studio monitors</span>
-        <span class="dev-note">Default</span>
-        <span class="chev" aria-hidden="true">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"></path>
-          </svg>
-        </span>
-      </button>
+      <div class="deck-body">
+        <div id="playingView" role="tabpanel" aria-labelledby="playingTab">
+          <div class="playing-carousel">
+            <button class="carousel-btn" id="prevPage" aria-label="Previous playing app" aria-controls="playingViewport">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m15 5-7 7 7 7"></path>
+              </svg>
+            </button>
 
-      <div class="level-row">
-        <output class="big-value" id="outputValue" aria-live="off">62<span class="unit">%</span></output>
-        <input class="range" type="range" id="outputRange" min="0" max="100" step="1"
-               value="62" aria-label="Output volume">
-      </div>
-      <div class="hero-note" id="mutedNote" hidden>Muted — the level is kept.</div>
-    </section>
+            <div class="playing-viewport" id="playingViewport">
+              <div class="playing-track" id="playingTrack"></div>
+            </div>
 
-    <!-- AUDIO: one snap-scrolling page per app -->
-    <section class="section" aria-labelledby="audioCaption">
-      <div class="section-head static" id="audioHead">
-        <span class="section-title" id="audioCaption">Audio</span>
-        <span class="section-count" aria-hidden="true">·</span>
-        <span class="section-count" id="appsCount">4</span>
-      </div>
-
-      <div class="audio-carousel">
-        <button class="carousel-btn" id="prevPage" aria-label="Previous app" aria-controls="pageViewport">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m15 5-7 7 7 7"></path>
-          </svg>
-        </button>
-
-        <div class="page-viewport" id="pageViewport">
-          <div class="page-track" id="pageTrack"></div>
+            <button class="carousel-btn" id="nextPage" aria-label="Next playing app" aria-controls="playingViewport">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 5 7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <button class="carousel-btn" id="nextPage" aria-label="Next app" aria-controls="pageViewport">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m9 5 7 7-7 7"></path>
-          </svg>
-        </button>
+        <div id="mixerView" role="tabpanel" aria-labelledby="mixerTab" hidden>
+          <div class="mixer-list" id="mixerList"></div>
+        </div>
       </div>
     </section>
 
@@ -1286,7 +1448,9 @@ const state = {
   devices: clone(BASE_DEVICES),
   outputId: "speakers",
   apps: clone(BASE_APPS),
-  focusId: "spotify",
+  mode: "playing",
+  playingId: "spotify",
+  mixFocusId: null,
   inputs: clone(BASE_INPUTS),
   input: {
     available: true,
@@ -1305,8 +1469,14 @@ const $ = (id) => document.getElementById(id);
 const currentDevice = () => state.devices.find((d) => d.id === state.outputId) ?? state.devices[0];
 const currentInput = () => state.inputs.find((d) => d.id === state.input.deviceId) ?? null;
 const trackOf = (app) => app.tracks[app.trackIndex] ?? app.tracks[0];
-const pageIndex = (appId) => state.apps.findIndex((app) => app.id === appId);
-const focusedPage = () => state.apps.find((app) => app.id === state.focusId) ?? state.apps[0] ?? null;
+const appById = (id) => state.apps.find((app) => app.id === id) ?? null;
+const playingApps = () => state.apps.filter((app) => app.hasPlayer);
+const playingIndex = (id) => playingApps().findIndex((app) => app.id === id);
+const playingPage = () => {
+  const pages = playingApps();
+  return pages.find((app) => app.id === state.playingId) ?? pages[0] ?? null;
+};
+const anyPlaying = () => state.apps.some((app) => app.hasPlayer && app.playing);
 
 const fmt = (seconds) => {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -1330,10 +1500,11 @@ const params = new URLSearchParams(location.search);
 
 if (params.get("muted") === "1") currentDevice().muted = true;
 
-// Apps are always visible now; ?apps=1 stays a harmless default alias.
+// ?apps=1 is a harmless default alias; the deck always shows the list.
 if (params.get("apps") === "0") {
   state.apps = [];
-  state.focusId = null;
+  state.playingId = null;
+  state.mixFocusId = null;
   state.input.consumers = [];
 }
 
@@ -1355,17 +1526,42 @@ const wantedDevice = params.get("device");
 if (wantedDevice && state.devices.some((d) => d.id === wantedDevice && d.available)) {
   state.outputId = wantedDevice;
 }
+
+const modeParam = params.get("mode");
 const wantedApp = params.get("app");
-if (wantedApp) {
-  const app = state.apps.find((a) => a.id === wantedApp);
-  if (app) state.focusId = app.id;
-}
-// ?player=2 is 1-based over the app pages and wins over ?app.
 const wantedPlayer = Number(params.get("player"));
+const pages = playingApps();
+
+// Default: Playing when a player exists, otherwise Mixer.
+let mode = pages.length ? "playing" : "mixer";
+if (modeParam === "playing" || modeParam === "mixer") mode = modeParam;
+
 if (Number.isInteger(wantedPlayer) && wantedPlayer > 0) {
-  const app = state.apps[wantedPlayer - 1];
-  if (app) state.focusId = app.id;
+  const app = pages[wantedPlayer - 1];
+  if (app) {
+    state.playingId = app.id;
+    if (!modeParam) mode = "playing";
+  }
 }
+
+if (wantedApp) {
+  const app = appById(wantedApp);
+  if (app) {
+    state.mixFocusId = app.id;
+    if (app.hasPlayer) {
+      state.playingId = app.id;
+      if (!modeParam) mode = "playing";
+    } else {
+      // Audio-only apps have no Playing page; focus them in Mixer.
+      mode = "mixer";
+    }
+  }
+}
+
+if (!pages.some((app) => app.id === state.playingId)) {
+  state.playingId = pages[0]?.id ?? null;
+}
+state.mode = mode;
 
 function routeShort(app) {
   if (app.route === "follow-preferred") return "Follow preferred";
@@ -1498,7 +1694,7 @@ function renderHero() {
   $("panel").classList.toggle("is-output-muted", muted);
 }
 
-/* ── render: audio pages ─────────────────────────────────────── */
+/* ── render: deck (Playing | Mixer) ──────────────────────────── */
 
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1508,145 +1704,208 @@ function seekValue(app) {
   return clamp((app.position / track.length) * 1000, 0, 1000);
 }
 
-function pageHeadHTML(app) {
-  const index = pageIndex(app.id) + 1;
-  const live = app.hasPlayer && !app.canSeek;
+/* Playing mode: one page per app with a current player. */
+
+function playingHeadHTML(app) {
+  const pages = playingApps();
+  const index = playingIndex(app.id) + 1;
+  const live = !app.canSeek;
   return `
-    <div class="page-head">
+    <div class="playing-head">
       <span class="app-art ${app.artClass}" aria-hidden="true">${app.initial}</span>
-      <div class="page-meta">
-        <div class="page-name-line">
-          <span class="app-name">${app.name}</span>
-          ${live ? '<span class="live-badge">Live</span>' : ""}
-          <span class="page-index">${index}/${state.apps.length}</span>
-        </div>
-        <button class="route" data-page-route="${app.id}" aria-haspopup="menu" aria-expanded="false"
-                title="${routeFull(app)}" aria-label="${app.name} route: ${routeFull(app)}">
-          <span class="rt">${routeShort(app)}</span>
-        </button>
+      <div class="playing-meta">
+        <span class="app-name">${app.name}</span>
+        ${live ? '<span class="live-badge">Live</span>' : ""}
+        <span class="page-index">${index}/${pages.length}</span>
       </div>
     </div>`;
 }
 
-function pageTransportHTML(app) {
-  const playLabel = `${app.playing ? "Pause" : "Play"} ${trackOf(app).title}`;
+function playingTransportHTML(app) {
+  const track = trackOf(app);
+  const playLabel = `${app.playing ? "Pause" : "Play"} ${track.title}`;
   return `
     <div class="transport-inline">
-      <button class="tbtn" data-page-action="prev" data-page-app="${app.id}"
+      <button class="tbtn" data-playing-action="prev" data-playing-app="${app.id}"
               aria-label="Previous track" title="Previous track"${app.canPrev ? "" : " hidden"}>${ICON.prev}</button>
-      <button class="tbtn play" data-page-action="play-pause" data-page-app="${app.id}"
+      <button class="tbtn play" data-playing-action="play-pause" data-playing-app="${app.id}"
               aria-label="${playLabel}" title="${app.playing ? "Pause" : "Play"}">${app.playing ? ICON.pause : ICON.play}</button>
-      <button class="tbtn" data-page-action="next" data-page-app="${app.id}"
+      <button class="tbtn" data-playing-action="next" data-playing-app="${app.id}"
               aria-label="Next track" title="Next track"${app.canNext ? "" : " hidden"}>${ICON.next}</button>
-      <button class="tbtn${app.shuffle ? " is-on" : ""}" data-page-action="shuffle" data-page-app="${app.id}"
+      <button class="tbtn${app.shuffle ? " is-on" : ""}" data-playing-action="shuffle" data-playing-app="${app.id}"
               aria-label="${app.shuffle ? "Shuffle on" : "Shuffle off"}" aria-pressed="${Boolean(app.shuffle)}"
               title="${app.shuffle ? "Shuffle on" : "Shuffle off"}"${app.shuffleSupported ? "" : " hidden"}>${ICON.shuffle}</button>
-      <button class="tbtn${app.repeat !== "off" ? " is-on" : ""}" data-page-action="repeat" data-page-app="${app.id}"
+      <button class="tbtn${app.repeat !== "off" ? " is-on" : ""}" data-playing-action="repeat" data-playing-app="${app.id}"
               aria-label="Repeat ${app.repeat}" aria-pressed="${app.repeat !== "off"}"
               title="Repeat ${app.repeat}"${app.repeatSupported ? "" : " hidden"}>${ICON.repeat}</button>
     </div>`;
 }
 
-function pagePlayerHTML(app) {
-  if (!app.hasPlayer) {
-    return '<div class="page-audio-only">Audio only</div>';
-  }
+function playingPageBodyHTML(app) {
   const track = trackOf(app);
   return `
-    <div class="page-player">
-      <div class="player-strip">
-        <div class="artwork ${track.art}" aria-hidden="true"></div>
-        <div class="track">
-          <div class="track-title" title="${track.title}">${track.title}</div>
-          <div class="track-artist">${track.artist}</div>
-        </div>
-        ${pageTransportHTML(app)}
+    ${playingHeadHTML(app)}
+    <div class="player-strip">
+      <div class="artwork ${track.art}" aria-hidden="true"></div>
+      <div class="track">
+        <div class="track-title" title="${track.title}">${track.title}</div>
+        <div class="track-artist">${track.artist}</div>
       </div>
-      ${app.canSeek ? `
-        <div class="media-seek">
-          <input class="range seek-slim" type="range" min="0" max="1000" step="1"
-                 value="${seekValue(app)}" data-page-seek="${app.id}"
-                 style="--fill:${seekValue(app) / 10}%"
-                 aria-label="${track.title} playback position"
-                 aria-valuetext="${fmt(app.position)} of ${fmt(track.length)}">
-          <div class="times">
-            <span data-page-elapsed="${app.id}">${fmt(app.position)}</span>
-            <span data-page-duration="${app.id}">${fmt(track.length)}</span>
-          </div>
-        </div>` : ""}
-    </div>`;
+      ${playingTransportHTML(app)}
+    </div>
+    ${app.canSeek ? `
+      <div class="media-seek">
+        <input class="range seek-slim" type="range" min="0" max="1000" step="1"
+               value="${seekValue(app)}" data-playing-seek="${app.id}"
+               style="--fill:${seekValue(app) / 10}%"
+               aria-label="${track.title} playback position"
+               aria-valuetext="${fmt(app.position)} of ${fmt(track.length)}">
+        <div class="times">
+          <span data-playing-elapsed="${app.id}">${fmt(app.position)}</span>
+          <span data-playing-duration="${app.id}">${fmt(track.length)}</span>
+        </div>
+      </div>` : ""}
+    <button class="playing-level" data-mix-app="${app.id}" title="Open in Mixer"
+            aria-label="Open ${app.name} in Mixer">
+      ${volumeIcon(app.muted, app.volume)}
+      <span>${app.muted ? "Muted" : `${app.volume}%`}</span>
+      ${app.mixed ? '<span class="lvl-mixed">Mixed</span>' : ""}
+    </button>`;
 }
 
-function pageVolumeHTML(app) {
-  return `
-    <div class="page-volume">
-      <button class="icon-btn sm${app.muted ? " is-on" : ""}" data-page-mute="${app.id}"
-              aria-pressed="${app.muted}" aria-label="${app.muted ? "Unmute" : "Mute"} ${app.name}">
-        ${volumeIcon(app.muted, app.volume)}
-      </button>
-      <input class="range secondary${app.muted ? " is-muted" : ""}" type="range" min="0" max="100" step="1"
-             value="${app.volume}" data-page-range="${app.id}" style="--fill:${app.volume}%"
-             aria-label="${app.name} volume">
-      <span class="page-value">
-        <span class="page-pct" data-page-pct="${app.id}">${app.volume}%</span>
-        ${app.mixed ? '<span class="page-mixed" title="This app has streams at different levels">Mixed</span>' : ""}
-      </span>
-    </div>`;
+function playingPageHTML(app) {
+  return `<article class="playing-page" data-playing-page="${app.id}" aria-label="${app.name}">${playingPageBodyHTML(app)}</article>`;
 }
 
-function pageBodyHTML(app) {
-  return pageHeadHTML(app) + pagePlayerHTML(app) + pageVolumeHTML(app);
-}
-
-function appPageHTML(app) {
-  return `<article class="app-page" data-page="${app.id}" aria-label="${app.name}">${pageBodyHTML(app)}</article>`;
-}
-
-function setPageHeight() {
-  const viewport = $("pageViewport");
-  const active = viewport.querySelector(".app-page.is-active");
+function setPlayingHeight() {
+  const viewport = $("playingViewport");
+  const active = viewport.querySelector(".playing-page.is-active");
   if (!active) { viewport.style.height = ""; return; }
   viewport.style.height = `${active.offsetHeight}px`;
 }
 
-function updatePageAria() {
-  const pages = [...$("pageTrack").querySelectorAll(".app-page")];
-  const active = pageIndex(state.focusId);
+function updatePlayingAria() {
+  const pages = [...$("playingTrack").querySelectorAll(".playing-page")];
+  const active = playingIndex(state.playingId);
   pages.forEach((page, index) => {
     const isActive = index === active;
     page.classList.toggle("is-active", isActive);
     page.setAttribute("aria-hidden", String(!isActive));
     page.inert = !isActive;
   });
-  setPageHeight();
+  setPlayingHeight();
 }
 
-function scrollToFocus(smooth = true) {
-  const viewport = $("pageViewport");
-  const index = pageIndex(state.focusId);
+function scrollToPlaying(smooth = true) {
+  const viewport = $("playingViewport");
+  const index = playingIndex(state.playingId);
   if (!viewport || index < 0) return;
   viewport.scrollTo({
     left: index * viewport.clientWidth,
     behavior: smooth && !reduceMotion() ? "smooth" : "auto",
   });
-  updatePageAria();
+  updatePlayingAria();
 }
 
-function renderPages() {
-  if (!state.apps.some((app) => app.id === state.focusId)) {
-    state.focusId = state.apps[0]?.id ?? null;
+function renderPlaying() {
+  const pages = playingApps();
+  if (!pages.some((app) => app.id === state.playingId)) {
+    state.playingId = pages[0]?.id ?? null;
   }
 
-  $("appsCount").textContent = String(state.apps.length);
-  const multi = state.apps.length > 1;
+  const multi = pages.length > 1;
   $("prevPage").hidden = !multi;
   $("nextPage").hidden = !multi;
 
-  const track = $("pageTrack");
-  if (state.apps.length === 0) {
-    $("pageViewport").style.height = "";
+  const track = $("playingTrack");
+  if (pages.length === 0) {
+    $("playingViewport").style.height = "";
     track.innerHTML = `
-      <div class="audio-empty">
+      <div class="playing-empty">
+        <div class="artwork art-empty empty-art" aria-hidden="true"></div>
+        <div>
+          <div class="t">No playing apps</div>
+          <div class="s">Use Mixer for apps that are only sending audio.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  track.innerHTML = pages.map(playingPageHTML).join("");
+  updatePlayingAria();
+  requestAnimationFrame(() => scrollToPlaying(false));
+}
+
+function updatePlayingPage(app) {
+  const page = $("playingTrack").querySelector(`[data-playing-page="${app.id}"]`);
+  if (!page) return;
+  page.innerHTML = playingPageBodyHTML(app);
+  updatePlayingAria();
+}
+
+function updatePlayingSeek(app) {
+  const page = $("playingTrack").querySelector(`[data-playing-page="${app.id}"]`);
+  const seek = page?.querySelector(`[data-playing-seek="${app.id}"]`);
+  if (!seek || !app.canSeek) return;
+  const track = trackOf(app);
+  if (!track?.length) return;
+  const value = seekValue(app);
+  seek.value = String(value);
+  setFill(seek, value / 10);
+  seek.setAttribute("aria-valuetext", `${fmt(app.position)} of ${fmt(track.length)}`);
+  page.querySelector(`[data-playing-elapsed="${app.id}"]`).textContent = fmt(app.position);
+  page.querySelector(`[data-playing-duration="${app.id}"]`).textContent = fmt(track.length);
+}
+
+/* Mixer mode: every app with audio, including audio-only apps. */
+
+function mixerRowHTML(app) {
+  const focused = state.mixFocusId === app.id;
+  const playing = app.hasPlayer && app.playing;
+  const sub = app.hasPlayer
+    ? `${trackOf(app).title} · ${trackOf(app).artist}`
+    : "Audio only";
+  return `
+    <div class="mixer-row${focused ? " is-focused" : ""}" data-mixer-app="${app.id}">
+      <div class="mixer-head">
+        <span class="app-art ${app.artClass}" aria-hidden="true">${app.initial}</span>
+        <div class="mixer-meta">
+          <div class="mixer-name-line">
+            <span class="app-name">${app.name}</span>
+            ${playing ? '<span class="playing-dot" title="Playing"></span>' : ""}
+          </div>
+          <div class="mixer-sub" title="${sub}">${sub}</div>
+        </div>
+        <button class="route" data-mixer-route="${app.id}" aria-haspopup="menu" aria-expanded="false"
+                title="${routeFull(app)}" aria-label="${app.name} route: ${routeFull(app)}">
+          <span class="rt">${routeShort(app)}</span>
+        </button>
+        ${app.hasPlayer ? `
+          <button class="mixer-play" data-mixer-play="${app.id}"
+                  aria-label="${playing ? "Pause" : "Play"} ${app.name}"
+                  title="${playing ? "Pause" : "Play"}">${playing ? ICON.pause : ICON.play}</button>` : ""}
+      </div>
+      <div class="mixer-controls">
+        <button class="mixer-mute${app.muted ? " is-on" : ""}" data-mixer-mute="${app.id}"
+                aria-pressed="${app.muted}" aria-label="${app.muted ? "Unmute" : "Mute"} ${app.name}">
+          ${volumeIcon(app.muted, app.volume)}
+        </button>
+        <input class="range secondary${app.muted ? " is-muted" : ""}" type="range" min="0" max="100" step="1"
+               value="${app.volume}" data-mixer-range="${app.id}" style="--fill:${app.volume}%"
+               aria-label="${app.name} volume">
+        <span class="mixer-value">
+          <span class="mixer-pct" data-mixer-pct="${app.id}">${app.volume}%</span>
+          ${app.mixed ? '<span class="mixer-mixed" title="This app has streams at different levels">Mixed</span>' : ""}
+        </span>
+      </div>
+    </div>`;
+}
+
+function renderMixer() {
+  const list = $("mixerList");
+  if (state.apps.length === 0) {
+    list.innerHTML = `
+      <div class="mixer-empty">
         <div class="artwork art-empty empty-art" aria-hidden="true"></div>
         <div>
           <div class="t">No apps playing</div>
@@ -1655,46 +1914,29 @@ function renderPages() {
       </div>`;
     return;
   }
-
-  track.innerHTML = state.apps.map(appPageHTML).join("");
-  updatePageAria();
-  requestAnimationFrame(() => scrollToFocus(false));
+  list.innerHTML = state.apps.map(mixerRowHTML).join("");
 }
 
-function updatePage(app) {
-  const page = $("pageTrack").querySelector(`[data-page="${app.id}"]`);
-  if (!page) return;
-  page.innerHTML = pageBodyHTML(app);
-  updatePageAria();
+function updateMixerRow(app) {
+  const row = $("mixerList").querySelector(`[data-mixer-app="${app.id}"]`);
+  if (!row) return;
+  row.outerHTML = mixerRowHTML(app);
 }
 
-function updatePageSeek(app) {
-  const page = $("pageTrack").querySelector(`[data-page="${app.id}"]`);
-  const seek = page?.querySelector(`[data-page-seek="${app.id}"]`);
-  if (!seek || !app.canSeek) return;
-  const track = trackOf(app);
-  if (!track?.length) return;
-  const value = seekValue(app);
-  seek.value = String(value);
-  setFill(seek, value / 10);
-  seek.setAttribute("aria-valuetext", `${fmt(app.position)} of ${fmt(track.length)}`);
-  page.querySelector(`[data-page-elapsed="${app.id}"]`).textContent = fmt(app.position);
-  page.querySelector(`[data-page-duration="${app.id}"]`).textContent = fmt(track.length);
-}
-
-function updatePageMute(app) {
-  const page = $("pageTrack").querySelector(`[data-page="${app.id}"]`);
-  const button = page?.querySelector(`[data-page-mute="${app.id}"]`);
+function updateMixerMute(app) {
+  const row = $("mixerList").querySelector(`[data-mixer-app="${app.id}"]`);
+  const button = row?.querySelector(`[data-mixer-mute="${app.id}"]`);
+  const range = row?.querySelector(`[data-mixer-range="${app.id}"]`);
   if (!button) return;
   button.innerHTML = volumeIcon(app.muted, app.volume);
   button.classList.toggle("is-on", app.muted);
   button.setAttribute("aria-pressed", String(app.muted));
   button.setAttribute("aria-label", `${app.muted ? "Unmute" : "Mute"} ${app.name}`);
+  range?.classList.toggle("is-muted", app.muted);
 }
 
-function updatePageRoute(app) {
-  const page = $("pageTrack").querySelector(`[data-page="${app.id}"]`);
-  const chip = page?.querySelector(`[data-page-route="${app.id}"]`);
+function updateMixerRoute(app) {
+  const chip = $("mixerList").querySelector(`[data-mixer-route="${app.id}"]`);
   if (!chip) return;
   chip.querySelector(".rt").textContent = routeShort(app);
   chip.title = routeFull(app);
@@ -1702,7 +1944,50 @@ function updatePageRoute(app) {
 }
 
 function updateAllRouteChips() {
-  for (const app of state.apps) updatePageRoute(app);
+  for (const app of state.apps) updateMixerRoute(app);
+}
+
+function updateModeDot() {
+  $("playingDot").hidden = !(state.mode === "mixer" && anyPlaying());
+}
+
+function renderDeck() {
+  const playing = state.mode === "playing";
+  const playingTab = $("playingTab");
+  const mixerTab = $("mixerTab");
+  playingTab.classList.toggle("is-selected", playing);
+  playingTab.setAttribute("aria-selected", String(playing));
+  mixerTab.classList.toggle("is-selected", !playing);
+  mixerTab.setAttribute("aria-selected", String(!playing));
+  $("playingView").hidden = !playing;
+  $("playingView").inert = !playing;
+  $("mixerView").hidden = playing;
+  $("mixerView").inert = playing;
+  updateModeDot();
+
+  if (playing) renderPlaying();
+  else renderMixer();
+}
+
+function scrollMixerFocus() {
+  const row = $("mixerList").querySelector(`[data-mixer-app="${state.mixFocusId}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: "nearest", behavior: reduceMotion() ? "auto" : "smooth" });
+}
+
+function setMode(mode) {
+  if (state.mode === mode) return;
+  state.mode = mode;
+  renderDeck();
+  if (mode === "playing") requestAnimationFrame(() => scrollToPlaying(false));
+  if (mode === "mixer" && state.mixFocusId) requestAnimationFrame(scrollMixerFocus);
+}
+
+function openMixerFor(appId) {
+  state.mixFocusId = appId;
+  state.mode = "mixer";
+  renderDeck();
+  requestAnimationFrame(scrollMixerFocus);
 }
 
 /* ── render: input ───────────────────────────────────────────── */
@@ -1771,7 +2056,7 @@ function renderBar() {
 
 function renderAll() {
   renderHero();
-  renderPages();
+  renderDeck();
   renderInput();
   renderBar();
 }
@@ -1844,7 +2129,7 @@ function openRouteMenu(app, anchor) {
         onSelect: () => {
           app.route = "follow-preferred";
           app.override = null;
-          updatePageRoute(app);
+          updateMixerRoute(app);
           toast(`${app.name} follows ${currentDevice().name}`);
         }
       },
@@ -1856,7 +2141,7 @@ function openRouteMenu(app, anchor) {
         onSelect: () => {
           app.route = "explicit";
           app.override = device.id;
-          updatePageRoute(app);
+          updateMixerRoute(app);
           toast(`${app.name} routed to ${device.name}`);
         }
       }))
@@ -1864,7 +2149,7 @@ function openRouteMenu(app, anchor) {
   });
 }
 
-/* ── page actions ────────────────────────────────────────────── */
+/* ── playing actions ─────────────────────────────────────────── */
 
 function changeTrack(app, delta) {
   if (!app?.hasPlayer) return;
@@ -1874,15 +2159,17 @@ function changeTrack(app, delta) {
     app.trackIndex = (app.trackIndex + delta + app.tracks.length) % app.tracks.length;
     app.position = 0;
   }
-  updatePage(app);
+  updatePlayingPage(app);
+  updateModeDot();
 }
 
-function pageAction(app, action) {
+function playingAction(app, action) {
   if (!app) return;
   if (action === "play-pause") {
     if (!app.hasPlayer) return;
     app.playing = !app.playing;
-    updatePage(app);
+    updatePlayingPage(app);
+    updateModeDot();
     return;
   }
   if (action === "prev") { changeTrack(app, -1); return; }
@@ -1890,23 +2177,24 @@ function pageAction(app, action) {
   if (action === "shuffle") {
     if (!app.shuffleSupported) return;
     app.shuffle = !app.shuffle;
-    updatePage(app);
+    updatePlayingPage(app);
     return;
   }
   if (action === "repeat") {
     if (!app.repeatSupported) return;
     const order = ["off", "all", "one"];
     app.repeat = order[(order.indexOf(app.repeat) + 1) % order.length];
-    updatePage(app);
+    updatePlayingPage(app);
   }
 }
 
-function goToPage(delta) {
-  if (state.apps.length <= 1) return;
-  const current = Math.max(0, pageIndex(state.focusId));
-  const next = (current + delta + state.apps.length) % state.apps.length;
-  state.focusId = state.apps[next].id;
-  scrollToFocus(false);
+function goToPlayer(delta) {
+  const pages = playingApps();
+  if (pages.length <= 1) return;
+  const current = Math.max(0, playingIndex(state.playingId));
+  const next = (current + delta + pages.length) % pages.length;
+  state.playingId = pages[next].id;
+  scrollToPlaying(false);
 }
 
 /* ── wiring ──────────────────────────────────────────────────── */
@@ -1966,81 +2254,100 @@ $("inputRange").addEventListener("input", (event) => {
 let seekingAppId = null;
 let scrollTimer = null;
 
-$("prevPage").addEventListener("click", () => goToPage(-1));
-$("nextPage").addEventListener("click", () => goToPage(1));
+$("prevPage").addEventListener("click", () => goToPlayer(-1));
+$("nextPage").addEventListener("click", () => goToPlayer(1));
+$("playingTab").addEventListener("click", () => setMode("playing"));
+$("mixerTab").addEventListener("click", () => setMode("mixer"));
 
-/* Page controls are delegated because pages are (re)built on state changes. */
-$("pageTrack").addEventListener("click", (event) => {
-  const action = event.target.closest("[data-page-action]");
+/* Playing controls are delegated because pages are rebuilt on state changes. */
+$("playingTrack").addEventListener("click", (event) => {
+  const action = event.target.closest("[data-playing-action]");
   if (action) {
-    const app = state.apps.find((a) => a.id === action.dataset.pageApp);
-    pageAction(app, action.dataset.pageAction);
+    const app = appById(action.dataset.playingApp);
+    playingAction(app, action.dataset.playingAction);
     return;
   }
 
-  const mute = event.target.closest("[data-page-mute]");
+  const level = event.target.closest("[data-mix-app]");
+  if (level) openMixerFor(level.dataset.mixApp);
+});
+
+$("playingTrack").addEventListener("input", (event) => {
+  const seek = event.target.closest("[data-playing-seek]");
+  if (!seek) return;
+  const app = appById(seek.dataset.playingSeek);
+  if (!app?.canSeek) return;
+  const track = trackOf(app);
+  if (!track?.length) return;
+  seekingAppId = app.id;
+  app.position = (Number(seek.value) / 1000) * track.length;
+  const page = $("playingTrack").querySelector(`[data-playing-page="${app.id}"]`);
+  page.querySelector(`[data-playing-elapsed="${app.id}"]`).textContent = fmt(app.position);
+  setFill(seek, Number(seek.value) / 10);
+});
+
+$("playingTrack").addEventListener("change", (event) => {
+  if (event.target.closest("[data-playing-seek]")) seekingAppId = null;
+});
+$("playingTrack").addEventListener("pointerup", (event) => {
+  if (event.target.closest("[data-playing-seek]")) seekingAppId = null;
+});
+
+/* Mixer controls never change mode; the row itself has no click action. */
+$("mixerList").addEventListener("click", (event) => {
+  const play = event.target.closest("[data-mixer-play]");
+  if (play) {
+    const app = appById(play.dataset.mixerPlay);
+    if (!app) return;
+    app.playing = !app.playing;
+    updateMixerRow(app);
+    updateModeDot();
+    return;
+  }
+
+  const mute = event.target.closest("[data-mixer-mute]");
   if (mute) {
-    const app = state.apps.find((a) => a.id === mute.dataset.pageMute);
+    const app = appById(mute.dataset.mixerMute);
     if (!app) return;
     app.muted = !app.muted;
-    updatePageMute(app);
+    updateMixerMute(app);
     return;
   }
 
-  const route = event.target.closest("[data-page-route]");
+  const route = event.target.closest("[data-mixer-route]");
   if (route) {
-    const app = state.apps.find((a) => a.id === route.dataset.pageRoute);
+    const app = appById(route.dataset.mixerRoute);
     if (app) openRouteMenu(app, route);
   }
 });
 
-$("pageTrack").addEventListener("input", (event) => {
-  const seek = event.target.closest("[data-page-seek]");
-  if (seek) {
-    const app = state.apps.find((a) => a.id === seek.dataset.pageSeek);
-    if (!app?.canSeek) return;
-    const track = trackOf(app);
-    if (!track?.length) return;
-    seekingAppId = app.id;
-    app.position = (Number(seek.value) / 1000) * track.length;
-    const page = $("pageTrack").querySelector(`[data-page="${app.id}"]`);
-    page.querySelector(`[data-page-elapsed="${app.id}"]`).textContent = fmt(app.position);
-    setFill(seek, Number(seek.value) / 10);
-    return;
-  }
-
-  const range = event.target.closest("[data-page-range]");
+$("mixerList").addEventListener("input", (event) => {
+  const range = event.target.closest("[data-mixer-range]");
   if (!range) return;
-  const app = state.apps.find((a) => a.id === range.dataset.pageRange);
+  const app = appById(range.dataset.mixerRange);
   if (!app) return;
   app.volume = Number(range.value);
   setFill(range, app.volume);
   range.setAttribute("aria-valuetext", `${app.volume} percent`);
-  const pct = $("pageTrack").querySelector(`[data-page-pct="${app.id}"]`);
+  const pct = $("mixerList").querySelector(`[data-mixer-pct="${app.id}"]`);
   if (pct) pct.textContent = `${app.volume}%`;
 });
 
-$("pageTrack").addEventListener("change", (event) => {
-  if (event.target.closest("[data-page-seek]")) seekingAppId = null;
-});
-$("pageTrack").addEventListener("pointerup", (event) => {
-  if (event.target.closest("[data-page-seek]")) seekingAppId = null;
-});
-
-/* Horizontal swipe/scroll updates the focused page for arrows and ?player. */
-const pageViewport = $("pageViewport");
-pageViewport.addEventListener("scroll", () => {
+/* Horizontal swipe/scroll updates the focused playing page. */
+const playingViewport = $("playingViewport");
+playingViewport.addEventListener("scroll", () => {
   closeMenu(false);
   clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => {
-    if (!state.apps.length) return;
-    const width = pageViewport.clientWidth;
+    const pages = playingApps();
+    if (!pages.length) return;
+    const width = playingViewport.clientWidth;
     if (!width) return;
-    const index = clamp(Math.round(pageViewport.scrollLeft / width), 0, state.apps.length - 1);
-    const app = state.apps[index];
-    if (app && app.id !== state.focusId) {
-      state.focusId = app.id;
-      updatePageAria();
+    const index = clamp(Math.round(playingViewport.scrollLeft / width), 0, pages.length - 1);
+    const app = pages[index];
+    if (app && app.id !== state.playingId) {
+      state.playingId = app.id;
+      updatePlayingAria();
     }
   }, 80);
 }, { passive: true });
@@ -2060,7 +2367,10 @@ document.addEventListener("click", (event) => {
 $("popScroll").addEventListener("scroll", () => closeMenu(false), { passive: true });
 window.addEventListener("resize", () => {
   closeMenu(false);
-  requestAnimationFrame(() => scrollToFocus(false));
+  requestAnimationFrame(() => {
+    if (state.mode === "playing") scrollToPlaying(false);
+    else if (state.mixFocusId) scrollMixerFocus();
+  });
 });
 
 window.addEventListener("keydown", (event) => {
@@ -2089,10 +2399,11 @@ setInterval(() => {
     if (app.position >= track.length) {
       app.position = 0;
       app.trackIndex = (app.trackIndex + 1) % app.tracks.length;
-      updatePage(app);
+      updatePlayingPage(app);
+      if (state.mode === "mixer") updateMixerRow(app);
       continue;
     }
-    updatePageSeek(app);
+    updatePlayingSeek(app);
   }
 }, 1000);
 
@@ -2100,6 +2411,9 @@ setInterval(() => {
 
 setPanelOpen(true);
 renderAll();
+if (state.mode === "mixer" && state.mixFocusId) {
+  requestAnimationFrame(scrollMixerFocus);
+}
 </script>
 </body>
 </html>

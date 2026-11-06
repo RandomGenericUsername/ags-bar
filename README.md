@@ -102,26 +102,35 @@ one glass chrome layer, no accent frame, accent only for state/action, the
 9.5/10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
 The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 
-- **Hero** — output volume (big value, slider, mute) and the preferred output
-  device selector. This is the single output control; per-app levels live in the
-  app pages, resolving the old "competing volume line" objection by hierarchy.
-- **Audio** — one horizontally snap-scrolling page per app, with the app count
-  in the section header. No separate Apps list. Each page carries the app
-  icon/name, `n/N`, a compact route chip and its own volume row (mute, slider,
-  percentage, `Mixed`). A page with a player adds 40 px artwork, title/artist,
-  inline previous/play-pause/next plus shuffle/repeat (only when supported) and
-  a 2 px seek line with 9.5 px times. Audio-only apps show `Audio only` with
-  route and volume; live streams show `Live` and hide seek/unsupported
-  transport. Left/right arrows flank the pages when there is more than one;
-  swipe/scroll snap switches pages too. The page height follows the active page,
-  so the panel stays compact.
+- **Output** — a persistent header above the scroll area: preferred output device
+  and the global volume (numeric value, slider, mute). It is the master fader and
+  never scrolls away. Per-device state and the unavailable device remain.
+- **App deck** — one surface with a two-tab `Playing | Mixer` switch in its
+  header (text tabs with an accent underline, no box, no chevrons):
+  - **Playing** is a snap-scrolling carousel of pages, one per app with a
+    current player. Each page carries the app icon/name, `n/N`, 40 px artwork,
+    title/artist, inline previous/play-pause/next, shuffle/repeat only when
+    supported, and a 2 px seek line with 9.5 px times. It has **no volume
+    slider**: a small volume glyph + current level is read-only and clicking it
+    opens Mixer focused on that app. Arrows flank the carousel when there is
+    more than one player; swipe/scroll snap also works. Audio-only apps are not
+    Playing pages.
+  - **Mixer** is a vertical list of every app with audio: icon/name, current
+    media or `Audio only`, route chip, volume, mute, percentage, `Mixed`, plus a
+    playing dot and a single play/pause for players. There is no seek/prev/next,
+    no expand chevron and no nested box. Row and play/pause clicks keep the user
+    in Mixer.
+  - Default mode is Playing when a player exists, otherwise Mixer. The last mode
+    is kept for the session; track changes never switch modes. While in Mixer,
+    a small accent dot on the Playing tab appears when something is playing.
 - **Input** — collapsed by default; device, level, mute and microphone consumers,
   with unavailable-input and no-consumer states.
 
-Deep links exercise the states without a backend: `?muted=1`, `?apps=1`
-(default/no-op), `?apps=0` (empty), `?playing=1`, `?playing=0` (every page
-audio-only), `?player=2` (1-based app page), `?app=vlc`, `?input=1`, `?input=0`,
-`?mic=0` and `?device=headphones`.
+Deep links exercise the states without a backend: `?mode=playing` / `?mode=mixer`,
+`?muted=1`, `?apps=1` (default/no-op), `?apps=0` (empty), `?playing=1`,
+`?playing=0` (every app audio-only; default Mixer), `?player=2` (1-based Playing
+page), `?app=vlc` (Playing page), `?app=firefox` (Mixer row), `?input=1`,
+`?input=0`, `?mic=0` and `?device=headphones`.
 
 The chrome colour roles and radii are `:root` custom properties. Radii map to
 `surface.panel/card/control/pill.radius`; `--panel-w` is an app literal until a
