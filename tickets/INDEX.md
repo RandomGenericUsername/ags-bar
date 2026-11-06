@@ -13,6 +13,7 @@
 - [REQ-001-standalone-bar-extraction/ticket.md](./REQ-001-standalone-bar-extraction/ticket.md) — Extract the bar into the standalone ags-bar repo | `done` | links: worktree none, branch main
 - [REQ-002-theme-roles/ticket.md](./REQ-002-theme-roles/ticket.md) — Migrate the bar CSS to semantic tpr roles (Phase B) | `done` | links: worktree `.worktrees/REQ-002/`, branch `ticket/REQ-002-theme-roles`
 - [REQ-003-skin-plane-pilot/ticket.md](./REQ-003-skin-plane-pilot/ticket.md) — Pilot the skin plane in the bar at USER priority | `done` | links: worktree `.worktrees/REQ-003/`, branch `ticket/REQ-003-skin-plane-pilot`
+- [REQ-004-appearance-migration/ticket.md](./REQ-004-appearance-migration/ticket.md) — Migrate the bar to the v2 Appearance plane | `in-progress` | links: worktree `.worktrees/REQ-004/`, branch `ticket/REQ-004-appearance-migration`
 
 ## Bugs
 
