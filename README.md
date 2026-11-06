@@ -104,22 +104,24 @@ The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 
 - **Hero** — output volume (big value, slider, mute) and the preferred output
   device selector. This is the single output control; per-app levels live in the
-  mixer, resolving the old "competing volume line" objection by hierarchy.
-- **Now playing** — a 64 px compact strip, not a card: 40 px artwork,
-  title/artist, source badge and `n/N`, inline previous/play-pause/next plus
-  shuffle/repeat, and a 2 px seek line with 9.5 px times. With more than one
-  current player, flanking arrows carousel through them; the transport acts on
-  the displayed player. Shuffle/repeat hide when MPRIS does not expose them.
-  Clicking an app row focuses its strip.
-- **Apps · N** — always visible, with no expand/collapse chevron. Rows keep
-  icon/name/current media, a compact route chip, volume and mute, plus a `Mixed`
-  badge. There are no per-app transport icons.
+  app pages, resolving the old "competing volume line" objection by hierarchy.
+- **Audio** — one horizontally snap-scrolling page per app, with the app count
+  in the section header. No separate Apps list. Each page carries the app
+  icon/name, `n/N`, a compact route chip and its own volume row (mute, slider,
+  percentage, `Mixed`). A page with a player adds 40 px artwork, title/artist,
+  inline previous/play-pause/next plus shuffle/repeat (only when supported) and
+  a 2 px seek line with 9.5 px times. Audio-only apps show `Audio only` with
+  route and volume; live streams show `Live` and hide seek/unsupported
+  transport. Left/right arrows flank the pages when there is more than one;
+  swipe/scroll snap switches pages too. The page height follows the active page,
+  so the panel stays compact.
 - **Input** — collapsed by default; device, level, mute and microphone consumers,
   with unavailable-input and no-consumer states.
 
 Deep links exercise the states without a backend: `?muted=1`, `?apps=1`
-(default/no-op), `?apps=0`, `?playing=1`, `?playing=0`, `?player=2`, `?input=1`,
-`?input=0`, `?mic=0`, `?device=headphones` and `?app=firefox`.
+(default/no-op), `?apps=0` (empty), `?playing=1`, `?playing=0` (every page
+audio-only), `?player=2` (1-based app page), `?app=vlc`, `?input=1`, `?input=0`,
+`?mic=0` and `?device=headphones`.
 
 The chrome colour roles and radii are `:root` custom properties. Radii map to
 `surface.panel/card/control/pill.radius`; `--panel-w` is an app literal until a

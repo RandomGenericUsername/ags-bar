@@ -25,31 +25,35 @@ Replace the current tall, boxed sound drawer with a **352 px anchored popover**
 under the bar's volume indicator, 8 px below the bar, with the desktop still
 visible behind it. Every control the current panel exposes must remain
 reachable, with output volume promoted to a single hero instead of a competing
-line next to every app row.
+line next to every app page.
 
-The popover has five surfaces:
+The popover has three surfaces:
 
 1. **Hero** — output volume (28 px value, slider, mute) and the preferred output
    device with a compact selector.
-2. **Now playing** — a **compact horizontal strip**, not a card: 40 px CSS-art
-   artwork, title 13/600, artist 10.5/dim, a small source-app badge and an
-   `n/N` player indicator. Inline transport lives on the right: previous,
-   play/pause, next, shuffle, repeat. A slim 2 px interactive seek line with
-   9.5 px elapsed/duration sits under the strip. The strip stays 64–72 px tall
-   and has no panel/card background. A live stream hides seek and any transport
-   action it cannot support. Empty when nothing is playing.
-3. **Carousel** — when more than one app has a current player (playing or
-   paused), left/right arrows flank the strip and cycle through those players;
-   the arrows are hidden at ≤1 player. The strip's transport always acts on the
-   displayed app. Clicking an app row also focuses that app's strip, with a
-   subtle row highlight; the transport exists only in the strip.
-4. **Apps · N** — always visible, with no expand/collapse chevron. Each row is
-   icon, name, current media/`Audio only`, a compact route chip/menu, volume and
-   mute, plus a `Mixed` badge when streams disagree. There are no per-app
-   transport icons.
-5. **Input** — secondary and collapsed by default. Expanding shows the input
+2. **Audio** — one **horizontally snap-scrolling page per app**, under a single
+   `Audio · N` header. There is no separate Apps list, no app-row expand
+   chevron and no per-app transport outside a page. Each page top carries the
+   app tile/name (the source badge), `n/N`, and a compact route chip. Then:
+   - **Player page:** 40 px artwork, title 13/600, artist 10.5/dim, inline
+     previous/play-pause/next, shuffle/repeat only when supported, and a 2 px
+     interactive seek line with 9.5 px elapsed/duration.
+   - **Audio-only page:** app name + `Audio only` + route; no transport or seek.
+   - **Live page:** `Live` badge, artwork/title/artist, play/pause only; no seek
+     or unsupported transport.
+   - **Always:** the app volume row (mute + slider + percentage + `Mixed`) sits
+     directly inside the page.
+   Left/right arrows flank the pages and switch apps when there is more than one
+   page; horizontal swipe/scroll snap does the same. The `n/N` indicator remains
+   on each page. The active page sets the section height so the panel stays
+   compact.
+3. **Input** — secondary and collapsed by default. Expanding shows the input
    device selector, microphone level, mute, and the apps currently using the
    microphone. No input and no consumer both have honest states.
+
+The fixture demonstrates all page kinds: Spotify (player), Firefox (audio-only),
+Tidal (paused player), VLC (live stream). A source badge is the app tile/name
+itself; adding a second "Spotify" pill would duplicate it.
 
 No settings gear or config-file escape hatch is added: the current popup has
 none. Right-click → `pavucontrol` is a bar-widget gesture, not part of this
@@ -57,9 +61,9 @@ surface, and remains outside the mock.
 
 **MPRIS note.** Shuffle and Loop are not in the current `PlayerCapabilities`
 model or `AudioPanelActions`; the mock simulates them. Implementation must
-expose Shuffle/Loop capability flags and actions. The strip hides either icon
-when the displayed player does not support it, exactly as the mock hides both
-on the Firefox live stream.
+expose Shuffle/Loop capability flags and actions. A page hides either icon when
+the player does not support it, exactly as the mock hides both on the VLC live
+page and all transport on the Firefox audio-only page.
 
 ## Functionality inventory
 
@@ -68,17 +72,17 @@ on the Firefox live stream.
 | `selectPreferredOutput` | Hero device row → output menu (unavailable outputs disabled) |
 | `setOutputVolume` | Hero slider + big value |
 | `toggleOutputMute` | Hero mute button; level is retained while muted |
-| `setAppRoute` (follow preferred / explicit override) | App row route chip → menu (default reflects the selected output) |
-| `setAppVolume` | App row slider + percent |
-| `toggleAppMute` | App row mute button; `Mixed` badge for divergent levels |
-| `playerAction` play-pause / previous / next | Strip transport, acting on the displayed app; app rows only select it |
-| `seek` | Strip's 2 px seek line + elapsed/duration; live streams hide it |
+| `setAppRoute` (follow preferred / explicit override) | Route chip inside each page → menu (default reflects the selected output) |
+| `setAppVolume` | Volume row inside each page |
+| `toggleAppMute` | Mute button inside each page; `Mixed` badge for divergent levels |
+| `playerAction` play-pause / previous / next | Inline transport on a player page; pages switch via arrows/scroll |
+| `seek` | Player page's 2 px seek line + elapsed/duration; live/audio-only pages hide it |
 | `selectInput` | Input device row → input menu |
 | `setInputVolume` | Input slider + percent |
 | `toggleInputMute` | Input mute button |
 | `inputConsumers` | “Using microphone” line under the input controls |
-| Shuffle / Loop (new MPRIS capability) | Strip icons; toggled per displayed player; hidden when unsupported |
-| Output / app / input empty or unavailable states | No apps, nothing playing, audio-only apps, unavailable output entry, no input, no mic consumer |
+| Shuffle / Loop (new MPRIS capability) | Player page icons; toggled per page; hidden when unsupported |
+| Output / app / input empty or unavailable states | No apps, audio-only pages, live page, unavailable output entry, no input, no mic consumer |
 
 ## Acceptance
 
@@ -91,23 +95,25 @@ Design deliverable:
       hairline and one soft shadow. There is no accent frame.
 - [x] The hero carries output volume/mute and the output device selector; the
       value uses the 21+ display size and the primary controls meet 40–44 px.
-- [x] The now-playing surface is a 64 px compact strip with 40 px artwork,
-      title/artist, inline transport, source badge, `n/N`, and a 2 px seek line
-      with 9.5 px times. It has no card background.
-- [x] More than one current player shows flanking carousel arrows; ≤1 hides
-      them; transport acts on the displayed app; app row clicks focus the strip.
-- [x] The Apps list is always visible with no expand/collapse chevron, keeps
-      route/volume/mute, has no per-app transport icons, and highlights the
-      focused row.
-- [x] Shuffle and repeat appear only when supported, reflect state, and repeat
-      cycles off → all → one.
+- [x] A single `Audio · N` section replaces the separate Now playing and Apps
+      sections. There is no Apps list, expand chevron or app-row focus state.
+- [x] Each app is one snap-scrolling page with app tile/name, `n/N` and a route
+      chip; every page has its own volume, mute, percentage and `Mixed` state.
+- [x] Player pages carry artwork, title/artist, inline transport, supported
+      shuffle/repeat and the 2 px seek line with 9.5 px times. Audio-only and
+      live pages have the specified reduced content.
+- [x] Carousel arrows show when there is more than one page, hide at ≤1, and
+      horizontal swipe/scroll snap switches pages. `?player=2` and `?app=vlc`
+      focus the matching page.
+- [x] The active page controls the section height, so the panel is shorter than
+      the previous strip + Apps version.
 - [x] The input section is collapsed by default and covers device, level, mute,
       consumers, unavailable input and no-consumer states.
-- [x] Sliders, mute buttons, device selection, route selection, carousel,
-      transport, seek, input controls, `Esc` and bar-icon reopen are interactive.
+- [x] Sliders, mute buttons, route menus, transport, seek, page arrows, scroll
+      snap, input controls, `Esc` and bar-icon reopen are interactive.
 - [x] Deep links work: `?muted=1`, `?apps=1` (default/no-op), `?apps=0`,
-      `?playing=1`, `?playing=0`, `?input=1`, `?input=0`, `?mic=0`,
-      `?device=`, `?app=`, and `?player=2` (1-based carousel preset).
+      `?playing=1`, `?playing=0`, `?player=2`, `?app=vlc`, `?input=1`,
+      `?input=0`, `?mic=0`, `?device=`.
 - [x] Tokens and the corrected skin mapping are documented below; no false
       “everything is tokenised” claim.
 - [x] No bar code was changed, no app→app imports were added, and no config file
@@ -133,13 +139,13 @@ google-chrome-stable --new-window \
 | Query | State |
 | --- | --- |
 | `?muted=1` | Preferred output muted; the level is kept and labelled |
-| `?apps=1` / `?apps=0` | Default alias (apps are always visible) / zero apps |
-| `?playing=1` / `?playing=0` | Explicit playing (the default) / no MPRIS media; app rows fall back to `Audio only` |
-| `?player=2` | Preset the carousel to the 2nd current player (1-based) |
+| `?apps=1` / `?apps=0` | Default alias (pages are always visible) / zero apps (empty state) |
+| `?playing=1` / `?playing=0` | Explicit playing (the default) / every page becomes audio-only |
+| `?player=2` | Focus the 2nd app page (1-based); Firefox is audio-only |
+| `?app=vlc` | Focus a page by app id; VLC is the live-stream page |
 | `?input=1` / `?input=0` | Input expanded / no input device (disabled controls) |
 | `?mic=0` | Input available, no microphone consumers |
 | `?device=headphones` | Select an available output (`speakers`, `headphones`) |
-| `?app=firefox` | Focus that app's player; Firefox is the live-stream case |
 
 ## Token / skin mapping
 
@@ -173,45 +179,45 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
    2026-10-04 owner decision to drop a device-level volume/mute line because it
    competed with each app's own line. The new brief requires output volume in
    the hero. The resolution is hierarchy: exactly one output control at the top;
-   per-app levels stay inside the Apps list. The existing `setOutputVolume` /
+   per-app levels live inside the pages. The existing `setOutputVolume` /
    `toggleOutputMute` actions are already present.
-2. **Transport lives only in the strip.** App rows no longer carry playback or
-   seek controls; clicking a row focuses that player in the strip. This is the
-   deliberate change requested by the reference, and it preserves per-app
-   prev/next/seek through the carousel.
-3. **No gear or settings link.** The current popup has no settings entry, so the
+2. **One page per app; transport only inside a player page.** The separate Apps
+   list is retired. Volume/mute/route stay with the app page, so switching pages
+   is the only navigation. This is the requested single-carousel model.
+3. **Fixture roles.** Spotify is the normal player; Firefox is the audio-only
+   page (no player); Tidal is a paused player; VLC is the live stream. The
+   `?playing=0` deep link turns every page audio-only, preserving the old
+   audio-only state.
+4. **No gear or settings link.** The current popup has no settings entry, so the
    mock does not invent one. No JSON file is written.
-4. **Unavailable devices stay visible but disabled.** `HDMI · Display` exercises
+5. **Unavailable devices stay visible but disabled.** `HDMI · Display` exercises
    the disabled branch; selecting it is a no-op, not a fake success.
-5. **Simulation.** Data is in-memory; position advances once per second while
-   playing. `?playing=0` removes players but keeps app audio streams (the
-   `Audio only` case). Carousel membership is “apps with a current player”
-   (playing or paused), not only actively playing apps.
-6. **Mixed mute.** The `Mixed` badge demonstrates the divergent-level branch;
+6. **Simulation.** Data is in-memory; every playing seekable page advances once
+   per second while playing. The carousel includes every app page (players and
+   audio-only), not only players. There is no real PipeWire/MPRIS access.
+7. **Mixed mute.** The `Mixed` badge demonstrates the divergent-level branch;
    mixed mute shares that same badge/active-mute path rather than adding a second
-   app-row state.
-7. **Strip density exception.** Five actions share one 64 px row. The secondary
-   transport buttons are 26×40 px and play is 34 px, so the strip stays compact
+   page state.
+8. **Page height.** The active page's natural height sets the section height, so
+   audio-only and live pages shorten the panel. The 180 ms height transition is
+   decorative; no state depends on it.
+9. **Transport density exception.** Five actions share one player row. The
+   secondary buttons are 24×40 px and play is 34 px, so the page stays compact
    and the title/artist remain readable. If strict 40×40 is required for every
    transport action, the panel must widen or move transport to a second row.
-8. **Height trade.** Always-visible Apps makes the panel taller than the old
-   collapsed state. The compact strip and tighter row padding remove the card's
-   cost, and the result remains much shorter than the old expanded panel; the
-   two instructions (no expand chevron + shorter panel) are balanced this way.
 
 ## Evidence
 
 - `node --check` on the extracted script: exit 0 (syntax).
 - Chrome 154.0.8037.92 headless screenshots at 1600×1000 and 1280×800 for the
-  default, `?input=1`, `?player=2`, `?player=3`, `?playing=0&input=0&muted=1`,
-  and the device/route menus.
-- The existing DOM interaction harness passed 45 checks, including the new
-  carousel (1/3 → 2/3 → 3/3 → 1/3), unsupported shuffle/repeat hiding, shuffle
-  toggling, repeat cycling, app-row focus, and all prior output/app/input/
-  escape checks.
-- An 18-check states harness passed for `?playing=0` (no carousel, empty
-  media), `?player=2` (Firefox, 2/3, live seek hidden), `?apps=0` (empty list)
-  and `?muted=1`.
+  default player page, Firefox audio-only, Tidal player, VLC live, empty, and
+  the device/route menus.
+- The DOM interaction harness passed 53 checks: page count/section, scroll snap,
+  arrow carousel wrap, scroll focus sync, per-page volume/mute/route, output
+  device route relabel, transport, seek, shuffle/repeat, audio-only/live page
+  content, input and escape/reopen.
+- The states harness passed 27 checks for `?player=2`, `?app=vlc`, `?apps=0`,
+  `?playing=0`, `?muted=1`, `?input=0` and `?mic=0`.
 - `mock.html` was checked for external URLs and `url(...)`: none.
 
 ## Follow-up
@@ -220,11 +226,11 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 
 - Hero → `selectPreferredOutput`, `setOutputVolume`, `toggleOutputMute`
   (`audio/application/audio-actions.ts:15-90`).
-- Mixer → `setAppVolume`, `toggleAppMute`, `setAppRoute`
+- Page mixer → `setAppVolume`, `toggleAppMute`, `setAppRoute`
   (`audio-actions.ts:42-107`).
-- Strip → `playerAction` / `seek` (`audio-actions.ts:123-154`) for the displayed
-  player; carousel order from `projectAudioPanel` rows with a current player
-  (`audio-panel-view-model.ts:118-225`).
+- Player page → `playerAction` / `seek` (`audio-actions.ts:123-154`) for that
+  page's player; carousel order is the projected app rows, including audio-only
+  apps (`audio-panel-view-model.ts:118-225`).
 - Shuffle/Loop → extend `PlayerCapabilities`, `AudioPlayer` and
   `AudioPanelActions`, and add the MPRIS toggle calls. Hide each control when
   the capability flag is false.
