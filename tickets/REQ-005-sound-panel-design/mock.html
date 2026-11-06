@@ -23,18 +23,21 @@
    or pressing Esc closes it; the bar icon toggles it back.
 
    SKIN / APPEARANCE MAPPING (for the parallel skin work):
-   the chrome colours, radii and the panel width are custom
-   properties on :root; content art (wallpaper, album covers, app
-   icons) keeps its own gradients because it is content, not skin.
-   The appearance layer can remap:
+   the chrome colour roles and the radii are custom properties on
+   :root. The appearance layer can remap:
      ink / ink-dim / ink-faint   -> palette on-surface ramp
      glass / glass-strong        -> palette surface at two opacities
      hairline                    -> palette outline at low alpha
      accent / on-accent          -> palette primary / on-primary
      live                        -> semantic green (not palette)
-     panel-w / r-panel / r-card  -> skin layout tokens
-   The --surface / --outline / --focus-ring aliases are the single
-   remap seam; structure is not consumed by the skin.
+     r-panel                     -> surface.panel.radius
+     r-card                      -> surface.card.radius
+     r-control                   -> surface.control.radius
+     r-pill                      -> surface.pill.radius
+   panel-w is an app literal (352px), not a skin layout token. It
+   would need a layout.ags.audio-panel-width token before it can be
+   remapped. Some translucent hover/fill overlays and all content
+   art (wallpaper, album covers, app tiles) remain literals.
    ============================================================ */
 
 :root {
@@ -57,16 +60,16 @@
   --on-accent: #1a0b06;
   --live: #4ade80;
 
-  /* geometry — skin-remappable */
+  /* geometry — panel-w is an app literal; the radii are skin roles */
   --panel-w: 352px;
   --bar-h: 40px;
   --gap: 8px;
-  --r-panel: 18px;
-  --r-card: 12px;
-  --r-chip: 9px;
-  --r-pill: 999px;
+  --r-panel: 18px;   /* surface.panel.radius */
+  --r-card: 12px;    /* surface.card.radius */
+  --r-control: 9px;  /* surface.control.radius */
+  --r-pill: 999px;   /* surface.pill.radius */
 
-  /* shared remap aliases (one place for the skin) */
+  /* shared aliases used by the panel/menu chrome */
   --surface: var(--glass);
   --surface-strong: var(--glass-strong);
   --outline: var(--hairline);
@@ -466,6 +469,8 @@ body.is-closed .audio-pop {
   transition: background .16s;
 }
 .section-head:hover { background: rgba(255, 255, 255, .03); }
+.section-head.static { min-height: 40px; cursor: default; }
+.section-head.static:hover { background: transparent; }
 
 .section-title {
   flex: 0 0 auto;
@@ -496,7 +501,7 @@ body.is-closed .audio-pop {
 }
 .section-head[aria-expanded="true"] .chev { transform: rotate(180deg); }
 
-.section-body { padding: 0 8px 8px; }
+.section-body { padding: 0 8px 6px; }
 .input-body { padding: 0 16px 12px; }
 
 .empty {
@@ -513,31 +518,65 @@ body.is-closed .audio-pop {
   color: var(--ink-dim);
 }
 
-/* ── now playing ─────────────────────────────────────────────── */
+/* ── now playing (compact strip, not a card) ─────────────────── */
 
 .media-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  height: 34px;
-  padding: 0 16px;
+  gap: 8px;
+  min-height: 30px;
+  padding: 2px 12px 0;
 }
-.media-source {
+.media-head .caption { flex: 0 0 auto; }
+.media-spacer { flex: 1; }
+
+.source-badge {
+  min-width: 0;
+  max-width: 118px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  font-weight: 550;
+}
+.source-art {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .94);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+}
+#mediaSource {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+.media-position {
+  flex: 0 0 auto;
   font-size: 10.5px;
   color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
+.media-position::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--ink-faint);
+}
+
 .live-badge {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 20px;
-  padding: 0 8px;
+  height: 19px;
+  padding: 0 7px;
   border-radius: var(--r-pill);
   background: rgba(74, 222, 128, .12);
   color: #c4f8d6;
@@ -552,31 +591,47 @@ body.is-closed .audio-pop {
   background: var(--live);
 }
 
-.player {
-  margin: 0 12px 12px;
-  padding: 10px;
-  border-radius: var(--r-card);
-  background: var(--inset-bg);
+/* Arrows flank the strip and are the primary player switch. */
+.media-carousel {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 8px;
 }
-
-.player-top {
+.carousel-btn {
+  flex: 0 0 24px;
+  width: 24px;
+  min-height: 64px;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 44px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--ink-faint);
+  transition: background .16s, color .16s;
+}
+.carousel-btn:hover { background: var(--control-hover); color: var(--ink); }
+.carousel-btn[hidden] { display: none; }
+
+.player-strip {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding: 6px 4px;
 }
 
 .artwork {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-control);
   background-size: cover;
   background-position: center;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
   overflow: hidden;
 }
 /* CSS album art — no external assets. Each is a small composition,
-   not a flat swatch, so the card reads as artwork at 56px. */
+   not a flat swatch, so the strip reads as artwork at 40px. */
 .art-weightless {
   background:
     radial-gradient(circle at 34% 38%, rgba(255, 255, 255, .34) 0 7%, transparent 8%),
@@ -602,94 +657,114 @@ body.is-closed .audio-pop {
     linear-gradient(150deg, #16161c 0%, #0b0b10 100%);
 }
 
-.track { min-width: 0; display: grid; gap: 1px; }
+.track { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .track-title {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: -.01em;
 }
-.track-artist,
-.track-album {
+.track-artist {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 10.5px;
   color: var(--ink-dim);
 }
-.track-artist { font-size: 11.5px; }
-.track-album { font-size: 10.5px; color: var(--ink-faint); }
 
-.play-btn {
-  width: 44px;
-  height: 44px;
+/* Five actions share one 64px row: the secondary icons keep a
+   40px vertical target but are narrow (26px). Play is the primary
+   and stays 34px. This is the strip's one density exception. */
+.transport-inline {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.tbtn {
+  width: 26px;
+  height: 40px;
   display: grid;
   place-items: center;
+  border-radius: 8px;
+  color: var(--ink-dim);
+  transition: background .16s, color .16s;
+}
+.tbtn:hover { background: var(--control-hover); color: var(--ink); }
+.tbtn.is-on { color: var(--accent); background: rgba(255, 138, 106, .10); }
+.tbtn:disabled { opacity: .28; }
+.tbtn.play {
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
-  transition: filter .14s, transform .14s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .24);
 }
-.play-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
-.play-btn:active { transform: none; }
-.play-btn:disabled { opacity: .4; }
-
-.transport {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+.tbtn.play:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  filter: brightness(1.06);
 }
-.transport .icon-btn { color: var(--ink-dim); }
-.transport .icon-btn:disabled { opacity: .30; }
 
-.seek-block { min-width: 0; }
+.media-seek { padding: 0 12px 8px; }
+.range.seek-slim {
+  --range-fill: var(--accent);
+  height: 18px;
+}
+.range.seek-slim::-webkit-slider-runnable-track { height: 2px; }
+.range.seek-slim::-moz-range-track,
+.range.seek-slim::-moz-range-progress { height: 2px; }
+.range.seek-slim::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  margin-top: -3px;
+}
+.range.seek-slim::-moz-range-thumb { width: 8px; height: 8px; }
 .times {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  margin-top: -2px;
+  margin-top: -1px;
   padding: 0 1px;
-  font-size: 10.5px;
+  font-size: 9.5px;
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
 
 .media-empty {
-  margin: 0 12px 12px;
-  padding: 18px 16px;
-  border-radius: var(--r-card);
-  background: var(--inset-bg);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 14px;
 }
 .media-empty .empty-art {
-  width: 46px;
-  height: 46px;
-  margin: 0 auto 10px;
-  border-radius: 10px;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-control);
   opacity: .7;
 }
 .media-empty .t {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-dim);
 }
 .media-empty .s {
-  margin-top: 3px;
-  font-size: 11.5px;
+  margin-top: 2px;
+  font-size: 10.5px;
   color: var(--ink-faint);
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 /* ── app mixer ───────────────────────────────────────────────── */
 
 .app {
-  padding: 8px;
+  padding: 6px 8px;
   border-radius: var(--r-card);
   transition: background .16s;
 }
@@ -701,6 +776,7 @@ body.is-closed .audio-pop {
   grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
+  cursor: pointer;
 }
 
 .app-art {
@@ -761,13 +837,12 @@ body.is-closed .audio-pop {
 }
 
 .route {
-  max-width: 132px;
+  max-width: 118px;
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 7px;
-  border-radius: var(--r-chip);
+  padding: 0 8px;
+  border-radius: var(--r-control);
   background: var(--control-bg);
   color: var(--ink-dim);
   font-size: 10.5px;
@@ -781,14 +856,13 @@ body.is-closed .audio-pop {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.route .chev { flex: 0 0 auto; }
 
 .app-controls {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 4px;
   padding-left: 43px;
 }
 
@@ -1081,60 +1155,76 @@ body.is-closed .audio-pop {
       <div class="hero-note" id="mutedNote" hidden>Muted — the level is kept.</div>
     </section>
 
-    <!-- NOW PLAYING -->
+    <!-- NOW PLAYING: compact strip + player carousel -->
     <section class="section" aria-labelledby="mediaCaption">
       <div class="media-head">
         <span class="caption" id="mediaCaption">Now playing</span>
+        <span class="media-spacer"></span>
+        <span class="source-badge" id="sourceBadge">
+          <span class="source-art app-spotify" id="mediaSourceArt" aria-hidden="true">S</span>
+          <span id="mediaSource">Spotify</span>
+        </span>
+        <span class="media-position" id="mediaPosition">1/3</span>
         <span class="live-badge" id="liveBadge" hidden>Live</span>
-        <span class="media-source" id="mediaSource">Spotify</span>
       </div>
 
-      <div class="player" id="player">
-        <div class="player-top">
+      <div class="media-carousel" id="mediaCarousel">
+        <button class="carousel-btn" id="prevPlayer" aria-label="Previous player" aria-controls="player">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 5-7 7 7 7"></path>
+          </svg>
+        </button>
+
+        <div class="player-strip" id="player">
           <div class="artwork art-weightless" id="artwork" aria-hidden="true"></div>
           <div class="track">
             <div class="track-title" id="trackTitle">Weightless</div>
             <div class="track-artist" id="trackArtist">Marconi Union</div>
-            <div class="track-album" id="trackAlbum">Ambient Transmissions</div>
           </div>
-          <button class="play-btn" id="playBtn" aria-label="Pause"></button>
+          <div class="transport-inline">
+            <button class="tbtn" id="prevBtn" aria-label="Previous track"></button>
+            <button class="tbtn play" id="playBtn" aria-label="Pause"></button>
+            <button class="tbtn" id="nextBtn" aria-label="Next track"></button>
+            <button class="tbtn" id="shuffleBtn" aria-label="Shuffle" aria-pressed="false"></button>
+            <button class="tbtn" id="repeatBtn" aria-label="Repeat off" aria-pressed="false"></button>
+          </div>
         </div>
 
-        <div class="transport" id="transportRow">
-          <button class="icon-btn sm" id="prevBtn" aria-label="Previous track"></button>
-          <div class="seek-block" id="seekBlock">
-            <input class="range" type="range" id="seekRange" min="0" max="1000" step="1"
-                   value="0" aria-label="Playback position">
-            <div class="times">
-              <span id="elapsed">1:24</span>
-              <span id="duration">8:02</span>
-            </div>
-          </div>
-          <button class="icon-btn sm" id="nextBtn" aria-label="Next track"></button>
+        <button class="carousel-btn" id="nextPlayer" aria-label="Next player" aria-controls="player">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 5 7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="media-seek" id="seekBlock">
+        <input class="range seek-slim" type="range" id="seekRange" min="0" max="1000" step="1"
+               value="0" aria-label="Playback position">
+        <div class="times">
+          <span id="elapsed">1:24</span>
+          <span id="duration">8:02</span>
         </div>
       </div>
 
       <div class="media-empty" id="mediaEmpty" hidden>
         <div class="artwork art-empty empty-art" aria-hidden="true"></div>
-        <div class="t">Nothing is playing</div>
-        <div class="s">Media from your apps shows up here.</div>
+        <div>
+          <div class="t">Nothing is playing</div>
+          <div class="s">Media from your apps shows up here.</div>
+        </div>
       </div>
     </section>
 
-    <!-- APP MIXER -->
+    <!-- APP MIXER: always visible, no expand/collapse -->
     <section class="section">
-      <button class="section-head" id="appsHead" aria-expanded="false" aria-controls="appsBody">
+      <div class="section-head static" id="appsHead">
         <span class="section-title">Apps</span>
         <span class="section-count" aria-hidden="true">·</span>
         <span class="section-count" id="appsCount">3</span>
-        <span class="chev" aria-hidden="true">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"></path>
-          </svg>
-        </span>
-      </button>
-      <div class="section-body" id="appsBody" hidden></div>
+      </div>
+      <div class="section-body" id="appsBody"></div>
     </section>
 
     <!-- INPUT -->
@@ -1209,6 +1299,8 @@ const ICON = {
   pause: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1"></rect><rect x="13.6" y="5" width="3.4" height="14" rx="1"></rect></svg>`,
   prev: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5.5a1 1 0 0 1 1 1v11a1 1 0 1 1-2 0v-11a1 1 0 0 1 1-1Zm1.9 6.14 9.1 5.5a.9.9 0 0 0 1.35-.78V6.64a.9.9 0 0 0-1.35-.78l-9.1 5.5a.5.5 0 0 0 0 .86l-.1.1Z"></path></svg>`,
   next: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 5.5a1 1 0 0 0-1 1v11a1 1 0 1 0 2 0v-11a1 1 0 0 0-1-1Zm-1.9 6.14-9.1 5.5A.9.9 0 0 1 4.65 16.36V6.64a.9.9 0 0 1 1.35-.78l9.1 5.5a.5.5 0 0 1 0 .86l.1.1Z"></path></svg>`,
+  shuffle: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"></path><path d="m21 3-8 8"></path><path d="m3 3 5 5"></path><path d="M16 21h5v-5"></path><path d="m21 21-3-3"></path><path d="M3 21h2.1a5 5 0 0 0 4.2-2.3L14 11"></path></svg>`,
+  repeat: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
   check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg>`,
   chevron: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`
 };
@@ -1234,7 +1326,8 @@ const BASE_APPS = [
     id: "spotify", name: "Spotify", initial: "S", artClass: "app-spotify",
     route: "follow-preferred", override: null,
     volume: 74, muted: false, mixed: false, hasPlayer: true, playing: true,
-    canSeek: true, canPrev: true, canNext: true, position: 84, trackIndex: 0,
+    canSeek: true, canPrev: true, canNext: true, shuffle: false, repeat: "off",
+    shuffleSupported: true, repeatSupported: true, position: 84, trackIndex: 0,
     tracks: [
       { title: "Weightless", artist: "Marconi Union", album: "Ambient Transmissions", length: 482, art: "art-weightless" },
       { title: "An Ending (Ascent)", artist: "Brian Eno", album: "Apollo", length: 267, art: "art-sola" }
@@ -1244,7 +1337,8 @@ const BASE_APPS = [
     id: "firefox", name: "Firefox", initial: "F", artClass: "app-firefox",
     route: "explicit", override: "headphones",
     volume: 50, muted: false, mixed: true, hasPlayer: true, playing: true,
-    canSeek: false, canPrev: false, canNext: false, position: 0, trackIndex: 0,
+    canSeek: false, canPrev: false, canNext: false, shuffle: false, repeat: "off",
+    shuffleSupported: false, repeatSupported: false, position: 0, trackIndex: 0,
     tracks: [
       { title: "Lofi Girl — beats to relax/study to", artist: "YouTube", album: "Live stream", length: null, art: "art-lofi" }
     ]
@@ -1253,7 +1347,8 @@ const BASE_APPS = [
     id: "tidal", name: "Tidal", initial: "T", artClass: "app-tidal",
     route: "follow-preferred", override: null,
     volume: 36, muted: false, mixed: false, hasPlayer: true, playing: false,
-    canSeek: true, canPrev: true, canNext: true, position: 51, trackIndex: 0,
+    canSeek: true, canPrev: true, canNext: true, shuffle: true, repeat: "all",
+    shuffleSupported: true, repeatSupported: true, position: 51, trackIndex: 0,
     tracks: [
       { title: "Sola", artist: "Kiasmos", album: "II", length: 244, art: "art-sola" },
       { title: "Looped", artist: "Kiasmos", album: "Blurred", length: 211, art: "art-weightless" }
@@ -1268,7 +1363,6 @@ const state = {
   devices: clone(BASE_DEVICES),
   outputId: "speakers",
   apps: clone(BASE_APPS),
-  appsOpen: false,
   focusId: "spotify",
   inputs: clone(BASE_INPUTS),
   input: {
@@ -1288,8 +1382,12 @@ const $ = (id) => document.getElementById(id);
 const currentDevice = () => state.devices.find((d) => d.id === state.outputId) ?? state.devices[0];
 const currentInput = () => state.inputs.find((d) => d.id === state.input.deviceId) ?? null;
 const trackOf = (app) => app.tracks[app.trackIndex] ?? app.tracks[0];
-const focusedApp = () =>
-  state.apps.find((a) => a.id === state.focusId && a.hasPlayer) ?? null;
+const activePlayers = () => state.apps.filter((app) => app.hasPlayer);
+const displayedPlayer = () => {
+  const active = activePlayers();
+  if (!active.length) return null;
+  return active.find((app) => app.id === state.focusId) ?? active[0];
+};
 
 const fmt = (seconds) => {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -1313,10 +1411,9 @@ const params = new URLSearchParams(location.search);
 
 if (params.get("muted") === "1") currentDevice().muted = true;
 
-if (params.get("apps") === "1") state.appsOpen = true;
+// Apps are always visible now; ?apps=1 stays a harmless default alias.
 if (params.get("apps") === "0") {
   state.apps = [];
-  state.appsOpen = true;
   state.focusId = null;
   state.input.consumers = [];
 }
@@ -1340,6 +1437,13 @@ if (wantedDevice && state.devices.some((d) => d.id === wantedDevice && d.availab
 const wantedApp = params.get("app");
 if (wantedApp) {
   const app = state.apps.find((a) => a.id === wantedApp && a.hasPlayer);
+  if (app) state.focusId = app.id;
+}
+// ?player=2 is 1-based over the active players and wins over ?app.
+const wantedPlayer = Number(params.get("player"));
+if (Number.isInteger(wantedPlayer) && wantedPlayer > 0) {
+  const active = state.apps.filter((app) => app.hasPlayer);
+  const app = active[wantedPlayer - 1];
   if (app) state.focusId = app.id;
 }
 
@@ -1496,34 +1600,51 @@ function updateSeek(app) {
 }
 
 function renderMedia() {
-  const app = focusedApp();
-  const player = $("player");
+  const app = displayedPlayer();
+  const active = activePlayers();
+  const carousel = $("mediaCarousel");
   const empty = $("mediaEmpty");
-  const source = $("mediaSource");
+  const sourceBadge = $("sourceBadge");
+  const position = $("mediaPosition");
   const live = $("liveBadge");
   const seekBlock = $("seekBlock");
+  const prevPlayer = $("prevPlayer");
+  const nextPlayer = $("nextPlayer");
 
   if (!app) {
-    player.hidden = true;
+    carousel.hidden = true;
     empty.hidden = false;
-    source.hidden = true;
+    sourceBadge.hidden = true;
+    position.hidden = true;
     live.hidden = true;
+    seekBlock.hidden = true;
+    prevPlayer.hidden = true;
+    nextPlayer.hidden = true;
     return;
   }
 
   const track = trackOf(app);
-  player.hidden = false;
+  const index = active.indexOf(app);
+
+  carousel.hidden = false;
   empty.hidden = true;
-  source.hidden = false;
-  source.textContent = app.name;
-  source.title = app.name;
+  sourceBadge.hidden = false;
+  position.hidden = false;
+
+  $("mediaSource").textContent = app.name;
+  $("mediaSource").title = app.name;
+  $("mediaSourceArt").className = `source-art ${app.artClass}`;
+  $("mediaSourceArt").textContent = app.initial;
+  position.textContent = `${index + 1}/${active.length}`;
+
+  const canCarousel = active.length > 1;
+  prevPlayer.hidden = !canCarousel;
+  nextPlayer.hidden = !canCarousel;
 
   $("artwork").className = `artwork ${track.art}`;
   $("trackTitle").textContent = track.title;
   $("trackTitle").title = track.title;
   $("trackArtist").textContent = track.artist;
-  $("trackAlbum").textContent = track.album;
-  $("trackAlbum").hidden = !track.album;
 
   $("playBtn").innerHTML = app.playing ? ICON.pause : ICON.play;
   $("playBtn").setAttribute("aria-label", `${app.playing ? "Pause" : "Play"} ${track.title}`);
@@ -1533,7 +1654,22 @@ function renderMedia() {
   $("nextBtn").innerHTML = ICON.next;
   $("prevBtn").hidden = !app.canPrev;
   $("nextBtn").hidden = !app.canNext;
-  $("transportRow").hidden = !app.canSeek && !app.canPrev && !app.canNext;
+
+  const shuffle = $("shuffleBtn");
+  shuffle.innerHTML = ICON.shuffle;
+  shuffle.hidden = !app.shuffleSupported;
+  shuffle.classList.toggle("is-on", Boolean(app.shuffle));
+  shuffle.setAttribute("aria-pressed", String(Boolean(app.shuffle)));
+  shuffle.setAttribute("aria-label", app.shuffle ? "Shuffle on" : "Shuffle off");
+  shuffle.title = app.shuffle ? "Shuffle on" : "Shuffle off";
+
+  const repeat = $("repeatBtn");
+  repeat.innerHTML = ICON.repeat;
+  repeat.hidden = !app.repeatSupported;
+  repeat.classList.toggle("is-on", app.repeat !== "off");
+  repeat.setAttribute("aria-pressed", String(app.repeat !== "off"));
+  repeat.setAttribute("aria-label", `Repeat ${app.repeat}`);
+  repeat.title = `Repeat ${app.repeat}`;
 
   live.hidden = app.canSeek;
   seekBlock.hidden = !app.canSeek;
@@ -1547,8 +1683,7 @@ function renderMedia() {
 /* ── render: app mixer ───────────────────────────────────────── */
 
 function appRowHTML(app) {
-  const focused = app.id === state.focusId && app.hasPlayer;
-  const track = trackOf(app);
+  const focused = app.hasPlayer && displayedPlayer()?.id === app.id;
   const mutedClass = app.muted ? " is-muted" : "";
   const muteLabel = `${app.muted ? "Unmute" : "Mute"} ${app.name}`;
 
@@ -1569,7 +1704,6 @@ function appRowHTML(app) {
         <button class="route" data-app-route="${app.id}" aria-haspopup="menu" aria-expanded="false"
                 title="${routeFull(app)}" aria-label="${app.name} route: ${routeFull(app)}">
           <span class="rt">${routeShort(app)}</span>
-          <span class="chev" aria-hidden="true">${ICON.chevron}</span>
         </button>
       </div>
       <div class="app-controls">
@@ -1589,13 +1723,8 @@ function appRowHTML(app) {
 }
 
 function renderApps() {
-  const head = $("appsHead");
   const body = $("appsBody");
-  head.setAttribute("aria-expanded", String(state.appsOpen));
   $("appsCount").textContent = String(state.apps.length);
-  body.hidden = !state.appsOpen;
-
-  if (!state.appsOpen) return;
 
   if (state.apps.length === 0) {
     body.innerHTML = `
@@ -1773,7 +1902,7 @@ function openRouteMenu(app, anchor) {
 /* ── media controls ──────────────────────────────────────────── */
 
 function togglePlay() {
-  const app = focusedApp();
+  const app = displayedPlayer();
   if (!app) return;
   app.playing = !app.playing;
   renderMedia();
@@ -1781,7 +1910,7 @@ function togglePlay() {
 }
 
 function changeTrack(delta) {
-  const app = focusedApp();
+  const app = displayedPlayer();
   if (!app || !app.hasPlayer) return;
   if (delta < 0 && app.position > 5) {
     app.position = 0;
@@ -1791,6 +1920,31 @@ function changeTrack(delta) {
   }
   renderMedia();
   renderApps();
+}
+
+function cyclePlayer(delta) {
+  const active = activePlayers();
+  if (active.length <= 1) return;
+  const current = displayedPlayer();
+  const index = Math.max(0, active.indexOf(current));
+  state.focusId = active[(index + delta + active.length) % active.length].id;
+  renderMedia();
+  renderApps();
+}
+
+function toggleShuffle() {
+  const app = displayedPlayer();
+  if (!app?.shuffleSupported) return;
+  app.shuffle = !app.shuffle;
+  renderMedia();
+}
+
+function cycleRepeat() {
+  const app = displayedPlayer();
+  if (!app?.repeatSupported) return;
+  const order = ["off", "all", "one"];
+  app.repeat = order[(order.indexOf(app.repeat) + 1) % order.length];
+  renderMedia();
 }
 
 /* ── wiring ──────────────────────────────────────────────────── */
@@ -1825,11 +1979,6 @@ $("outputRange").addEventListener("input", (event) => {
   renderBar();
 });
 
-$("appsHead").addEventListener("click", () => {
-  state.appsOpen = !state.appsOpen;
-  renderApps();
-});
-
 $("inputHead").addEventListener("click", () => {
   state.inputOpen = !state.inputOpen;
   renderInput();
@@ -1855,6 +2004,10 @@ $("inputRange").addEventListener("input", (event) => {
 $("playBtn").addEventListener("click", togglePlay);
 $("prevBtn").addEventListener("click", () => changeTrack(-1));
 $("nextBtn").addEventListener("click", () => changeTrack(1));
+$("prevPlayer").addEventListener("click", () => cyclePlayer(-1));
+$("nextPlayer").addEventListener("click", () => cyclePlayer(1));
+$("shuffleBtn").addEventListener("click", toggleShuffle);
+$("repeatBtn").addEventListener("click", cycleRepeat);
 
 /* app rows are delegated because the mixer re-renders */
 $("appsBody").addEventListener("click", (event) => {
@@ -1874,14 +2027,15 @@ $("appsBody").addEventListener("click", (event) => {
     return;
   }
 
-  const focus = event.target.closest("[data-app-focus]");
-  if (focus && !focus.disabled) {
-    const app = state.apps.find((a) => a.id === focus.dataset.appFocus);
-    if (!app?.hasPlayer) return;
-    state.focusId = app.id;
-    renderApps();
-    renderMedia();
-  }
+  if (event.target.closest("input")) return;
+
+  const row = event.target.closest(".app");
+  if (!row) return;
+  const app = state.apps.find((a) => a.id === row.dataset.app);
+  if (!app?.hasPlayer) return;
+  state.focusId = app.id;
+  renderApps();
+  renderMedia();
 });
 
 $("appsBody").addEventListener("input", (event) => {
@@ -1901,7 +2055,7 @@ let seeking = false;
 const seek = $("seekRange");
 seek.addEventListener("pointerdown", () => { seeking = true; });
 seek.addEventListener("input", () => {
-  const app = focusedApp();
+  const app = displayedPlayer();
   if (!app?.canSeek) return;
   const track = trackOf(app);
   if (!track.length) return;
@@ -1946,7 +2100,7 @@ window.addEventListener("keydown", (event) => {
 /* ── live simulation ─────────────────────────────────────────── */
 
 setInterval(() => {
-  const app = focusedApp();
+  const app = displayedPlayer();
   if (!app || !app.playing || !app.canSeek || seeking) return;
   const track = trackOf(app);
   if (!track.length) return;

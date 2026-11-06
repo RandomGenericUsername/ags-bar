@@ -99,33 +99,37 @@ code, and changes no bar source.
 
 The contract inherits batch docs 106 (wallpaper selector) and 107 (clipboard):
 one glass chrome layer, no accent frame, accent only for state/action, the
-10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
+9.5/10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
 The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 
 - **Hero** — output volume (big value, slider, mute) and the preferred output
   device selector. This is the single output control; per-app levels live in the
   mixer, resolving the old "competing volume line" objection by hierarchy.
-- **Now playing** — CSS-art artwork, title/artist/album, previous/play-pause/
-  next and seek, with live-stream and empty states. Clicking an app row focuses
-  that app's player here, so per-app transport/seek is preserved without
-  repeating controls in every mixer row.
-- **Apps · N** — collapsed by default; expands to app icon/name, current media
-  or `Audio only`, output route, volume and mute, plus a `Mixed` badge.
+- **Now playing** — a 64 px compact strip, not a card: 40 px artwork,
+  title/artist, source badge and `n/N`, inline previous/play-pause/next plus
+  shuffle/repeat, and a 2 px seek line with 9.5 px times. With more than one
+  current player, flanking arrows carousel through them; the transport acts on
+  the displayed player. Shuffle/repeat hide when MPRIS does not expose them.
+  Clicking an app row focuses its strip.
+- **Apps · N** — always visible, with no expand/collapse chevron. Rows keep
+  icon/name/current media, a compact route chip, volume and mute, plus a `Mixed`
+  badge. There are no per-app transport icons.
 - **Input** — collapsed by default; device, level, mute and microphone consumers,
   with unavailable-input and no-consumer states.
 
-Deep links exercise the states without a backend: `?muted=1`, `?apps=1`,
-`?apps=0`, `?playing=1`, `?playing=0`, `?input=1`, `?input=0`, `?mic=0`,
-`?device=headphones` and `?app=firefox`.
+Deep links exercise the states without a backend: `?muted=1`, `?apps=1`
+(default/no-op), `?apps=0`, `?playing=1`, `?playing=0`, `?player=2`, `?input=1`,
+`?input=0`, `?mic=0`, `?device=headphones` and `?app=firefox`.
 
-All chrome tokens are `:root` custom properties (`--ink*`, `--glass*`,
-`--hairline*`, `--accent`/`--on-accent`, `--live`, `--panel-w`, radii) with
-`--surface`, `--outline` and `--focus-ring` as the single aliases the skin plane
-remaps. Content art (wallpaper, album covers, app tiles) is deliberately not
-tokenised. The current popup has no settings entry, so the mock adds no gear and
-no config file; right-click → `pavucontrol` remains a bar-widget gesture outside
-this surface. Implementation maps to the existing audio actions and is not part
-of this design ticket.
+The chrome colour roles and radii are `:root` custom properties. Radii map to
+`surface.panel/card/control/pill.radius`; `--panel-w` is an app literal until a
+`layout.ags.audio-panel-width` token exists. Some translucent hover/fill overlays
+and all content art (wallpaper, album covers, app tiles) stay literal, so this
+is not a claim that every colour is tokenised. The current popup has no settings
+entry, so the mock adds no gear and no config file; right-click → `pavucontrol`
+remains a bar-widget gesture outside this surface. Implementation maps to the
+existing audio actions plus the new MPRIS shuffle/loop capability, and is not
+part of this design ticket.
 
 ## Cutover state migration (wifi-speedtest)
 
