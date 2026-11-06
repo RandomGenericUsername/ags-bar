@@ -64,14 +64,19 @@ tray icon, not a custom expanding strip:
 - At rest: 20 px rounded album art with a 1 px ring, a playing dot (paused shows
   a small play glyph), no title/artist text, tooltip `Title — Artist`. Click
   toggles a dropdown; hover never opens it. Hidden when there is no player.
+  **Exclusivity:** the tray dropdown and the sound panel are never open together.
+  The tray icon closes the panel before toggling; the volume icon and the
+  dropdown footer close the tray and open the panel; `?tray=1` opens with the
+  panel closed. Esc closes the tray first, then the panel; outside click closes
+  the tray.
 - Dropdown: 300 px glass, radius 14, hairline and shadow, anchored below the
   icon. Header `Now playing` + source app. Active track: 36 px art,
   title/artist, previous / play-pause / next, shuffle/repeat only when
   supported, 2 px seek line with 9.5 px times. A divider and `Players` list only
   when more than one current player: app tile, track, playing dot, active check;
   choosing a row switches the active player and updates the panel Playing page.
-  Footer `Open sound panel` opens/toggles the panel on Playing. Menu-like; no
-  nested cards.
+  Footer `Open sound panel` closes the tray and opens the panel on Playing.
+  Menu-like; no nested cards.
 - The tray follows the panel carousel's active player; switching carousel pages
   updates the icon/dropdown, and selecting a dropdown player updates the panel.
   Pausing shows a play glyph; no player hides the tray and closes the dropdown.
@@ -157,6 +162,10 @@ Design deliverable:
       switching panel pages updates the tray. Pausing shows the play glyph;
       no player hides the tray/dropdown. `?tray=1` and
       `?tray=1&player=2` open the dropdown.
+- [x] Tray and panel are mutually exclusive: the tray icon closes the panel
+      before toggling; the volume icon and `Open sound panel` close the tray and
+      open the panel; `?tray=1` opens with the panel closed; Esc closes the tray
+      first, then the panel.
 - [x] The panel is shorter than the previous carousel + apps version: Playing is
       compact; Mixer uses four tight rows.
 - [x] The input section is collapsed by default and covers device, level, mute,
@@ -200,8 +209,8 @@ google-chrome-stable --new-window \
 | `?input=1` / `?input=0` | Input expanded / no input device (disabled controls) |
 | `?mic=0` | Input available, no microphone consumers |
 | `?device=headphones` | Select an available output (`speakers`, `headphones`) |
-| `?tray=1` | Open the tray dropdown on the active player |
-| `?tray=1&player=2` | Open the tray dropdown on the second player |
+| `?tray=1` | Open the tray dropdown on the active player, with the panel closed |
+| `?tray=1&player=2` | Open the tray dropdown on the second player, with the panel closed |
 | `?panel=closed` | Start with the popover closed; tray icon remains visible (review helper) |
 
 ## Token / skin mapping
@@ -270,6 +279,10 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
     selectable; its playing dot is absent); with one current player the list is
     omitted. No current player hides the tray. `?tray` and `?panel` are mock
     review links, not app config.
+13. **Mutual exclusivity.** The tray dropdown and the panel share one overlay
+    budget: opening either closes the other. The tray icon is the media
+    entry point; the volume icon and the footer are panel entry points. This is
+    UI behavior only, not a config key.
 
 ## Evidence
 
@@ -285,13 +298,13 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
   `?player=2`, `?app=vlc`, `?app=firefox`, `?playing=0`,
   `?mode=playing&playing=0`, `?apps=0`, `?mode=playing&apps=0`, `?muted=1`,
   `?input=0`, `?mic=0` and `?device=headphones`.
-- The tray harness passed 84 checks: tray placement/height, placeholders, rest
+- The tray harness passed 93 checks: tray placement/height, placeholders, rest
   tooltip/dot, hover-does-not-open, click toggle, dropdown content, player
   switching, panel carousel sync, transport/seek, footer toggle, Esc order,
-  hidden idle states, and `?tray=1` / `?tray=1&player=2` / `?panel=closed`.
+  outside click, hidden idle states, and `?tray=1` / `?tray=1&player=2` / `?panel=closed`.
 - Tray screenshots: `/tmp/opencode/tray-rest-final.png`,
-  `tray-dropdown-final.png`, `tray-closed-final.png`; panel states remain the
-  `final-twomode-*` captures.
+  `tray-open-panel-closed-final.png` (`?tray=1` with panel closed), and
+  `tray-closed-final.png`; panel states remain the `final-twomode-*` captures.
 - `mock.html` was checked for external URLs and `url(...)`: none.
 
 ## Follow-up

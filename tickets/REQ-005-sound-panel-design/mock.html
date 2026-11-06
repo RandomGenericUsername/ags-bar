@@ -2528,10 +2528,6 @@ function trayAction(action) {
 
 function openPanelFromTray() {
   closeTray(false);
-  if (state.panelOpen && state.mode === "playing") {
-    setPanelOpen(false);
-    return;
-  }
   state.mode = "playing";
   renderDeck();
   setPanelOpen(true);
@@ -2705,10 +2701,17 @@ function goToPlayer(delta) {
 /* ── wiring ──────────────────────────────────────────────────── */
 
 $("barVolume").addEventListener("click", () => {
+  const hadTray = state.trayOpen;
+  closeTray(false);
+  if (hadTray) {
+    setPanelOpen(true);
+    return;
+  }
   setPanelOpen(!state.panelOpen);
 });
 
 $("trayMedia").addEventListener("click", () => {
+  setPanelOpen(false);
   toggleTray();
 });
 
@@ -2973,6 +2976,7 @@ setPanelOpen(true);
 renderAll();
 if (params.get("panel") === "closed") setPanelOpen(false);
 if (params.get("tray") === "1") {
+  setPanelOpen(false);
   setTimeout(openTray, 300);
 }
 if (state.mode === "mixer" && state.mixFocusId) {

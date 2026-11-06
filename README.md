@@ -107,7 +107,10 @@ The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
   Rest: 20 px rounded album art with a 1 px ring, a playing dot or paused play
   glyph, no text, tooltip `Title — Artist`, and two quiet placeholder tray dots.
   Click toggles a 300 px glass dropdown below the icon; hover never opens it.
-  Hidden when no player is active. The dropdown has `Now playing` + source app,
+  The tray dropdown and the sound panel are mutually exclusive: the tray icon
+  closes the panel before toggling; the volume icon and the dropdown's
+  `Open sound panel` close the dropdown and open the panel. `?tray=1` opens the
+  dropdown with the panel closed. Hidden when no player is active. The dropdown has `Now playing` + source app,
   36 px art/title/artist, previous/play-pause/next, supported shuffle/repeat, a
   2 px seek line with times, a `Players` list when there is more than one player
   (app tile, track, playing dot, active check; choosing one updates the tray and
