@@ -16,6 +16,7 @@ import { BatteryPopup, BatteryPopupCatcher } from "./components/battery/BatteryP
 import { closeBatteryPopup } from "./components/battery/state"
 import { closeWifiPopup } from "./components/wifi/state"
 import { theme } from "ags-platform/adapters/theme"
+import { skin } from "ags-platform/adapters/skin"
 import { captureClusterIpc } from "./lib/capture-cluster-ipc"
 import "./overlays"
 
@@ -144,6 +145,12 @@ app.start({
     // The palette, through the Theme port (spine AD-13). The adapter applies the
     // stable colors.css pointer; app.tsx no longer calls apply_css for it.
     theme.apply()
+    // The skin plane (frozen Skin Spec v1), applied AFTER the palette and last:
+    // its composed provider carries the palette role block plus the
+    // runtime-expanded skin.css at USER priority, so it overrides the bundled
+    // style.css glass fallback. This is a restart-mode app; a skin change is
+    // picked up by the runtime's serialized restart lane, not a live handler.
+    skin.apply()
     // The redesigned panel's stylesheet (tasks.md 6.0e). It was written but
     // imported by nothing, so all 345 lines were dead and the popup fell back
     // to the pre-existing `.audio-*` rules in style.css that styled the panel

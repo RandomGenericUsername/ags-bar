@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.4.0 — 2026-11-05
+
+### Added
+
+- Apply the frozen skin plane at startup: `skin.apply()` runs immediately
+  after `theme.apply()`, installing the composed provider (palette roles +
+  runtime-expanded `skin.css`) last at USER priority. Missing skin artifacts
+  are a no-op, so the bundled `style.css` glass fallback keeps today's
+  rendering.
+- Consume two TSX-owned layout tokens with their fallbacks: the settings
+  surface reads `skinValue("layout.panel-width", 312)` and both Bluetooth list
+  boxes read `skinValue("layout.bt-list-spacing", 4)`.
+- Add `tests/validation/skin-plane.test.mjs`: startup order, restart lane (no
+  new request handler / refresh path), token reads and the retained glass
+  fallback.
+
+### Changed
+
+- Program tuple is `ags-platform` v0.7.0 / `contracts` v0.6.0 /
+  `dotfiles-assets` v0.10.0 / `dotfiles-runtime` v0.8.1; the manifest schema
+  and template gates agree.
+- Migrate `style.css` and `audio/audio-panel.css` from legacy CSG `@color_*`
+  carrier names to the semantic `palette.v1` roles the platform Theme provider
+  projects (`@surface`, `@on_surface`, `@primary`, `@on_primary`,
+  `@primary_container`, `@tertiary`, …). Geometry, spacing, alpha values,
+  selectors and behavior are unchanged; solid fills use their matching ink
+  (`on_primary` / `on_primary_container`) instead of the page background.
+
 ## v0.3.0 — 2026-11-04
 
 ### Added
@@ -17,20 +45,6 @@
 
 - Platform pin is `v0.5.0` (new `capture-cluster` port). Compact/full controls
   remain governed by `bar_compact_controls`.
-
-## Unreleased
-
-- Migrate `style.css` and `audio/audio-panel.css` from legacy CSG `@color_*`
-  carrier names to the semantic `palette.v1` roles the `ags-platform` v0.4.0
-  Theme provider projects (`@surface`, `@on_surface`, `@primary`,
-  `@on_primary`, `@primary_container`, `@tertiary`, …). Geometry, spacing,
-  alpha values, selectors and behavior are unchanged; solid fills use their
-  matching ink (`on_primary` / `on_primary_container`) instead of the page
-  background.
-- Pin the platform tuple at v0.4.0 (contracts stays v0.3.0) so local gates and
-  CI exercise the provider that defines the roles. No refresh mechanism change:
-  the legacy sheet is still applied verbatim and `theme.apply()` still runs
-  once at startup.
 
 ## v0.1.3 — 2026-10-28
 

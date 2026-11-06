@@ -4,6 +4,7 @@ import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
 import { execAsync } from "ags/process"
 import { registry } from "ags-platform/adapters/icon-registry"
+import { skinValue } from "ags-platform/adapters/skin"
 import {
   ageOutStaleReadings,
   bluetoothAdapterAddress,
@@ -25,6 +26,16 @@ import {
 
 /** How often the reachability clock is re-checked while the panel is visible. */
 const TICK_MS = 10000
+
+/**
+ * Bluetooth list rhythm is a TSX-owned layout token (skin spec v1).
+ *
+ * gnim's JSX prop type accepts its own `Accessor` class, not the platform's
+ * structural `ReadAccessor`, so the boxes read `.peek()` at mount. That is
+ * sufficient here: the bar is restart-mode, so a skin change restarts the app
+ * rather than remounting the list. Missing/invalid tokens fall back to 4.
+ */
+const btListSpacing = skinValue("layout.bt-list-spacing", 4)
 
 /**
  * Bluetooth capability body (design §4, mock `mockups/panel.html`).
@@ -747,7 +758,7 @@ const [manuallyToggled, setManuallyToggled] = createState<boolean | null>(
       />
       <box
         orientation={1}
-        spacing={4}
+        spacing={btListSpacing.peek()}
         visible={createComputed(() => powered() && hasPaired())}
       >
         <For
@@ -795,7 +806,7 @@ const [manuallyToggled, setManuallyToggled] = createState<boolean | null>(
       <box
         class="settings-other-networks"
         orientation={1}
-        spacing={4}
+        spacing={btListSpacing.peek()}
         visible={createComputed(() => powered() && expanded())}
       >
         <For

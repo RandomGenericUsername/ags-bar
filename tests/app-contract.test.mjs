@@ -11,7 +11,7 @@
 //      wifi-speedtest state are documented and stay outside app writes;
 //   5. the shared dev-flow template is present and the platform's own
 //      `checkAppRepo` template gate passes;
-//   6. the contracts v0.3.0 manifest schema and the Makefile pins agree.
+//   6. the contracts v0.6.0 manifest schema and the Makefile pins agree.
 //
 // Run from the repo root:  make conformance
 // ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ test("the standalone dev-flow files are present", () => {
   }
 });
 
-test("the contracts v0.3.0 manifest schema agrees with the platform", () => {
+test("the contracts v0.6.0 manifest schema agrees with the platform", () => {
   const contractsRoot = findContractsRoot();
   assert.notEqual(contractsRoot, null, "cannot find contracts (set CONTRACTS_ROOT)");
   const schema = JSON.parse(
@@ -284,9 +284,9 @@ test("the contracts v0.3.0 manifest schema agrees with the platform", () => {
   );
 });
 
-test("the Makefile pins the v0.5.0 platform / v0.3.0 contracts tuple", () => {
+test("the Makefile pins the v0.7.0 platform / v0.6.0 contracts tuple", () => {
   const makefile = readText("Makefile");
-  assert.match(makefile, /^AGS_PLATFORM_VERSION := v0\.5\.0$/m);
-  assert.match(makefile, /^CONTRACTS_VERSION := v0\.3\.0$/m);
+  assert.match(makefile, /^AGS_PLATFORM_VERSION := v0\.7\.0$/m);
+  assert.match(makefile, /^CONTRACTS_VERSION := v0\.6\.0$/m);
   assert.match(makefile, /^BUNDLE_FILE := build\/ags-bar\.js$/m);
 });

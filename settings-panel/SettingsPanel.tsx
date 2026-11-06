@@ -1,5 +1,6 @@
 import { Gtk, Gdk } from "ags/gtk4"
 import { createComputed, createEffect } from "ags"
+import { skinValue } from "ags-platform/adapters/skin"
 import { activeView, close, iconCenterX, panelVisible, viewEpoch } from "./state"
 import {
   stcExpanded,
@@ -13,13 +14,24 @@ import { SubviewHeader } from "./views/SubviewHeader"
 import { PopupCatcher, PopupHost, type PopupSurfaceSpec } from "../kit/popup-host"
 
 /**
+ * Surface width is a TSX-owned layout token (skin spec v1). The surface contract
+ * (`kit/surface.ts`) types `width` as a plain number, not an accessor, so the
+ * host's read is the place to resolve it. This getter runs from
+ * `PopupHost(...)`, which `main()` calls after `skin.apply()`, so the token map
+ * is already loaded; reading at module import would always see the fallback.
+ */
+const panelWidth = skinValue("layout.panel-width", 312)
+
+/**
  * The settings surface body (spine AD-10): a factory, mounted by `PopupHost` only
  * while the panel is visible. Subviews swap in place so the panel dimensions stay
  * stable.
  */
 export const settingsSurface: PopupSurfaceSpec = {
   id: "settings",
-  width: 312,
+  get width() {
+    return panelWidth.peek()
+  },
   // Keyboard mode is NONE by default so the panel does not steal focus — that is
   // what lets the bar keep click activation (reliable same-spot collapse). Switch
   // to ON_DEMAND only while a field that needs typed input is actually on screen.

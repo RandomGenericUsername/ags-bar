@@ -28,8 +28,21 @@ The bar is the explicit **restart** app (AD-26/AD-30). It has no
 `palette-refresh` handler and must not grow one by accident. After an
 appearance change the runtime's serialized restart lane restarts the bar; a
 failed live refresh never becomes a restart because there is no live refresh
-here. `theme.apply()` runs once at startup and applies the stable
-`$XDG_CONFIG_HOME/ags/colors.css` pointer.
+here.
+
+Appearance is composed once in `main()`, in this order:
+
+1. `theme.apply()` applies the stable `$XDG_CONFIG_HOME/ags/colors.css`
+   pointer (the palette roles);
+2. `skin.apply()` applies the composed skin provider **last**, at USER
+   priority, so it overrides the bundled `style.css` glass fallback.
+
+The skin is palette/ink + paint + rhythm; it has no structure or variant.
+Absent skin artifacts are a no-op: the bundled `style.css` keeps today's
+rendering. Layout tokens stay TSX-owned: the settings surface reads
+`skinValue("layout.panel-width", 312)` and the Bluetooth lists read
+`skinValue("layout.bt-list-spacing", 4)` with their fallbacks. No
+`wallpaper.state` subscription and no skin-refresh request are added.
 
 ### Request surface
 
@@ -59,6 +72,11 @@ AD-37: installed tags are immutable; writable state lives under XDG.
   authors a second copy. Treat it as generated, not hand-authored.
 - **`audio/audio-panel.css`** — deployed into the config dir and applied from
   `$XDG_CONFIG_HOME/ags/audio/audio-panel.css` at runtime.
+- **`skin.css` / `skin.json`** — runtime-owned skin artifacts at
+  `$XDG_CONFIG_HOME/ags/skin.css` (runtime-expanded CSS) and
+  `$XDG_STATE_HOME/dotfiles/current/skin.json` (grouped raw-number token map).
+  Provisioning expands the selected manifest skin (`glass`, `flat`, `paper`);
+  the app only reads them through the Skin port and never writes them.
 - **`wifi-speedtest.json`** — a legacy **seed default** tracked at the repo root
   for provisioning. It is **not** user state and never a read/write target; the
   service state lives under `$XDG_STATE_HOME/ags/`. See the cutover section.
@@ -114,13 +132,13 @@ Full acceptance lives in `tickets/OPS-001-cutover-state-migration/ticket.md`.
 
 ## Local development
 
-The program tuple is `ags-platform` `v0.5.0` / `contracts` `v0.3.0` /
-`dotfiles-assets` `v0.3.0`. Those tags are local-only in this run; the local
-gates use a gitignored symlink under `.dev/`.
+The program tuple is `ags-platform` `v0.7.0` / `contracts` `v0.6.0` /
+`dotfiles-assets` `v0.10.0` / `dotfiles-runtime` `v0.8.1`. Those tags are
+local-only in this run; the local gates use a gitignored symlink under `.dev/`.
 
 ```sh
-ln -s ../../../ags-platform .dev/ags-platform/v0.5.0   # or use AGS_PLATFORM_DEV
-ln -s ../../../contracts .dev/contracts/v0.3.0         # or use CONTRACTS_ROOT
+ln -s ../../../ags-platform .dev/ags-platform/v0.7.0   # or use AGS_PLATFORM_DEV
+ln -s ../../../contracts .dev/contracts/v0.6.0         # or use CONTRACTS_ROOT
 make test          # pure unit + validation suites + symbol check (Node only)
 make conformance   # manifest + restart/no-handler + install-time docs + template gate
 make drift         # generated contract + shared client <-> contracts drift gate
