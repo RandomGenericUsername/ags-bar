@@ -85,6 +85,24 @@ battery icons, with two quiet placeholder tray dots:
   the tray first, then the panel; outside click closes the tray. No player hides
   the strip and closes the dropdown.
 
+**Settings (bar media widget).** A gear in the Output header, next to mute,
+opens a compact 280 px popover (glass, radius 14, hairline, shadow) anchored
+below the gear. The row is `Bar media widget` with an on/off switch and the
+helper `Show the now-playing strip in the top bar.`; footer
+`Changes save immediately.` Default is **on**.
+- Turning it off hides the bar strip immediately, closes an open tray dropdown,
+  and leaves the volume icon as the panel entry point. Turning it on restores the
+  strip only if a player exists; the setting is independent of player state.
+- The mock persists `{ media_widget: { enabled } }` in `localStorage`; toggling
+  the switch writes immediately. `?widget=0` / `?widget=1` and `?settings=1`
+  are review links. When `widget=0`, `?tray=1` does not open the dropdown.
+- **Real contract:** the app owns `$XDG_CONFIG_HOME/ags-bar/config.json` with
+  `{ "media_widget": { "enabled": true } }`. It is **not** the AGS config link
+  `$XDG_CONFIG_HOME/ags` (read-only install link) and **not** the layout
+  `bar.json`. The bar is restart-mode for appearance, but this UI setting applies
+  live without a restart. Implementation must use the capture-tool settings
+  pattern: pure domain, port, GLib adapter, save-on-change.
+
 Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
 no seek) are Playing pages; Firefox is the audio-only app that lives only in
 Mixer. The app tile/name is the source badge; a second "Spotify" pill would
@@ -121,6 +139,8 @@ VLC live page.
 | Tray playback strip | Always-visible title/artist/transport; click art/title/background opens dropdown; wheel cycles players; no app switching |
 | Tray dropdown | Track transport/seek, player switcher, active check, `Open sound panel`; hidden with no player |
 | Tray wheel | Wrap through current players with ~250 ms debounce and a brief `n/N · App` cue; syncs strip, dropdown and panel |
+| Bar media widget setting | Gear → 280 px settings popover; toggle hides/shows the strip live; persisted; independent of player |
+| `$XDG_CONFIG_HOME/ags-bar/config.json` | `{ media_widget: { enabled } }`; not the AGS config link or layout `bar.json` |
 | `?tray=1` | Open the tray dropdown with the panel closed; `?tray=1&player=2` opens it on the second player |
 | Output / app / input empty or unavailable states | No apps, audio-only Mixer rows, empty Playing, live page, unavailable output entry, no input, no mic consumer |
 
@@ -172,6 +192,16 @@ Design deliverable:
       switching panel pages updates the strip. Tray and panel are mutually
       exclusive; `?tray=1` opens with the panel closed; Esc closes tray first,
       then panel; outside click closes tray.
+- [x] The Output gear opens a 280 px settings popover with a live
+      `Bar media widget` switch, helper and save-immediately footer. Default is
+      on; off hides the strip and closes the tray; on restores only with a
+      player; the setting remains independent of player state.
+- [x] The setting persists in `localStorage` for the mock and in the real
+      app-owned `$XDG_CONFIG_HOME/ags-bar/config.json` shape; it is not the AGS
+      install link or `bar.json`, applies live, and follows the capture-tool
+      settings pattern.
+- [x] `?widget=0` / `?widget=1` and `?settings=1` work; `?tray=1` does not open
+      a dropdown when the widget is off.
 - [x] The input section is collapsed by default and covers device, level, mute,
       consumers, unavailable input and no-consumer states.
 - [x] Sliders, mute buttons, route menus, transport, seek, page arrows, scroll
@@ -215,6 +245,8 @@ google-chrome-stable --new-window \
 | `?device=headphones` | Select an available output (`speakers`, `headphones`) |
 | `?tray=1` | Open the tray dropdown on the active player, with the panel closed |
 | `?tray=1&player=2` | Open the tray dropdown on the second player, with the panel closed |
+| `?widget=0` / `?widget=1` | Hide/restore the bar media strip (review override) |
+| `?settings=1` | Open the settings popover with the panel open |
 | `?panel=closed` | Start with the popover closed; tray strip remains visible (review helper) |
 
 ## Token / skin mapping
@@ -291,6 +323,16 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
 14. **Wheel debounce.** A ~250 ms cooldown admits one player switch per wheel
     gesture; the cue is decorative and no state depends on it. Wrap order is the
     panel's current-player order.
+15. **Widget visibility setting.** The mock stores
+    `{ media_widget: { enabled } }` in `localStorage`; the real app stores the
+    same shape in `$XDG_CONFIG_HOME/ags-bar/config.json` via a pure domain, a
+    store port and a GLib adapter. It is separate from the AGS install link and
+    the layout `bar.json`, applies live in this restart-mode bar, and the deep
+    links are review overrides that are not persisted.
+16. **Off state is independent of players.** Off hides the strip even with a
+    player; on with no player stays hidden. Turning off also closes any open tray
+    dropdown; `?tray=1` cannot reopen it while off. The volume icon remains the
+    panel entry point.
 
 ## Evidence
 
@@ -315,6 +357,12 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
   `strip-dropdown.png` (dropdown open, panel closed), and `strip-scrolled.png`
   (wheel to the second player + cue); panel states remain the
   `final-twomode-*` captures.
+- The settings harness passed 43 checks: gear/popover geometry and content,
+  toggle off/on, strip hide/restore, localStorage persistence and reload,
+  settings close behavior, volume entry, `?widget=0` / `?widget=1` /
+  `?settings=1`, `?widget=0&tray=1` prevention, and no-player independence.
+- Settings screenshots: `/tmp/opencode/settings-open2.png` (popover open),
+  `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 
 ## Follow-up
@@ -343,5 +391,11 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   selection updates the panel's `playingId`; no app-switch control is added.
   `openAudio`/`toggle` handles the footer. `?tray`/`?panel` are mock-only review
   links, not persisted config.
+- Settings → add the app-owned settings file at
+  `$XDG_CONFIG_HOME/ags-bar/config.json` with
+  `{ media_widget: { enabled: true } }`, following the capture-tool pattern
+  (pure domain, port, GLib adapter, save-on-change). The mock's `localStorage`
+  and `?widget`/`?settings` are review-only. The toggle applies live; no bar
+  restart is required for this UI setting.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.

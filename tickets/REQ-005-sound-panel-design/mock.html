@@ -323,6 +323,84 @@ kbd {
   background: rgba(255, 255, 255, .22);
 }
 
+/* Settings popover, anchored to the Output gear. */
+.settings-pop {
+  position: fixed;
+  z-index: 66;
+  width: 280px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface-strong);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(28px) saturate(1.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .56);
+}
+.settings-pop[hidden] { display: none; }
+.settings-head {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-top: 1px solid var(--hairline-soft);
+}
+.settings-text { min-width: 0; }
+.settings-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .88);
+}
+.settings-help {
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .14);
+  transition: background .16s, border-color .16s;
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fbfafc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+  transition: transform .16s, background .16s;
+}
+.switch[aria-checked="true"] {
+  background: var(--accent);
+  border-color: transparent;
+}
+.switch[aria-checked="true"] .switch-knob {
+  transform: translateX(16px);
+  background: var(--on-accent);
+}
+.switch:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.settings-foot {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--hairline-soft);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
 /* Brief scroll cue, below the bar; never affects bar height. */
 .tray-cue {
   position: fixed;
@@ -661,6 +739,7 @@ body.is-closed .audio-pop {
   transition: background .16s, color .16s;
 }
 .icon-btn:hover { background: var(--control-hover); color: var(--ink); }
+.icon-btn.is-active { background: var(--control-hover); color: var(--ink); }
 .icon-btn.is-on {
   color: var(--accent);
   background: rgba(255, 138, 106, .12);
@@ -670,6 +749,7 @@ body.is-closed .audio-pop {
   height: 40px;
   border-radius: 10px;
 }
+.hero-actions { display: flex; align-items: center; gap: 2px; }
 .icon-btn:disabled { opacity: .36; }
 
 .device {
@@ -1607,7 +1687,17 @@ body.is-closed .audio-pop {
         <span class="caption" id="outputCaption">Output</span>
         <span class="muted-pill" id="mutedPill" hidden>Muted</span>
       </div>
-      <button class="icon-btn" id="outputMute" aria-pressed="false" aria-label="Mute output"></button>
+      <div class="hero-actions">
+        <button class="icon-btn" id="settingsGear" aria-label="Settings"
+                aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsPop">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6h.09A1.7 1.7 0 0 0 10 3.05V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="outputMute" aria-pressed="false" aria-label="Mute output"></button>
+      </div>
     </div>
 
     <button class="device" id="outputDevice" aria-haspopup="menu" aria-expanded="false" aria-label="Choose output device">
@@ -1743,6 +1833,20 @@ body.is-closed .audio-pop {
 <div class="tray-pop" id="trayPop" role="dialog" aria-label="Now playing" hidden></div>
 <div class="tray-cue" id="trayCue" hidden></div>
 
+<div class="settings-pop" id="settingsPop" role="dialog" aria-label="Settings" hidden>
+  <div class="settings-head">Settings</div>
+  <div class="settings-row">
+    <div class="settings-text">
+      <div class="settings-name">Bar media widget</div>
+      <div class="settings-help">Show the now-playing strip in the top bar.</div>
+    </div>
+    <button class="switch" id="widgetToggle" role="switch" aria-checked="true" aria-label="Bar media widget">
+      <span class="switch-knob"></span>
+    </button>
+  </div>
+  <div class="settings-foot">Changes save immediately.</div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -1825,6 +1929,23 @@ const BASE_APPS = [
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+const SETTINGS_KEY = "ags-bar.settings";
+function loadWidgetEnabled() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    return raw?.media_widget?.enabled !== false;
+  } catch {
+    return true;
+  }
+}
+function saveWidgetEnabled(enabled) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ media_widget: { enabled } }));
+  } catch {
+    /* storage unavailable: the session still works */
+  }
+}
+
 const state = {
   panelOpen: true,
   devices: clone(BASE_DEVICES),
@@ -1834,6 +1955,8 @@ const state = {
   playingId: "spotify",
   mixFocusId: null,
   trayOpen: false,
+  mediaWidgetEnabled: true,
+  settingsOpen: false,
   inputs: clone(BASE_INPUTS),
   input: {
     available: true,
@@ -1844,6 +1967,7 @@ const state = {
   },
   inputOpen: false
 };
+state.mediaWidgetEnabled = loadWidgetEnabled();
 
 /* ── helpers ─────────────────────────────────────────────────── */
 
@@ -1906,6 +2030,10 @@ if (params.get("input") === "0") {
   state.inputOpen = true;
 }
 if (params.get("mic") === "0") state.input.consumers = [];
+
+const wantedWidget = params.get("widget");
+if (wantedWidget === "0") state.mediaWidgetEnabled = false;
+if (wantedWidget === "1") state.mediaWidgetEnabled = true;
 
 const wantedDevice = params.get("device");
 if (wantedDevice && state.devices.some((d) => d.id === wantedDevice && d.available)) {
@@ -2432,8 +2560,9 @@ function renderInput() {
 function updateTray() {
   const cluster = $("trayCluster");
   const app = trayPlayer();
-  cluster.hidden = !app;
-  if (!app) {
+  const enabled = state.mediaWidgetEnabled;
+  cluster.hidden = !app || !enabled;
+  if (!app || !enabled) {
     $("trayCue").hidden = true;
     closeTray(false);
     return;
@@ -2599,6 +2728,7 @@ function positionTrayPop() {
 }
 
 function openTray() {
+  if (!state.mediaWidgetEnabled) return;
   const app = trayPlayer();
   if (!app) return;
   state.trayOpen = true;
@@ -2618,6 +2748,56 @@ function closeTray(restoreFocus = false) {
 function toggleTray() {
   if (state.trayOpen) closeTray(false);
   else openTray();
+}
+
+function renderWidgetToggle() {
+  $("widgetToggle").setAttribute("aria-checked", String(state.mediaWidgetEnabled));
+}
+
+function positionSettingsPop() {
+  const pop = $("settingsPop");
+  const gear = $("settingsGear");
+  if (pop.hidden || !gear) return;
+  const rect = gear.getBoundingClientRect();
+  const width = pop.offsetWidth;
+  const height = pop.offsetHeight;
+  let left = Math.min(window.innerWidth - width - 8, Math.max(8, rect.right - width));
+  let top = rect.bottom + 6;
+  if (top + height > window.innerHeight - 8) top = Math.max(8, rect.top - height - 6);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+}
+
+function openSettings() {
+  setPanelOpen(true);
+  closeTray(false);
+  state.settingsOpen = true;
+  $("settingsPop").hidden = false;
+  $("settingsGear").classList.add("is-active");
+  $("settingsGear").setAttribute("aria-expanded", "true");
+  renderWidgetToggle();
+  positionSettingsPop();
+}
+
+function closeSettings() {
+  if (!state.settingsOpen) return;
+  state.settingsOpen = false;
+  $("settingsPop").hidden = true;
+  $("settingsGear").classList.remove("is-active");
+  $("settingsGear").setAttribute("aria-expanded", "false");
+}
+
+function toggleSettings() {
+  if (state.settingsOpen) closeSettings();
+  else openSettings();
+}
+
+function setWidgetEnabled(enabled) {
+  state.mediaWidgetEnabled = enabled;
+  saveWidgetEnabled(enabled);
+  if (!enabled) closeTray(false);
+  renderWidgetToggle();
+  updateTray();
 }
 
 function selectTrayPlayer(appId) {
@@ -2696,7 +2876,10 @@ function renderAll() {
 function setPanelOpen(open, { toastOnClose = false } = {}) {
   state.panelOpen = open;
   document.body.classList.toggle("is-closed", !open);
-  if (!open) closeMenu(false);
+  if (!open) {
+    closeMenu(false);
+    closeSettings();
+  }
   renderBar();
   if (!open && toastOnClose) toast("Sound closed — click the speaker to reopen");
 }
@@ -2835,6 +3018,14 @@ $("barVolume").addEventListener("click", () => {
     return;
   }
   setPanelOpen(!state.panelOpen);
+});
+
+$("settingsGear").addEventListener("click", () => {
+  toggleSettings();
+});
+
+$("widgetToggle").addEventListener("click", () => {
+  setWidgetEnabled(!state.mediaWidgetEnabled);
 });
 
 $("trayStrip").addEventListener("click", (event) => {
@@ -3053,6 +3244,10 @@ playingViewport.addEventListener("scroll", () => {
 /* ── outside click / Esc / scrolling ─────────────────────────── */
 
 document.addEventListener("click", (event) => {
+  if (state.settingsOpen && !event.target.closest("#settingsPop") && !event.target.closest("#settingsGear")) {
+    closeSettings();
+  }
+
   if (state.trayOpen && !event.target.closest("#trayPop") && !event.target.closest("#trayStrip")) {
     closeTray(false);
   }
@@ -3064,7 +3259,8 @@ document.addEventListener("click", (event) => {
   if (!state.panelOpen) return;
   if (event.target.closest("#panel") || event.target.closest(".menu") ||
       event.target.closest("#barVolume") || event.target.closest("#barMic") ||
-      event.target.closest("#trayPop") || event.target.closest("#trayStrip")) return;
+      event.target.closest("#trayPop") || event.target.closest("#trayStrip") ||
+      event.target.closest("#settingsPop")) return;
   setPanelOpen(false, { toastOnClose: true });
 });
 
@@ -3072,6 +3268,7 @@ $("popScroll").addEventListener("scroll", () => closeMenu(false), { passive: tru
 window.addEventListener("resize", () => {
   closeMenu(false);
   closeTray(false);
+  closeSettings();
   requestAnimationFrame(() => {
     if (state.mode === "playing") scrollToPlaying(false);
     else if (state.mixFocusId) scrollMixerFocus();
@@ -3080,6 +3277,12 @@ window.addEventListener("resize", () => {
 
 window.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
+
+  if (state.settingsOpen) {
+    event.preventDefault();
+    closeSettings();
+    return;
+  }
 
   if (state.trayOpen) {
     event.preventDefault();
@@ -3122,9 +3325,13 @@ setInterval(() => {
 setPanelOpen(true);
 renderAll();
 if (params.get("panel") === "closed") setPanelOpen(false);
-if (params.get("tray") === "1") {
+const wantsSettings = params.get("settings") === "1";
+if (params.get("tray") === "1" && !wantsSettings) {
   setPanelOpen(false);
   setTimeout(openTray, 300);
+}
+if (wantsSettings) {
+  setTimeout(openSettings, 50);
 }
 if (state.mode === "mixer" && state.mixFocusId) {
   requestAnimationFrame(scrollMixerFocus);

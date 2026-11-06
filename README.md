@@ -105,7 +105,7 @@ The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 - **Tray playback strip** — in the reserved tray slot at the start of the bar's
   end cluster, before the microphone/network/volume/battery icons, with two
   quiet placeholder tray dots. It is an always-visible full strip while a player
-  exists: 24 px artwork, title/artist, previous/play-pause/next and supported
+  exists and the setting is enabled: 24 px artwork, title/artist, previous/play-pause/next and supported
   shuffle/repeat; max 340 px, with title/artist truncating on narrow widths.
   Clicking the art/title/background opens the existing 300 px tray dropdown;
   transport buttons act on the player and never open it. Scrolling the strip
@@ -120,6 +120,15 @@ The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
   `?tray=1` opens the dropdown with the panel closed,
   `?tray=1&player=2` opens it on the second player, and `?panel=closed` is a
   review helper.
+- **Settings** — a gear in the Output header opens a compact 280 px popover
+  anchored below it. The `Bar media widget` row has a switch and the helper
+  `Show the now-playing strip in the top bar.`; the footer says
+  `Changes save immediately.` Default is on. Turning it off hides the bar strip
+  immediately and closes any open tray dropdown; the volume icon still opens the
+  panel. Turning it on restores the strip only when a player exists. The setting
+  is independent of player state. The mock persists it in `localStorage`;
+  `?widget=0`, `?widget=1` and `?settings=1` are review links. When `widget=0`,
+  `?tray=1` does not open the dropdown.
 - **Output** — a persistent header above the scroll area: preferred output device
   and the global volume (numeric value, slider, mute). It is the master fader and
   never scrolls away. Per-device state and the unavailable device remain.
@@ -149,8 +158,18 @@ Deep links exercise the states without a backend: `?mode=playing` / `?mode=mixer
 `?playing=0` (every app audio-only; default Mixer), `?player=2` (1-based Playing
 page), `?app=vlc` (Playing page), `?app=firefox` (Mixer row), `?input=1`,
 `?input=0`, `?mic=0`, `?device=headphones`, `?tray=1` (open the tray dropdown),
-`?tray=1&player=2` (open it on the second player) and `?panel=closed` (review
+`?tray=1&player=2` (open it on the second player), `?widget=0` / `?widget=1`
+(bar widget off/on), `?settings=1` (open settings) and `?panel=closed` (review
 helper).
+
+The real widget-visibility contract is an app-owned settings file:
+`$XDG_CONFIG_HOME/ags-bar/config.json` with
+`{ "media_widget": { "enabled": true } }`. It is **not** the AGS config link
+(`$XDG_CONFIG_HOME/ags`, a read-only install link) and **not** the layout
+`bar.json`. The bar is restart-mode for appearance, but this UI setting applies
+live and does not require a restart. Implementation follows the capture-tool
+settings pattern: pure domain, a store port, a GLib adapter and save-on-change.
+The mock stores the same shape in `localStorage`.
 
 The chrome colour roles and radii are `:root` custom properties. Radii map to
 `surface.panel/card/control/pill.radius`; `--panel-w` is an app literal until a
