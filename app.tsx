@@ -15,8 +15,7 @@ import { closeBluetoothPopup } from "./components/bluetooth/state"
 import { BatteryPopup, BatteryPopupCatcher } from "./components/battery/BatteryPopup"
 import { closeBatteryPopup } from "./components/battery/state"
 import { closeWifiPopup } from "./components/wifi/state"
-import { theme } from "ags-platform/adapters/theme"
-import { skin } from "ags-platform/adapters/skin"
+import { appearance } from "./lib/appearance"
 import { captureClusterIpc } from "./lib/capture-cluster-ipc"
 import "./overlays"
 
@@ -142,15 +141,13 @@ app.start({
     res(`unknown request: ${argv.join(" ")}`)
   },
   main() {
-    // The palette, through the Theme port (spine AD-13). The adapter applies the
-    // stable colors.css pointer; app.tsx no longer calls apply_css for it.
-    theme.apply()
-    // The skin plane (frozen Skin Spec v1), applied AFTER the palette and last:
-    // its composed provider carries the palette role block plus the
-    // runtime-expanded skin.css at USER priority, so it overrides the bundled
-    // style.css glass fallback. This is a restart-mode app; a skin change is
-    // picked up by the runtime's serialized restart lane, not a live handler.
-    skin.apply()
+    // The v2 Appearance plane (contracts v0.7.0). ONE composed generation is
+    // applied through the Appearance port; it already contains the palette and
+    // the runtime-expanded skin, installed last at USER priority so it
+    // overrides the bundled style.css glass fallback. Missing artifacts are a
+    // no-op. This is a restart-mode app: a change is picked up by the runtime's
+    // serialized restart lane, not a live request handler.
+    appearance.apply()
     // The redesigned panel's stylesheet (tasks.md 6.0e). It was written but
     // imported by nothing, so all 345 lines were dead and the popup fell back
     // to the pre-existing `.audio-*` rules in style.css that styled the panel

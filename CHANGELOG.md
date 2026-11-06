@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.5.0 — 2026-11-06
+
+### Added
+
+- Migrate the bar to the v2 Appearance plane: one
+  `createAppearance({ configDir: "ags" })` instance in `lib/appearance.ts`,
+  applied once by `appearance.apply()` in `main()`. It installs the composed
+  palette + skin generation from `$XDG_STATE_HOME/dotfiles/current/appearance`
+  as one last-installed USER-priority provider.
+- Read namespaced layout tokens: the settings surface reads
+  `appearance.value("layout.ags.panel-width", 312)` and both Bluetooth list
+  boxes read `appearance.value("layout.ags.bt-list-spacing", 4)`.
+- Update `tests/validation/skin-plane.test.mjs` to assert the shared
+  Appearance instance, the namespaced token reads, the restart lane (no
+  request handler) and the retained bundled glass fallback.
+
+### Changed
+
+- Remove the split `theme.apply()` / `skin.apply()` startup path and the
+  `ags-platform/adapters/theme` / `adapters/skin` imports.
+- Program tuple is `ags-platform` v0.9.0 / `contracts` v0.7.0 /
+  `dotfiles-assets` v0.12.0 / `dotfiles-runtime` v0.9.1. `style.css` is
+  unchanged and keeps the glass fallback.
+
 ## v0.4.0 — 2026-11-05
 
 ### Added

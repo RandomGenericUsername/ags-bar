@@ -36,15 +36,18 @@ mode=restart  holdsUnsavedState=false
 - **No `palette-refresh` handler.** The bar is the explicit `restart` app. The
   runtime's serialized restart lane restarts it after an appearance change; the
   app does not subscribe to `wallpaper.state`, invent a palette event, or answer
-  a live-refresh command. `theme.apply()` runs once at startup.
-- **Palette then skin.** `main()` calls `theme.apply()` and then
-  `skin.apply()` (from `ags-platform/adapters/skin`). The skin provider is the
-  last-installed USER-priority provider and overrides the bundled `style.css`
-  glass fallback; missing skin artifacts keep today's rendering.
-- **Layout tokens are TSX-owned.** A skin is palette/ink + paint + rhythm and
-  carries no structure or variant. Widgets read `layout.*` tokens through
-  `skinValue(key, fallback)`; the settings surface owns `panel-width` and the
-  Bluetooth lists own `bt-list-spacing`. Do not move layout metrics into CSS.
+  a live-refresh command. `appearance.apply()` runs once at startup.
+- **One Appearance plane.** `lib/appearance.ts` owns the bar's single
+  `createAppearance({ configDir: "ags" })` instance; `main()` calls
+  `appearance.apply()`. The composed provider carries the palette role block
+  plus the runtime-expanded skin and is installed last at USER priority, so it
+  overrides the bundled `style.css` glass fallback. Missing appearance artifacts
+  keep today's rendering.
+- **Layout tokens are TSX-owned and app-namespaced.** A skin is palette/ink +
+  paint + rhythm and carries no structure or variant. Widgets read
+  `layout.ags.*` tokens through `appearance.value(path, fallback)`; the settings
+  surface owns `panel-width` and the Bluetooth lists own `bt-list-spacing`. Do
+  not move layout metrics into CSS and do not drop the app namespace.
 
 ## 3. Install-time vs repo state
 
@@ -54,8 +57,8 @@ AD-37: installed tags are immutable and writable state lives under XDG.
   pointer (`$XDG_STATE_HOME/dotfiles/current/colors.gtk.css`), surfaced at
   `$XDG_CONFIG_HOME/ags/colors.css`. The engine's `barPalettePointer` contract
   verifies the link target at install time; the app only reapplies it through
-  the Theme port. Never replace it with a palette copy, and never write it
-  from the app.
+  the Appearance plane. Never replace it with a palette copy, and never write
+  it from the app.
 - `icons.json` is a build/install artifact produced from the pinned
   `dotfiles-assets` tuple. Provisioning verifies it; no second producer.
 - `audio/audio-panel.css` is deployed into the config dir; `app.tsx` applies it
@@ -98,7 +101,7 @@ no self-hosted runner and no CI secret dependency.
 - `make bundle` — LOCAL: `ags bundle app.tsx build/ags-bar.js`.
 - `make gates` — all of the above.
 
-The program tuple is `ags-platform` v0.7.0 / `contracts` v0.6.0, local-only in
+The program tuple is `ags-platform` v0.9.0 / `contracts` v0.7.0, local-only in
 this run. `.dev/` is gitignored; never commit a fetched platform,
 `node_modules/`, `@girs/`, generated `tsconfig.json` or bundle output.
 

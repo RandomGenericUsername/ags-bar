@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// Skin-plane pilot gate (REQ-003).
+// Appearance-v2 gate (REQ-004).
 //
-// The skin provider is composed and installed at USER priority by the platform;
-// this app only orders it after the palette and consumes two TSX-owned layout
-// tokens. These assertions pin the app-side contract so a later refactor can
-// not silently reintroduce a live-refresh path or drop a token read:
+// The runtime publishes palette + skin + mode as ONE generation and the app
+// installs it through the Appearance port. These assertions pin the app-side
+// contract so a later refactor can not silently reintroduce a split
+// theme+skin path, a live-refresh handler or an unnamespaced layout token:
 //
-//   1. app.tsx calls theme.apply() then skin.apply(), once each;
-//   2. the request surface is unchanged and the skin is not a request handler;
-//   3. SettingsPanel/BluetoothContent read their layout tokens with fallbacks;
+//   1. one module-level `createAppearance({ configDir: "ags" })` instance is
+//      shared by startup and both token consumers, and `main()` applies it;
+//   2. the request surface is unchanged and appearance is not a request
+//      handler (restart lane only);
+//   3. SettingsPanel/BluetoothContent read their namespaced layout tokens with
+//      fallbacks;
 //   4. style.css still carries the bundled glass fallback.
 //
 // Static, no desktop stack needed.
@@ -24,9 +27,9 @@ const AGS = resolve(HERE, "../..");
 const read = (...parts) => readFileSync(join(AGS, ...parts), "utf8");
 
 /**
- * Strip comments before scanning. The skin contract is documented in prose that
- * names the refresh paths it forbids; raw text would make that documentation
- * read as the defect it describes.
+ * Strip comments before scanning. The appearance contract is documented in
+ * prose that names the refresh paths it forbids; raw text would make that
+ * documentation read as the defect it describes.
  */
 function stripComments(text) {
   let out = "";
@@ -47,24 +50,36 @@ function stripComments(text) {
   return out;
 }
 
-// ── 1. Startup order: palette first, composed skin provider last ───────────
+// ── 1. One Appearance instance, one apply at startup ──────────────────────
 
 const app = stripComments(read("app.tsx"));
+const singleton = stripComments(read("lib", "appearance.ts"));
+
+assert.match(
+  singleton,
+  /export const appearance = createAppearance\(\{ configDir: "ags" \}\)/,
+  "lib/appearance.ts must own the bar's one createAppearance({ configDir: \"ags\" }) instance",
+);
 assert.match(
   app,
-  /import \{ skin \} from "ags-platform\/adapters\/skin"/,
-  "app.tsx must import the Skin adapter",
+  /import \{ appearance \} from "\.\/lib\/appearance"/,
+  "app.tsx must import the shared Appearance instance",
 );
-
-const themeAt = app.indexOf("theme.apply()");
-const skinAt = app.indexOf("skin.apply()");
-assert.ok(themeAt >= 0, "app.tsx lost theme.apply()");
-assert.ok(skinAt > themeAt, "skin.apply() must run after theme.apply()");
+assert.doesNotMatch(
+  app,
+  /ags-platform\/adapters\/(?:theme|skin)"/,
+  "app.tsx must not import the v1 theme/skin adapters",
+);
+assert.doesNotMatch(app, /\btheme\.apply\(\)/);
+assert.doesNotMatch(app, /\bskin\.apply\(\)/);
 assert.equal(
-  (app.match(/skin\.apply\(\)/g) ?? []).length,
+  (app.match(/appearance\.apply\(\)/g) ?? []).length,
   1,
-  "the skin is applied once at startup, not refreshed in place",
+  "the appearance is applied once at startup, not refreshed in place",
 );
+const applyAt = app.indexOf("appearance.apply()");
+const mainAt = app.indexOf("main()");
+assert.ok(applyAt >= 0 && mainAt >= 0 && applyAt > mainAt, "appearance.apply() must run in main()");
 
 // ── 2. Restart lane stays the only refresh path ───────────────────────────
 
@@ -81,21 +96,25 @@ assert.deepEqual(commands, [
 ]);
 
 const handlerStart = app.indexOf("requestHandler(");
-const mainStart = app.indexOf("main()");
-assert.ok(handlerStart >= 0 && mainStart > handlerStart);
+assert.ok(handlerStart >= 0 && mainAt > handlerStart);
 assert.doesNotMatch(
-  app.slice(handlerStart, mainStart),
-  /\bskin\b/,
-  "the skin must not be reachable from the request handler",
+  app.slice(handlerStart, mainAt),
+  /\bappearance\b/,
+  "the appearance must not be reachable from the request handler",
 );
 
-// ── 3. TSX-owned layout tokens ────────────────────────────────────────────
+// ── 3. Namespaced, TSX-owned layout tokens ────────────────────────────────
 
 const settings = stripComments(read("settings-panel", "SettingsPanel.tsx"));
 assert.match(
   settings,
-  /skinValue\("layout\.panel-width", 312\)/,
-  "the settings surface must read layout.panel-width with its 312 fallback",
+  /import \{ appearance \} from "\.\.\/lib\/appearance"/,
+  "the settings surface must use the shared Appearance instance",
+);
+assert.match(
+  settings,
+  /appearance\.value\("layout\.ags\.panel-width", 312\)/,
+  "the settings surface must read layout.ags.panel-width with its 312 fallback",
 );
 assert.match(
   settings,
@@ -108,8 +127,13 @@ const bluetooth = stripComments(
 );
 assert.match(
   bluetooth,
-  /skinValue\("layout\.bt-list-spacing", 4\)/,
-  "the Bluetooth lists must read layout.bt-list-spacing with its 4 fallback",
+  /import \{ appearance \} from "\.\.\/\.\.\/lib\/appearance"/,
+  "the Bluetooth lists must use the shared Appearance instance",
+);
+assert.match(
+  bluetooth,
+  /appearance\.value\("layout\.ags\.bt-list-spacing", 4\)/,
+  "the Bluetooth lists must read layout.ags.bt-list-spacing with its 4 fallback",
 );
 assert.equal(
   (bluetooth.match(/spacing=\{btListSpacing\.peek\(\)\}/g) ?? []).length,

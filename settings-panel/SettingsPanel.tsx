@@ -1,6 +1,6 @@
 import { Gtk, Gdk } from "ags/gtk4"
 import { createComputed, createEffect } from "ags"
-import { skinValue } from "ags-platform/adapters/skin"
+import { appearance } from "../lib/appearance"
 import { activeView, close, iconCenterX, panelVisible, viewEpoch } from "./state"
 import {
   stcExpanded,
@@ -14,13 +14,14 @@ import { SubviewHeader } from "./views/SubviewHeader"
 import { PopupCatcher, PopupHost, type PopupSurfaceSpec } from "../kit/popup-host"
 
 /**
- * Surface width is a TSX-owned layout token (skin spec v1). The surface contract
- * (`kit/surface.ts`) types `width` as a plain number, not an accessor, so the
- * host's read is the place to resolve it. This getter runs from
- * `PopupHost(...)`, which `main()` calls after `skin.apply()`, so the token map
- * is already loaded; reading at module import would always see the fallback.
+ * Surface width is a TSX-owned layout token in the v2 appearance plane
+ * (`layout.ags.panel-width`). The surface contract (`kit/surface.ts`) types
+ * `width` as a plain number, not an accessor, so the host's read is the place
+ * to resolve it. This getter runs from `PopupHost(...)`, which `main()` calls
+ * after `appearance.apply()`, so the token map is already loaded; reading at
+ * module import would always see the fallback.
  */
-const panelWidth = skinValue("layout.panel-width", 312)
+const panelWidth = appearance.value("layout.ags.panel-width", 312)
 
 /**
  * The settings surface body (spine AD-10): a factory, mounted by `PopupHost` only

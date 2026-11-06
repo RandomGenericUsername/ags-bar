@@ -30,19 +30,25 @@ appearance change the runtime's serialized restart lane restarts the bar; a
 failed live refresh never becomes a restart because there is no live refresh
 here.
 
-Appearance is composed once in `main()`, in this order:
+Appearance is composed once in `main()`:
 
-1. `theme.apply()` applies the stable `$XDG_CONFIG_HOME/ags/colors.css`
-   pointer (the palette roles);
-2. `skin.apply()` applies the composed skin provider **last**, at USER
-   priority, so it overrides the bundled `style.css` glass fallback.
+1. `appearance.apply()` installs the current v2 generation from
+   `$XDG_STATE_HOME/dotfiles/current/appearance`: the composed
+   `$XDG_CONFIG_HOME/ags/appearance.css` (palette roles + runtime-expanded
+   skin) and `tokens.json`;
+2. the composed provider is installed **last**, at USER priority, so it
+   overrides the bundled `style.css` glass fallback.
 
-The skin is palette/ink + paint + rhythm; it has no structure or variant.
-Absent skin artifacts are a no-op: the bundled `style.css` keeps today's
-rendering. Layout tokens stay TSX-owned: the settings surface reads
-`skinValue("layout.panel-width", 312)` and the Bluetooth lists read
-`skinValue("layout.bt-list-spacing", 4)` with their fallbacks. No
-`wallpaper.state` subscription and no skin-refresh request are added.
+The bar owns ONE `createAppearance({ configDir: "ags" })` instance in
+`lib/appearance.ts`, shared by startup and the token consumers so there is one
+watcher and one provider. The appearance is palette/ink + paint + rhythm; it
+has no structure or variant. Absent appearance artifacts are a no-op: the
+bundled `style.css` keeps today's rendering. Layout tokens stay TSX-owned and
+app-namespaced: the settings surface reads
+`appearance.value("layout.ags.panel-width", 312)` and the Bluetooth lists read
+`appearance.value("layout.ags.bt-list-spacing", 4)` with their fallbacks. No
+`wallpaper.state` subscription and no `palette-refresh`/skin-refresh request
+are added.
 
 ### Request surface
 
@@ -72,11 +78,12 @@ AD-37: installed tags are immutable; writable state lives under XDG.
   authors a second copy. Treat it as generated, not hand-authored.
 - **`audio/audio-panel.css`** — deployed into the config dir and applied from
   `$XDG_CONFIG_HOME/ags/audio/audio-panel.css` at runtime.
-- **`skin.css` / `skin.json`** — runtime-owned skin artifacts at
-  `$XDG_CONFIG_HOME/ags/skin.css` (runtime-expanded CSS) and
-  `$XDG_STATE_HOME/dotfiles/current/skin.json` (grouped raw-number token map).
-  Provisioning expands the selected manifest skin (`glass`, `flat`, `paper`);
-  the app only reads them through the Skin port and never writes them.
+- **`appearance.css` / `tokens.json`** — runtime-owned v2 appearance artifacts:
+  `$XDG_CONFIG_HOME/ags/appearance.css` (composed palette + skin CSS) and
+  `$XDG_STATE_HOME/dotfiles/current/appearance/tokens.json` (the resolved v2
+  token document behind the one generation pointer). Provisioning expands the
+  selected manifest appearance (`glass`, `flat`, `paper`); the app only reads
+  them through the Appearance port and never writes them.
 - **`wifi-speedtest.json`** — a legacy **seed default** tracked at the repo root
   for provisioning. It is **not** user state and never a read/write target; the
   service state lives under `$XDG_STATE_HOME/ags/`. See the cutover section.
@@ -123,22 +130,22 @@ creates a fresh empty one, and asserts the interval, server mode and last
 measurement survive.
 
 The committed `colors.css` symlink is verified to point at the stable runtime
-pointer outside the tag — the app only applies it through `theme.apply()` and
-never writes it. `icons.json` keeps its single `dotfiles-assets` producer, with
-provisioning verifying byte equality. Both are install-time checks, not app
-code.
+pointer outside the tag — the app only applies it through `appearance.apply()`
+and never writes it. `icons.json` keeps its single `dotfiles-assets` producer,
+with provisioning verifying byte equality. Both are install-time checks, not
+app code.
 
 Full acceptance lives in `tickets/OPS-001-cutover-state-migration/ticket.md`.
 
 ## Local development
 
-The program tuple is `ags-platform` `v0.7.0` / `contracts` `v0.6.0` /
-`dotfiles-assets` `v0.10.0` / `dotfiles-runtime` `v0.8.1`. Those tags are
+The program tuple is `ags-platform` `v0.9.0` / `contracts` `v0.7.0` /
+`dotfiles-assets` `v0.12.0` / `dotfiles-runtime` `v0.9.1`. Those tags are
 local-only in this run; the local gates use a gitignored symlink under `.dev/`.
 
 ```sh
-ln -s ../../../ags-platform .dev/ags-platform/v0.7.0   # or use AGS_PLATFORM_DEV
-ln -s ../../../contracts .dev/contracts/v0.6.0         # or use CONTRACTS_ROOT
+ln -s ../../../ags-platform .dev/ags-platform/v0.9.0   # or use AGS_PLATFORM_DEV
+ln -s ../../../contracts .dev/contracts/v0.7.0         # or use CONTRACTS_ROOT
 make test          # pure unit + validation suites + symbol check (Node only)
 make conformance   # manifest + restart/no-handler + install-time docs + template gate
 make drift         # generated contract + shared client <-> contracts drift gate
