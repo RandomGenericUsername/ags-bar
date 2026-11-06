@@ -102,6 +102,14 @@ one glass chrome layer, no accent frame, accent only for state/action, the
 9.5/10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
 The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 
+- **Bar now-playing widget** (outside the panel): at rest, 20 px artwork, one
+  ellipsized `Title — Artist` line, a playing dot and a 240 px cap, with no heavy
+  box. On hover/focus it expands in place to 24 px artwork, stacked title/artist,
+  previous/play-pause/next and supported shuffle/repeat, capped at 340 px; the
+  40 px bar height never changes. It follows the active player (Playing page, or
+  the focused Mixer player when one is present), reflects pause as a play icon,
+  hides when there is no player, and its title/art toggles the panel. The bar
+  reports; the panel operates. `?bar=chip|full|off` forces the mock states.
 - **Output** — a persistent header above the scroll area: preferred output device
   and the global volume (numeric value, slider, mute). It is the master fader and
   never scrolls away. Per-device state and the unavailable device remain.
@@ -130,7 +138,8 @@ Deep links exercise the states without a backend: `?mode=playing` / `?mode=mixer
 `?muted=1`, `?apps=1` (default/no-op), `?apps=0` (empty), `?playing=1`,
 `?playing=0` (every app audio-only; default Mixer), `?player=2` (1-based Playing
 page), `?app=vlc` (Playing page), `?app=firefox` (Mixer row), `?input=1`,
-`?input=0`, `?mic=0` and `?device=headphones`.
+`?input=0`, `?mic=0`, `?device=headphones`, `?bar=chip|full|off` (bar states) and
+`?panel=closed` (review helper).
 
 The chrome colour roles and radii are `:root` custom properties. Radii map to
 `surface.panel/card/control/pill.radius`; `--panel-w` is an app literal until a

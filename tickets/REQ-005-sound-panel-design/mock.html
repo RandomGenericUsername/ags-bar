@@ -215,6 +215,165 @@ kbd {
   right: 4px;
 }
 
+/* ── bar now-playing: reports, does not operate the panel ─────── */
+
+.bar-now {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  max-width: 240px;
+  min-width: 0;
+  padding: 0 4px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .84);
+}
+.bar-now[hidden] { display: none; }
+
+.bar-now:hover,
+.bar-now:focus-within,
+.bar-now.is-full {
+  max-width: 340px;
+  height: 30px;
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+/* Forced rest wins over hover/focus. */
+.bar-now.is-chip:hover,
+.bar-now.is-chip:focus-within {
+  max-width: 240px;
+  height: 28px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bar-now-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  text-align: left;
+}
+.bar-now-main:focus-visible { outline-offset: 1px; }
+
+.bar-now-art {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+}
+
+.bar-now-text { flex: 1; min-width: 0; display: flex; align-items: center; }
+.bar-now-rest {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .84);
+}
+.bar-now-stack {
+  display: none;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
+}
+.bar-now-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, .90);
+}
+.bar-now-artist {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, .58);
+}
+.bar-now-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, .13);
+}
+
+.bar-now-controls {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0;
+}
+.bar-now-btn {
+  width: 22px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, .66);
+  transition: background .16s, color .16s;
+}
+.bar-now-btn:hover { background: rgba(255, 255, 255, .08); color: var(--ink); }
+.bar-now-btn.is-on { color: var(--accent); background: rgba(255, 138, 106, .10); }
+.bar-now-btn.play {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.bar-now-btn.play:hover { background: var(--accent); color: var(--on-accent); filter: brightness(1.06); }
+
+.bar-now:hover .bar-now-art,
+.bar-now:focus-within .bar-now-art,
+.bar-now.is-full .bar-now-art {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.bar-now:hover .bar-now-rest,
+.bar-now:focus-within .bar-now-rest,
+.bar-now.is-full .bar-now-rest { display: none; }
+.bar-now:hover .bar-now-stack,
+.bar-now:focus-within .bar-now-stack,
+.bar-now.is-full .bar-now-stack { display: flex; }
+.bar-now:hover .bar-now-controls,
+.bar-now:focus-within .bar-now-controls,
+.bar-now.is-full .bar-now-controls { display: flex; }
+.bar-now:hover .bar-now-dot,
+.bar-now:focus-within .bar-now-dot,
+.bar-now.is-full .bar-now-dot { display: none; }
+
+.bar-now.is-chip:hover .bar-now-art,
+.bar-now.is-chip:focus-within .bar-now-art {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.bar-now.is-chip:hover .bar-now-rest,
+.bar-now.is-chip:focus-within .bar-now-rest { display: block; }
+.bar-now.is-chip:hover .bar-now-stack,
+.bar-now.is-chip:focus-within .bar-now-stack { display: none; }
+.bar-now.is-chip:hover .bar-now-controls,
+.bar-now.is-chip:focus-within .bar-now-controls { display: none; }
+.bar-now.is-chip:hover .bar-now-dot,
+.bar-now.is-chip:focus-within .bar-now-dot { display: block; }
+
 /* ── the popover ─────────────────────────────────────────────── */
 
 .audio-pop {
@@ -240,6 +399,7 @@ kbd {
 
 body.is-closed .audio-pop {
   opacity: 0;
+  visibility: hidden;
   transform: translateY(-6px) scale(.985);
   pointer-events: none;
 }
@@ -1194,7 +1354,45 @@ body.is-closed .audio-pop {
       </svg>
     </button>
 
-    <button class="db-btn" aria-label="Network">
+    <div class="bar-now" id="barNow" role="group" aria-label="Now playing" hidden>
+      <button class="bar-now-main" id="barNowMain" aria-label="Open sound panel"
+              aria-expanded="true" aria-controls="panel">
+        <span class="bar-now-art" id="barNowArt" aria-hidden="true"></span>
+        <span class="bar-now-text">
+          <span class="bar-now-rest" id="barNowRest"></span>
+          <span class="bar-now-stack">
+            <span class="bar-now-title" id="barNowTitle"></span>
+            <span class="bar-now-artist" id="barNowArtist"></span>
+          </span>
+        </span>
+        <span class="bar-now-dot" id="barNowDot" aria-hidden="true"></span>
+      </button>
+      <span class="bar-now-controls" id="barNowControls">
+        <button class="bar-now-btn" id="barNowPrev" data-bar-action="prev" aria-label="Previous track" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 5.5a1 1 0 0 1 1 1v11a1 1 0 1 1-2 0v-11a1 1 0 0 1 1-1Zm1.9 6.14 9.1 5.5a.9.9 0 0 0 1.35-.78V6.64a.9.9 0 0 0-1.35-.78l-9.1 5.5a.5.5 0 0 0 0 .86l-.1.1Z"></path>
+          </svg>
+        </button>
+        <button class="bar-now-btn play" id="barNowPlay" data-bar-action="play-pause" aria-label="Play"></button>
+        <button class="bar-now-btn" id="barNowNext" data-bar-action="next" aria-label="Next track" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17 5.5a1 1 0 0 0-1 1v11a1 1 0 1 0 2 0v-11a1 1 0 0 0-1-1Zm-1.9 6.14-9.1 5.5A.9.9 0 0 1 4.65 16.36V6.64a.9.9 0 0 1 1.35-.78l9.1 5.5a.5.5 0 0 1 0 .86l.1.1Z"></path>
+          </svg>
+        </button>
+        <button class="bar-now-btn" id="barNowShuffle" data-bar-action="shuffle" aria-label="Shuffle off" aria-pressed="false" hidden>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 3h5v5"></path><path d="m21 3-8 8"></path><path d="m3 3 5 5"></path><path d="M16 21h5v-5"></path><path d="m21 21-3-3"></path><path d="M3 21h2.1a5 5 0 0 0 4.2-2.3L14 11"></path>
+          </svg>
+        </button>
+        <button class="bar-now-btn" id="barNowRepeat" data-bar-action="repeat" aria-label="Repeat off" aria-pressed="false" hidden>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m17 2 4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+      </span>
+    </div>
+
+    <button class="db-btn" id="barNetwork" aria-label="Network">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
         <path d="M2.5 8.5a15 15 0 0 1 19 0"></path>
@@ -1451,6 +1649,7 @@ const state = {
   mode: "playing",
   playingId: "spotify",
   mixFocusId: null,
+  barMode: "auto",
   inputs: clone(BASE_INPUTS),
   input: {
     available: true,
@@ -1477,6 +1676,14 @@ const playingPage = () => {
   return pages.find((app) => app.id === state.playingId) ?? pages[0] ?? null;
 };
 const anyPlaying = () => state.apps.some((app) => app.hasPlayer && app.playing);
+const barPlayer = () => {
+  if (state.mode === "playing") return playingPage();
+  const focused = state.mixFocusId ? appById(state.mixFocusId) : null;
+  if (focused?.hasPlayer) return focused;
+  const page = playingPage();
+  if (page?.hasPlayer) return page;
+  return state.apps.find((app) => app.hasPlayer) ?? null;
+};
 
 const fmt = (seconds) => {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -1525,6 +1732,11 @@ if (params.get("mic") === "0") state.input.consumers = [];
 const wantedDevice = params.get("device");
 if (wantedDevice && state.devices.some((d) => d.id === wantedDevice && d.available)) {
   state.outputId = wantedDevice;
+}
+
+const wantedBar = params.get("bar");
+if (wantedBar === "chip" || wantedBar === "full" || wantedBar === "off") {
+  state.barMode = wantedBar;
 }
 
 const modeParam = params.get("mode");
@@ -1805,6 +2017,7 @@ function scrollToPlaying(smooth = true) {
     behavior: smooth && !reduceMotion() ? "smooth" : "auto",
   });
   updatePlayingAria();
+  updateBarNow();
 }
 
 function renderPlaying() {
@@ -1951,6 +2164,13 @@ function updateModeDot() {
   $("playingDot").hidden = !(state.mode === "mixer" && anyPlaying());
 }
 
+function refreshApp(app) {
+  updatePlayingPage(app);
+  if (state.mode === "mixer") updateMixerRow(app);
+  updateModeDot();
+  updateBarNow();
+}
+
 function renderDeck() {
   const playing = state.mode === "playing";
   const playingTab = $("playingTab");
@@ -1967,6 +2187,7 @@ function renderDeck() {
 
   if (playing) renderPlaying();
   else renderMixer();
+  updateBarNow();
 }
 
 function scrollMixerFocus() {
@@ -2033,6 +2254,52 @@ function renderInput() {
   $("inputEmpty").textContent = available ? "No microphone use right now." : "No microphone detected.";
 }
 
+/* ── render: bar now-playing ─────────────────────────────────── */
+
+function updateBarNow() {
+  const widget = $("barNow");
+  const app = barPlayer();
+  const off = state.barMode === "off";
+  widget.hidden = !app || off;
+  widget.classList.toggle("is-full", Boolean(app) && !off && state.barMode === "full");
+  widget.classList.toggle("is-chip", Boolean(app) && !off && state.barMode === "chip");
+  if (!app) return;
+
+  const track = trackOf(app);
+  const title = track?.title || app.name;
+  const artist = track?.artist || "";
+
+  $("barNowArt").className = `bar-now-art ${track?.art || "art-empty"}`;
+  $("barNowRest").textContent = artist ? `${title} — ${artist}` : title;
+  $("barNowTitle").textContent = title;
+  $("barNowArtist").textContent = artist;
+  $("barNowArtist").hidden = !artist;
+  $("barNowDot").hidden = !app.playing;
+  $("barNowMain").setAttribute("aria-expanded", String(state.panelOpen));
+  $("barNowMain").setAttribute("aria-label",
+    artist ? `Open sound panel — ${title} by ${artist}` : `Open sound panel — ${title}`);
+
+  const play = $("barNowPlay");
+  play.innerHTML = app.playing ? ICON.pause : ICON.play;
+  play.setAttribute("aria-label", `${app.playing ? "Pause" : "Play"} ${title}`);
+  play.title = `${app.playing ? "Pause" : "Play"} ${title}`;
+
+  $("barNowPrev").hidden = !app.canPrev;
+  $("barNowNext").hidden = !app.canNext;
+
+  const shuffle = $("barNowShuffle");
+  shuffle.hidden = !app.shuffleSupported;
+  shuffle.classList.toggle("is-on", Boolean(app.shuffle));
+  shuffle.setAttribute("aria-pressed", String(Boolean(app.shuffle)));
+  shuffle.setAttribute("aria-label", app.shuffle ? "Shuffle on" : "Shuffle off");
+
+  const repeat = $("barNowRepeat");
+  repeat.hidden = !app.repeatSupported;
+  repeat.classList.toggle("is-on", app.repeat !== "off");
+  repeat.setAttribute("aria-pressed", String(app.repeat !== "off"));
+  repeat.setAttribute("aria-label", `Repeat ${app.repeat}`);
+}
+
 /* ── render: bar ─────────────────────────────────────────────── */
 
 function renderBar() {
@@ -2050,6 +2317,8 @@ function renderBar() {
   mic.setAttribute("aria-label", state.input.muted
     ? "Microphone in use, muted"
     : "Microphone in use");
+
+  updateBarNow();
 }
 
 /* ── render all ──────────────────────────────────────────────── */
@@ -2159,8 +2428,7 @@ function changeTrack(app, delta) {
     app.trackIndex = (app.trackIndex + delta + app.tracks.length) % app.tracks.length;
     app.position = 0;
   }
-  updatePlayingPage(app);
-  updateModeDot();
+  refreshApp(app);
 }
 
 function playingAction(app, action) {
@@ -2168,8 +2436,7 @@ function playingAction(app, action) {
   if (action === "play-pause") {
     if (!app.hasPlayer) return;
     app.playing = !app.playing;
-    updatePlayingPage(app);
-    updateModeDot();
+    refreshApp(app);
     return;
   }
   if (action === "prev") { changeTrack(app, -1); return; }
@@ -2177,14 +2444,14 @@ function playingAction(app, action) {
   if (action === "shuffle") {
     if (!app.shuffleSupported) return;
     app.shuffle = !app.shuffle;
-    updatePlayingPage(app);
+    refreshApp(app);
     return;
   }
   if (action === "repeat") {
     if (!app.repeatSupported) return;
     const order = ["off", "all", "one"];
     app.repeat = order[(order.indexOf(app.repeat) + 1) % order.length];
-    updatePlayingPage(app);
+    refreshApp(app);
   }
 }
 
@@ -2197,10 +2464,43 @@ function goToPlayer(delta) {
   scrollToPlaying(false);
 }
 
+function barAction(action) {
+  const app = barPlayer();
+  if (!app) return;
+  if (action === "play-pause") {
+    app.playing = !app.playing;
+    refreshApp(app);
+    return;
+  }
+  if (action === "prev") { changeTrack(app, -1); return; }
+  if (action === "next") { changeTrack(app, 1); return; }
+  if (action === "shuffle") {
+    if (!app.shuffleSupported) return;
+    app.shuffle = !app.shuffle;
+    refreshApp(app);
+    return;
+  }
+  if (action === "repeat") {
+    if (!app.repeatSupported) return;
+    const order = ["off", "all", "one"];
+    app.repeat = order[(order.indexOf(app.repeat) + 1) % order.length];
+    refreshApp(app);
+  }
+}
+
 /* ── wiring ──────────────────────────────────────────────────── */
 
 $("barVolume").addEventListener("click", () => {
   setPanelOpen(!state.panelOpen);
+});
+
+$("barNowMain").addEventListener("click", () => {
+  setPanelOpen(!state.panelOpen);
+});
+
+$("barNowControls").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-bar-action]");
+  if (button) barAction(button.dataset.barAction);
 });
 
 $("barMic").addEventListener("click", () => {
@@ -2300,8 +2600,8 @@ $("mixerList").addEventListener("click", (event) => {
     const app = appById(play.dataset.mixerPlay);
     if (!app) return;
     app.playing = !app.playing;
-    updateMixerRow(app);
-    updateModeDot();
+    state.mixFocusId = app.id;
+    refreshApp(app);
     return;
   }
 
@@ -2348,6 +2648,7 @@ playingViewport.addEventListener("scroll", () => {
     if (app && app.id !== state.playingId) {
       state.playingId = app.id;
       updatePlayingAria();
+      updateBarNow();
     }
   }, 80);
 }, { passive: true });
@@ -2360,7 +2661,9 @@ document.addEventListener("click", (event) => {
   }
 
   if (!state.panelOpen) return;
-  if (event.target.closest("#panel") || event.target.closest(".menu") || event.target.closest("#barVolume")) return;
+  if (event.target.closest("#panel") || event.target.closest(".menu") ||
+      event.target.closest("#barVolume") || event.target.closest("#barNow") ||
+      event.target.closest("#barMic")) return;
   setPanelOpen(false, { toastOnClose: true });
 });
 
@@ -2399,8 +2702,7 @@ setInterval(() => {
     if (app.position >= track.length) {
       app.position = 0;
       app.trackIndex = (app.trackIndex + 1) % app.tracks.length;
-      updatePlayingPage(app);
-      if (state.mode === "mixer") updateMixerRow(app);
+      refreshApp(app);
       continue;
     }
     updatePlayingSeek(app);
@@ -2411,6 +2713,7 @@ setInterval(() => {
 
 setPanelOpen(true);
 renderAll();
+if (params.get("panel") === "closed") setPanelOpen(false);
 if (state.mode === "mixer" && state.mixFocusId) {
   requestAnimationFrame(scrollMixerFocus);
 }

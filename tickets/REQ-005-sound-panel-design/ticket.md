@@ -57,6 +57,24 @@ The popover has three surfaces:
    device selector, microphone level, mute, and the apps currently using the
    microphone. No input and no consumer both have honest states.
 
+**Bar now-playing widget (outside the panel).** In the faux bar's right cluster,
+immediately before the network/volume/battery icons, the bar reports the active
+player without operating the panel:
+- At rest: 20 px rounded album art, one ellipsized `Title — Artist` line (the
+  artist is the first thing to fall off), a subtle playing dot, max width 240,
+  no heavy box; only a faint tint on hover/focus. Hidden when there is no
+  player.
+- Hover/focus: expands in place to 24 px art, stacked title/artist, previous /
+  play-pause / next, and shuffle/repeat only when supported; max width 340. The
+  bar remains exactly 40 px high; the expansion is a faint tint/hairline, not a
+  boxed widget.
+- It reflects the active player: the Playing page, or the focused Mixer player
+  when it has a player; otherwise the current Playing page. Pausing shows a
+  play icon; no player hides it. Its transport acts on that same player and
+  updates the panel/carousel; it never switches apps. Clicking the art/title
+  toggles the sound panel. `?bar=chip|full|off` forces rest/full/hidden for
+  review; default is rest with hover/focus expansion.
+
 Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
 no seek) are Playing pages; Firefox is the audio-only app that lives only in
 Mixer. The app tile/name is the source badge; a second "Spotify" pill would
@@ -90,6 +108,8 @@ VLC live page.
 | `inputConsumers` | “Using microphone” line under the input controls |
 | Shuffle / Loop (new MPRIS capability) | Playing page icons; toggled per page; hidden when unsupported |
 | Mode switch / session mode | Deck `Playing | Mixer` tabs; default from players; no auto-switch; accent dot on Playing while Mixer and playing |
+| Bar now-playing | Reads the active player; title/art toggles the panel; transport uses the same player; no app switching |
+| Bar rest/full/hidden | 20 px/240 rest → 24 px/340 hover/focus; 40 px bar height; no player hides; `?bar=chip|full|off` review states |
 | Output / app / input empty or unavailable states | No apps, audio-only Mixer rows, empty Playing, live page, unavailable output entry, no input, no mic consumer |
 
 ## Acceptance
@@ -122,6 +142,16 @@ Design deliverable:
 - [x] Arrows flank Playing pages when >1 and hide at ≤1; swipe/scroll snap
       switches pages. `?player=2`, `?app=vlc` focus Playing pages; `?app=firefox`
       opens Mixer on its row.
+- [x] The bar widget sits before the network/volume/battery icons, is 20 px
+      art / one line / dot / max 240 at rest, expands on hover/focus to 24 px
+      art / title+artist / transport / max 340, and never changes the 40 px bar
+      height. It is hidden when no player exists.
+- [x] The bar follows the active player (Playing page or focused Mixer player),
+      reflects pause as a play glyph, updates on carousel/play/pause changes,
+      and its transport updates the panel without switching apps or modes.
+      Clicking its art/title toggles the panel.
+- [x] `?bar=chip`, `?bar=full` and `?bar=off` force the bar states; default is
+      rest with hover/focus expansion.
 - [x] The panel is shorter than the previous carousel + apps version: Playing is
       compact; Mixer uses four tight rows.
 - [x] The input section is collapsed by default and covers device, level, mute,
@@ -165,6 +195,8 @@ google-chrome-stable --new-window \
 | `?input=1` / `?input=0` | Input expanded / no input device (disabled controls) |
 | `?mic=0` | Input available, no microphone consumers |
 | `?device=headphones` | Select an available output (`speakers`, `headphones`) |
+| `?bar=chip` / `?bar=full` / `?bar=off` | Force the bar widget rest / expanded / hidden (mock review states) |
+| `?panel=closed` | Start with the popover closed; bar widget remains visible (review helper) |
 
 ## Token / skin mapping
 
@@ -222,6 +254,14 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
    to a second row.
 10. **Page height.** The active Playing page's natural height sets the carousel
     height; the 180 ms transition is decorative. No state depends on it.
+11. **Bar reports; panel operates.** The bar has no app switcher and no seek;
+    it only reflects and controls the active player. Its title/art is the panel
+    toggle. The bar's compact controls are 22–26 px inside a 40 px bar; the
+    panel keeps the 40–44 px primary targets. The bar height never changes.
+12. **Bar active-player resolution.** Playing uses the current page; Mixer uses
+    the focused Mixer player when it has a player (playing or paused), otherwise
+    the current Playing page or the first current player. No current player
+    hides the widget. `?bar` and `?panel` are mock review links, not app config.
 
 ## Evidence
 
@@ -237,6 +277,12 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
   `?player=2`, `?app=vlc`, `?app=firefox`, `?playing=0`,
   `?mode=playing&playing=0`, `?apps=0`, `?mode=playing&apps=0`, `?muted=1`,
   `?input=0`, `?mic=0` and `?device=headphones`.
+- The bar harness passed 70 checks: placement/height, rest vs focus/full, 20/24
+  art, 240/340 caps, bar transport sync with page and carousel, paused/play and
+  no-player states, Mixer focus following, panel toggle, `?bar` deep links and
+  `?panel=closed`.
+- Bar screenshots: `/tmp/opencode/bar-rest-final.png`, `bar-full-final.png`,
+  `bar-closed-final.png`; panel states remain the `final-twomode-*` captures.
 - `mock.html` was checked for external URLs and `url(...)`: none.
 
 ## Follow-up
@@ -260,5 +306,9 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   (`audio-actions.ts:69-121`).
 - The menus replace the current `openChoicePopover` lists with the same
   selected/disabled semantics.
+- Bar → consume the same `AudioPanelBinding`/projection for the active player;
+  dispatch `playerAction` (and shuffle/loop once added), no seek and no app
+  switch. `openAudio`/`toggle` handles the title/art click. `?bar`/`?panel` are
+  mock-only review links, not persisted config.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.
