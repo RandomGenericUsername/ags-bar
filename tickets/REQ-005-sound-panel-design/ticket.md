@@ -103,14 +103,14 @@ helper `Show the now-playing strip in the top bar.`; footer
   live without a restart. Implementation must use the capture-tool settings
   pattern: pure domain, port, GLib adapter, save-on-change.
 
-Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
+Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
 no seek) are Playing pages; Firefox is the audio-only app that lives only in
 Mixer. The app tile/name is the source badge; a second "Spotify" pill would
 duplicate it.
 
-No settings gear or config-file escape hatch is added: the current popup has
-none. Right-click → `pavucontrol` is a bar-widget gesture, not part of this
-surface, and remains outside the mock.
+The settings gear is the only config surface; there is no separate config-file
+escape hatch. Right-click → `pavucontrol` is a bar-widget gesture, not part of
+this surface, and remains outside the mock.
 
 **MPRIS note.** Shuffle and Loop are not in the current `PlayerCapabilities`
 model or `AudioPanelActions`; the mock simulates them. Implementation must
@@ -229,6 +229,40 @@ google-chrome-stable --new-window \
   "file:///home/inumaki/Development/dotfiles/ags-bar/.worktrees/REQ-005/tickets/REQ-005-sound-panel-design/mock.html"
 ```
 
+## Source of truth and drift rule
+
+- Normative mock: `mock.html`; sha256
+  `73b8a5e62f9afbadfe4fb2fc8137a022f7a1ae71453c01d3704411ed7cbc98a6`
+  (also recorded in `mock.sha256`).
+- This ticket is the **criteria** source of truth; the mock is the **look and
+  interaction** source of truth.
+- Any change to `mock.html` must update this ticket's requirement, acceptance
+  or functionality inventory **and** `mock.sha256` in the same commit. Any
+  criteria change must update the mock in the same commit. If they disagree,
+  fix one before merging.
+- The app-local ticket + mock are canonical; there is no separate
+  composition-level sound contract.
+
+## Implementation acceptance (follow-up)
+
+- [ ] Persistent output + Playing/Mixer deck implemented per the mock at
+      1600×1000 and 1920×1080.
+- [ ] Playing pages: transport/seek; shuffle/repeat capability-gated; no volume
+      slider; the read-only level opens Mixer on that app.
+- [ ] Mixer rows: route/volume/mute/play-pause; no transport/seek; row and
+      play/pause do not switch modes.
+- [ ] Tray strip: always visible when enabled + player; click opens the
+      dropdown; transport never opens it; wheel cycles players; hidden when
+      idle; tray/panel mutually exclusive.
+- [ ] Tray dropdown: active track/transport/seek, `Players`, active check,
+      `Open sound panel`.
+- [ ] Settings: `$XDG_CONFIG_HOME/ags-bar/config.json` with
+      `{ media_widget: { enabled } }`, live apply, missing/corrupt defaults; not
+      the AGS install link and not `bar.json`.
+- [ ] MPRIS Shuffle/Loop capabilities/actions; controls hidden when unsupported.
+- [ ] `make ci` and `make gates` pass; composition pin bumped if the bar tag
+      changes.
+
 ## Deep links
 
 | Query | State |
@@ -292,8 +326,9 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
 5. **No auto-switch.** Track changes, timer ticks and play/pause do not change
    mode. While Mixer is selected, the Playing tab accent dot is the only signal
    that audio is playing.
-6. **No gear or settings link.** The current popup has no settings entry, so the
-   mock does not invent one. No JSON file is written.
+6. **One settings entry.** The Output gear is the only settings surface; the
+   `Bar media widget` toggle is the one config key, persisted in the app-owned
+   `$XDG_CONFIG_HOME/ags-bar/config.json`. No other JSON file is written.
 7. **Unavailable devices stay visible but disabled.** `HDMI · Display` exercises
    the disabled branch; selecting it is a no-op, not a fake success.
 8. **Mixed mute.** The `Mixed` badge demonstrates the divergent-level branch;
