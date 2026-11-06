@@ -1,0 +1,1970 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Sound — anchored popover prototype</title>
+<style>
+/* ============================================================
+   SOUND — the AGS bar's audio popover, redesigned onto the same
+   visual contract as the wallpaper selector (106) and clipboard
+   (107) overlays:
+
+     · one glass chrome layer: surface + 1px hairline + soft shadow
+     · no accent frame; accent is for state and action only
+     · ink / dim / faint type, sentence case, no uppercase labels
+     · 8px rhythm, 18px panel radius, 10.5/11.5/13/15/28 type
+     · 40–44px primary targets; every pointer action has a key
+     · content is the surface; the desktop stays visible behind it
+
+   ANCHORED, NOT FULL-SCREEN. A 352px popover hangs under the
+   bar's volume indicator with an 8px gap. Clicking the wallpaper
+   or pressing Esc closes it; the bar icon toggles it back.
+
+   SKIN / APPEARANCE MAPPING (for the parallel skin work):
+   the chrome colours, radii and the panel width are custom
+   properties on :root; content art (wallpaper, album covers, app
+   icons) keeps its own gradients because it is content, not skin.
+   The appearance layer can remap:
+     ink / ink-dim / ink-faint   -> palette on-surface ramp
+     glass / glass-strong        -> palette surface at two opacities
+     hairline                    -> palette outline at low alpha
+     accent / on-accent          -> palette primary / on-primary
+     live                        -> semantic green (not palette)
+     panel-w / r-panel / r-card  -> skin layout tokens
+   The --surface / --outline / --focus-ring aliases are the single
+   remap seam; structure is not consumed by the skin.
+   ============================================================ */
+
+:root {
+  /* ink */
+  --ink: #f6f5f8;
+  --ink-dim: rgba(246, 245, 248, .62);
+  --ink-faint: rgba(246, 245, 248, .40);
+
+  /* chrome */
+  --hairline: rgba(255, 255, 255, .13);
+  --hairline-soft: rgba(255, 255, 255, .07);
+  --glass: rgba(9, 9, 13, .70);
+  --glass-strong: rgba(12, 12, 17, .94);
+  --control-bg: rgba(255, 255, 255, .055);
+  --control-hover: rgba(255, 255, 255, .10);
+  --inset-bg: rgba(255, 255, 255, .045);
+
+  /* state + action */
+  --accent: #ff8a6a;
+  --on-accent: #1a0b06;
+  --live: #4ade80;
+
+  /* geometry — skin-remappable */
+  --panel-w: 352px;
+  --bar-h: 40px;
+  --gap: 8px;
+  --r-panel: 18px;
+  --r-card: 12px;
+  --r-chip: 9px;
+  --r-pill: 999px;
+
+  /* shared remap aliases (one place for the skin) */
+  --surface: var(--glass);
+  --surface-strong: var(--glass-strong);
+  --outline: var(--hairline);
+  --focus-ring: var(--accent);
+  --track: rgba(255, 255, 255, .16);
+  --track-strong: rgba(255, 255, 255, .58);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #050407;
+  color: var(--ink);
+  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled { cursor: default; }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+kbd {
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 5px;
+  padding: 3px 5px;
+}
+
+/* ── the desktop ─────────────────────────────────────────────── */
+
+/* Dragon CSS art, reused verbatim from the wallpaper selector mock
+   (106, spikes/wallpaper-selector-overlay/index.html). It is the
+   live wallpaper behind the bar, not a scrim. */
+#wall {
+  position: fixed;
+  inset: -2%;
+  z-index: 0;
+  background-image:
+    radial-gradient(90% 80% at 22% 12%, #5b2f8a 0%, transparent 58%),
+    radial-gradient(70% 70% at 78% 28%, #c23a72 0%, transparent 55%),
+    radial-gradient(60% 50% at 52% 92%, #ff7a59 0%, transparent 60%),
+    linear-gradient(155deg, #0d0716 0%, #241033 45%, #090510 100%);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+}
+
+/* Edges only. The wallpaper stays the wallpaper. */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(125% 100% at 58% 40%, transparent 52%, rgba(0, 0, 0, .40) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .18), transparent 22%);
+}
+
+/* ── faux AGS bar ────────────────────────────────────────────── */
+
+.desktopbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: var(--bar-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(8, 8, 12, .52);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  backdrop-filter: blur(22px) saturate(1.2);
+  font-size: 11px;
+  color: rgba(255, 255, 255, .62);
+}
+
+.db-left { display: flex; align-items: center; gap: 3px; }
+.db-ws {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.db-ws.active { background: rgba(255, 255, 255, .14); color: var(--ink); }
+
+.db-center {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .84);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.db-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-btn {
+  width: 30px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .72);
+  transition: background .16s, color .16s;
+}
+.db-btn:hover { background: rgba(255, 255, 255, .08); color: var(--ink); }
+.db-btn.is-active { background: rgba(255, 255, 255, .13); color: var(--ink); }
+
+.db-mic { position: relative; }
+.db-mic .live-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+/* ── the popover ─────────────────────────────────────────────── */
+
+.audio-pop {
+  position: fixed;
+  top: calc(var(--bar-h) + var(--gap));
+  right: 12px;
+  z-index: 30;
+  width: min(var(--panel-w), calc(100vw - 24px));
+  max-height: calc(100vh - var(--bar-h) - var(--gap) - 12px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(30px) saturate(1.3);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, .50),
+    0 3px 10px rgba(0, 0, 0, .26);
+  overflow: hidden;
+  transform-origin: top right;
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+body.is-closed .audio-pop {
+  opacity: 0;
+  transform: translateY(-6px) scale(.985);
+  pointer-events: none;
+}
+
+.pop-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .18) transparent;
+}
+.pop-scroll::-webkit-scrollbar { width: 8px; }
+.pop-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ── hero: output ────────────────────────────────────────────── */
+
+.hero {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 26px;
+  margin-bottom: 6px;
+}
+
+.caption-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.caption {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.muted-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 138, 106, .14);
+  color: #ffd0c2;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.muted-pill::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--ink-dim);
+  background: transparent;
+  transition: background .16s, color .16s;
+}
+.icon-btn:hover { background: var(--control-hover); color: var(--ink); }
+.icon-btn.is-on {
+  color: var(--accent);
+  background: rgba(255, 138, 106, .12);
+}
+.icon-btn.sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.icon-btn:disabled { opacity: .36; }
+
+.device {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--control-bg);
+  color: var(--ink);
+  text-align: left;
+  transition: background .16s, color .16s;
+}
+.device:hover { background: var(--control-hover); }
+.device:disabled { opacity: .48; }
+.device .dev-icon { flex: 0 0 auto; color: var(--ink-dim); }
+.device .dev-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+.device .dev-note {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+.device .chev { flex: 0 0 auto; color: var(--ink-faint); }
+
+.level-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  min-height: 40px;
+}
+
+.big-value {
+  display: flex;
+  align-items: baseline;
+  min-width: 68px;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: opacity .16s;
+}
+.big-value .unit {
+  margin-left: 1px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.is-output-muted .big-value { opacity: .42; }
+
+.hero-note {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* ── ranges ──────────────────────────────────────────────────── */
+
+.range {
+  --fill: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(to right,
+    var(--range-fill, var(--accent)) var(--fill),
+    var(--track) var(--fill));
+}
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--track);
+}
+.range::-moz-range-progress {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--range-fill, var(--accent));
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fbfafc;
+  border: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .42);
+  transition: transform .12s;
+}
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fbfafc;
+  border: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .42);
+}
+.range:hover::-webkit-slider-thumb { transform: scale(1.08); }
+.range:disabled { opacity: .36; cursor: default; }
+
+.range.secondary { --range-fill: var(--track-strong); }
+.range.is-muted { --range-fill: rgba(255, 255, 255, .26); opacity: .60; }
+.range:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+  border-radius: var(--r-pill);
+}
+
+/* ── sections ────────────────────────────────────────────────── */
+
+.section { border-bottom: 1px solid var(--hairline-soft); }
+
+.section-head {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  text-align: left;
+  transition: background .16s;
+}
+.section-head:hover { background: rgba(255, 255, 255, .03); }
+
+.section-title {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.section-count {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.section-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.section-head .chev {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--ink-faint);
+  transition: transform .18s ease;
+}
+.section-head[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+.section-body { padding: 0 8px 8px; }
+.input-body { padding: 0 16px 12px; }
+
+.empty {
+  padding: 10px 2px 8px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+}
+.empty strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+/* ── now playing ─────────────────────────────────────────────── */
+
+.media-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 34px;
+  padding: 0 16px;
+}
+.media-source {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+.live-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: rgba(74, 222, 128, .12);
+  color: #c4f8d6;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.live-badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+.player {
+  margin: 0 12px 12px;
+  padding: 10px;
+  border-radius: var(--r-card);
+  background: var(--inset-bg);
+}
+
+.player-top {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.artwork {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
+  overflow: hidden;
+}
+/* CSS album art — no external assets. Each is a small composition,
+   not a flat swatch, so the card reads as artwork at 56px. */
+.art-weightless {
+  background:
+    radial-gradient(circle at 34% 38%, rgba(255, 255, 255, .34) 0 7%, transparent 8%),
+    radial-gradient(circle at 62% 62%, rgba(255, 255, 255, .18) 0 12%, transparent 13%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(4, 10, 16, .0) 0 7px, rgba(4, 10, 16, .22) 8px 9px),
+    conic-gradient(from 210deg at 58% 42%, #072a36, #0e6b70, #6fe3c5, #12545c, #04151c);
+}
+.art-lofi {
+  background:
+    linear-gradient(to top, rgba(12, 4, 16, .78) 0 28%, transparent 56%),
+    radial-gradient(circle at 72% 24%, #ffd9a0 0 10%, transparent 11%),
+    linear-gradient(160deg, #2a0f3d 0%, #8c2450 48%, #ff7a59 100%);
+}
+.art-sola {
+  background:
+    radial-gradient(80% 60% at 28% 26%, rgba(125, 211, 252, .40) 0%, transparent 58%),
+    repeating-linear-gradient(18deg, rgba(255, 255, 255, .07) 0 1px, transparent 1px 7px),
+    linear-gradient(150deg, #06111f 0%, #123b52 56%, #04121a 100%);
+}
+.art-empty {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .045) 0 1px, transparent 1px 8px),
+    linear-gradient(150deg, #16161c 0%, #0b0b10 100%);
+}
+
+.track { min-width: 0; display: grid; gap: 1px; }
+.track-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+.track-artist,
+.track-album {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ink-dim);
+}
+.track-artist { font-size: 11.5px; }
+.track-album { font-size: 10.5px; color: var(--ink-faint); }
+
+.play-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+  transition: filter .14s, transform .14s;
+}
+.play-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.play-btn:active { transform: none; }
+.play-btn:disabled { opacity: .4; }
+
+.transport {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.transport .icon-btn { color: var(--ink-dim); }
+.transport .icon-btn:disabled { opacity: .30; }
+
+.seek-block { min-width: 0; }
+.times {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: -2px;
+  padding: 0 1px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.media-empty {
+  margin: 0 12px 12px;
+  padding: 18px 16px;
+  border-radius: var(--r-card);
+  background: var(--inset-bg);
+  text-align: center;
+}
+.media-empty .empty-art {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 10px;
+  border-radius: 10px;
+  opacity: .7;
+}
+.media-empty .t {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.media-empty .s {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.45;
+}
+
+/* ── app mixer ───────────────────────────────────────────────── */
+
+.app {
+  padding: 8px;
+  border-radius: var(--r-card);
+  transition: background .16s;
+}
+.app + .app { border-top: 1px solid var(--hairline-soft); }
+.app.is-focused { background: rgba(255, 255, 255, .045); }
+
+.app-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.app-art {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .94);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
+}
+.app-spotify { background: radial-gradient(circle at 30% 24%, #1ed760, #0b6b35 72%); }
+.app-firefox { background: radial-gradient(circle at 30% 24%, #ffb35c, #c42b6f 76%); }
+.app-tidal {
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .08) 0 1px, transparent 1px 5px),
+    linear-gradient(150deg, #0b1220, #1b6b7a);
+}
+
+.app-focus {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+.app-focus:disabled { cursor: default; }
+.app-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.app-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.app-playing-dot {
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, .12);
+}
+.app-sub {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.route {
+  max-width: 132px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: var(--r-chip);
+  background: var(--control-bg);
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  font-weight: 550;
+  transition: background .16s, color .16s;
+}
+.route:hover { background: var(--control-hover); color: var(--ink); }
+.route .rt {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.route .chev { flex: 0 0 auto; }
+
+.app-controls {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 43px;
+}
+
+.app-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 38px;
+}
+.app-pct {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.app-mixed {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  line-height: 1.2;
+}
+
+/* ── input ───────────────────────────────────────────────────── */
+
+.live-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, .13);
+}
+
+.input-controls {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.input-value {
+  min-width: 38px;
+  text-align: right;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.consumer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: var(--inset-bg);
+  font-size: 11.5px;
+  color: var(--ink-dim);
+}
+.consumer .mini-art {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .94);
+}
+.consumer .who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.consumer .use {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* ── footer ──────────────────────────────────────────────────── */
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px 12px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+.foot .hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+/* ── menu (device / route pickers) ───────────────────────────── */
+
+.menu {
+  position: fixed;
+  z-index: 60;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: var(--r-card);
+  background: var(--surface-strong);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(28px) saturate(1.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .56);
+  scrollbar-width: thin;
+}
+
+.menu-title {
+  padding: 4px 8px 6px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.menu-item {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--ink-dim);
+  font-size: 12px;
+  text-align: left;
+  transition: background .14s, color .14s;
+}
+.menu-item:hover:not(:disabled) { background: var(--control-hover); color: var(--ink); }
+.menu-item.is-selected { color: var(--ink); }
+.menu-item:disabled { opacity: .38; }
+.menu-item .check {
+  flex: 0 0 14px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+.menu-item .mi-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.menu-item .mi-note {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* ── toast ───────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 70;
+  transform: translate(-50%, 8px);
+  padding: 9px 15px;
+  border-radius: var(--r-pill);
+  background: var(--surface-strong);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(18px);
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s, transform .18s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── responsive / motion ─────────────────────────────────────── */
+
+@media (max-width: 440px) {
+  .audio-pop { right: 8px; }
+  .app-controls { padding-left: 0; }
+  .route { max-width: 92px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="wall" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- The normal AGS bar. The volume indicator is the popover's anchor. -->
+<header class="desktopbar">
+  <div class="db-left">
+    <span class="db-ws active">1</span>
+    <span class="db-ws">2</span>
+    <span class="db-ws">3</span>
+    <span class="db-ws">4</span>
+    <span class="db-ws">5</span>
+  </div>
+  <div class="db-center">Fri 6 Nov · 10:42</div>
+  <div class="db-right">
+    <button class="db-btn db-mic" id="barMic" aria-label="Microphone in use">
+      <span class="live-dot"></span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="10.5" rx="3"></rect>
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Network">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 8.5a15 15 0 0 1 19 0"></path>
+        <path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>
+        <path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>
+        <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"></circle>
+      </svg>
+    </button>
+
+    <button class="db-btn is-active" id="barVolume" aria-label="Sound" aria-expanded="true" aria-controls="panel">
+      <!-- filled by renderBar() -->
+    </button>
+
+    <button class="db-btn" aria-label="Battery">
+      <svg width="19" height="15" viewBox="0 0 28 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" aria-hidden="true">
+        <rect x="2" y="6" width="20" height="12" rx="3"></rect>
+        <path d="M24 10v4" stroke-linecap="round"></path>
+        <rect x="4.5" y="8.5" width="13" height="7" rx="1.5" fill="currentColor" stroke="none"></rect>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- Anchored sound popover -->
+<main class="audio-pop" id="panel" role="dialog" aria-modal="false" aria-label="Sound" tabindex="-1">
+  <div class="pop-scroll" id="popScroll">
+
+    <!-- HERO: output volume + preferred output -->
+    <section class="hero" aria-labelledby="outputCaption">
+      <div class="hero-top">
+        <div class="caption-row">
+          <span class="caption" id="outputCaption">Output</span>
+          <span class="muted-pill" id="mutedPill" hidden>Muted</span>
+        </div>
+        <button class="icon-btn" id="outputMute" aria-pressed="false" aria-label="Mute output"></button>
+      </div>
+
+      <button class="device" id="outputDevice" aria-haspopup="menu" aria-expanded="false" aria-label="Choose output device">
+        <span class="dev-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
+            <path d="M17 9.5a4 4 0 0 1 0 5"></path>
+          </svg>
+        </span>
+        <span class="dev-name" id="outputDeviceName">Studio monitors</span>
+        <span class="dev-note">Default</span>
+        <span class="chev" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+        </span>
+      </button>
+
+      <div class="level-row">
+        <output class="big-value" id="outputValue" aria-live="off">62<span class="unit">%</span></output>
+        <input class="range" type="range" id="outputRange" min="0" max="100" step="1"
+               value="62" aria-label="Output volume">
+      </div>
+      <div class="hero-note" id="mutedNote" hidden>Muted — the level is kept.</div>
+    </section>
+
+    <!-- NOW PLAYING -->
+    <section class="section" aria-labelledby="mediaCaption">
+      <div class="media-head">
+        <span class="caption" id="mediaCaption">Now playing</span>
+        <span class="live-badge" id="liveBadge" hidden>Live</span>
+        <span class="media-source" id="mediaSource">Spotify</span>
+      </div>
+
+      <div class="player" id="player">
+        <div class="player-top">
+          <div class="artwork art-weightless" id="artwork" aria-hidden="true"></div>
+          <div class="track">
+            <div class="track-title" id="trackTitle">Weightless</div>
+            <div class="track-artist" id="trackArtist">Marconi Union</div>
+            <div class="track-album" id="trackAlbum">Ambient Transmissions</div>
+          </div>
+          <button class="play-btn" id="playBtn" aria-label="Pause"></button>
+        </div>
+
+        <div class="transport" id="transportRow">
+          <button class="icon-btn sm" id="prevBtn" aria-label="Previous track"></button>
+          <div class="seek-block" id="seekBlock">
+            <input class="range" type="range" id="seekRange" min="0" max="1000" step="1"
+                   value="0" aria-label="Playback position">
+            <div class="times">
+              <span id="elapsed">1:24</span>
+              <span id="duration">8:02</span>
+            </div>
+          </div>
+          <button class="icon-btn sm" id="nextBtn" aria-label="Next track"></button>
+        </div>
+      </div>
+
+      <div class="media-empty" id="mediaEmpty" hidden>
+        <div class="artwork art-empty empty-art" aria-hidden="true"></div>
+        <div class="t">Nothing is playing</div>
+        <div class="s">Media from your apps shows up here.</div>
+      </div>
+    </section>
+
+    <!-- APP MIXER -->
+    <section class="section">
+      <button class="section-head" id="appsHead" aria-expanded="false" aria-controls="appsBody">
+        <span class="section-title">Apps</span>
+        <span class="section-count" aria-hidden="true">·</span>
+        <span class="section-count" id="appsCount">3</span>
+        <span class="chev" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+        </span>
+      </button>
+      <div class="section-body" id="appsBody" hidden></div>
+    </section>
+
+    <!-- INPUT -->
+    <section class="section">
+      <button class="section-head" id="inputHead" aria-expanded="false" aria-controls="inputBody">
+        <span class="section-title">Input</span>
+        <span class="live-dot" id="inputDot" hidden></span>
+        <span class="section-summary" id="inputSummary">AT2020 USB</span>
+        <span class="chev" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+        </span>
+      </button>
+
+      <div class="input-body" id="inputBody" hidden>
+        <button class="device" id="inputDevice" aria-haspopup="menu" aria-expanded="false" aria-label="Choose input device">
+          <span class="dev-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.7" stroke-linecap="round">
+              <rect x="9" y="3" width="6" height="10.5" rx="3"></rect>
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path>
+            </svg>
+          </span>
+          <span class="dev-name" id="inputDeviceName">AT2020 USB</span>
+          <span class="chev" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </span>
+        </button>
+
+        <div class="input-controls">
+          <button class="icon-btn sm" id="inputMute" aria-pressed="false" aria-label="Mute microphone"></button>
+          <input class="range secondary" type="range" id="inputRange" min="0" max="100" step="1"
+                 value="44" aria-label="Microphone volume">
+          <span class="input-value" id="inputValue">44%</span>
+        </div>
+
+        <div class="consumer" id="micConsumer">
+          <span class="mini-art app-firefox" aria-hidden="true">F</span>
+          <span class="who">Firefox</span>
+          <span class="use"><span class="live-dot"></span>Using microphone</span>
+        </div>
+
+        <div class="empty" id="inputEmpty" hidden>No microphone use right now.</div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <span>Changes apply immediately.</span>
+      <span class="hint"><kbd>Esc</kbd> closes</span>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ── icons ───────────────────────────────────────────────────── */
+
+const ICON = {
+  volume: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M17 9.5a4 4 0 0 1 0 5"></path><path d="M19.5 7a7.5 7.5 0 0 1 0 10"></path></svg>`,
+  volumeLow: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="M17 9.5a4 4 0 0 1 0 5"></path></svg>`,
+  mute: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"></path><path d="m16.5 9.5 5 5m0-5-5 5"></path></svg>`,
+  mic: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="10.5" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>`,
+  micMute: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="10.5" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"></path></svg>`,
+  play: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.8.8 0 0 0 1.22.68l10.4-6.8a.8.8 0 0 0 0-1.36L9.22 4.52A.8.8 0 0 0 8 5.2Z"></path></svg>`,
+  pause: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1"></rect><rect x="13.6" y="5" width="3.4" height="14" rx="1"></rect></svg>`,
+  prev: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5.5a1 1 0 0 1 1 1v11a1 1 0 1 1-2 0v-11a1 1 0 0 1 1-1Zm1.9 6.14 9.1 5.5a.9.9 0 0 0 1.35-.78V6.64a.9.9 0 0 0-1.35-.78l-9.1 5.5a.5.5 0 0 0 0 .86l-.1.1Z"></path></svg>`,
+  next: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 5.5a1 1 0 0 0-1 1v11a1 1 0 1 0 2 0v-11a1 1 0 0 0-1-1Zm-1.9 6.14-9.1 5.5A.9.9 0 0 1 4.65 16.36V6.64a.9.9 0 0 1 1.35-.78l9.1 5.5a.5.5 0 0 1 0 .86l.1.1Z"></path></svg>`,
+  check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg>`,
+  chevron: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`
+};
+
+const volumeIcon = (muted, level) => muted || level <= 0 ? ICON.mute : level <= 50 ? ICON.volumeLow : ICON.volume;
+
+/* ── simulated session ───────────────────────────────────────── */
+
+const BASE_DEVICES = [
+  { id: "speakers", name: "Studio monitors", level: 62, muted: false, available: true },
+  { id: "headphones", name: "WH-1000XM5", level: 48, muted: false, available: true },
+  { id: "hdmi", name: "HDMI · Display", level: 35, muted: false, available: false }
+];
+
+const BASE_INPUTS = [
+  { id: "at2020", name: "AT2020 USB", available: true },
+  { id: "builtin", name: "Built-in microphone", available: true },
+  { id: "yeti", name: "Yeti Nano", available: false }
+];
+
+const BASE_APPS = [
+  {
+    id: "spotify", name: "Spotify", initial: "S", artClass: "app-spotify",
+    route: "follow-preferred", override: null,
+    volume: 74, muted: false, mixed: false, hasPlayer: true, playing: true,
+    canSeek: true, canPrev: true, canNext: true, position: 84, trackIndex: 0,
+    tracks: [
+      { title: "Weightless", artist: "Marconi Union", album: "Ambient Transmissions", length: 482, art: "art-weightless" },
+      { title: "An Ending (Ascent)", artist: "Brian Eno", album: "Apollo", length: 267, art: "art-sola" }
+    ]
+  },
+  {
+    id: "firefox", name: "Firefox", initial: "F", artClass: "app-firefox",
+    route: "explicit", override: "headphones",
+    volume: 50, muted: false, mixed: true, hasPlayer: true, playing: true,
+    canSeek: false, canPrev: false, canNext: false, position: 0, trackIndex: 0,
+    tracks: [
+      { title: "Lofi Girl — beats to relax/study to", artist: "YouTube", album: "Live stream", length: null, art: "art-lofi" }
+    ]
+  },
+  {
+    id: "tidal", name: "Tidal", initial: "T", artClass: "app-tidal",
+    route: "follow-preferred", override: null,
+    volume: 36, muted: false, mixed: false, hasPlayer: true, playing: false,
+    canSeek: true, canPrev: true, canNext: true, position: 51, trackIndex: 0,
+    tracks: [
+      { title: "Sola", artist: "Kiasmos", album: "II", length: 244, art: "art-sola" },
+      { title: "Looped", artist: "Kiasmos", album: "Blurred", length: 211, art: "art-weightless" }
+    ]
+  }
+];
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+const state = {
+  panelOpen: true,
+  devices: clone(BASE_DEVICES),
+  outputId: "speakers",
+  apps: clone(BASE_APPS),
+  appsOpen: false,
+  focusId: "spotify",
+  inputs: clone(BASE_INPUTS),
+  input: {
+    available: true,
+    deviceId: "at2020",
+    level: 44,
+    muted: false,
+    consumers: [{ appId: "firefox", name: "Firefox", initial: "F", artClass: "app-firefox" }]
+  },
+  inputOpen: false
+};
+
+/* ── helpers ─────────────────────────────────────────────────── */
+
+const $ = (id) => document.getElementById(id);
+
+const currentDevice = () => state.devices.find((d) => d.id === state.outputId) ?? state.devices[0];
+const currentInput = () => state.inputs.find((d) => d.id === state.input.deviceId) ?? null;
+const trackOf = (app) => app.tracks[app.trackIndex] ?? app.tracks[0];
+const focusedApp = () =>
+  state.apps.find((a) => a.id === state.focusId && a.hasPlayer) ?? null;
+
+const fmt = (seconds) => {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const s = Math.floor(seconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+function setFill(input, value) {
+  input.style.setProperty("--fill", `${clamp(value, 0, 100)}%`);
+}
+
+function deviceShort(name) {
+  return name.replace("Studio monitors", "Monitors");
+}
+
+/* ── deep links ──────────────────────────────────────────────── */
+
+const params = new URLSearchParams(location.search);
+
+if (params.get("muted") === "1") currentDevice().muted = true;
+
+if (params.get("apps") === "1") state.appsOpen = true;
+if (params.get("apps") === "0") {
+  state.apps = [];
+  state.appsOpen = true;
+  state.focusId = null;
+  state.input.consumers = [];
+}
+
+if (params.get("playing") === "0") {
+  for (const app of state.apps) app.hasPlayer = false;
+  state.focusId = null;
+}
+
+if (params.get("input") === "1") state.inputOpen = true;
+if (params.get("input") === "0") {
+  state.input = { available: false, deviceId: null, level: 0, muted: false, consumers: [] };
+  state.inputOpen = true;
+}
+if (params.get("mic") === "0") state.input.consumers = [];
+
+const wantedDevice = params.get("device");
+if (wantedDevice && state.devices.some((d) => d.id === wantedDevice && d.available)) {
+  state.outputId = wantedDevice;
+}
+const wantedApp = params.get("app");
+if (wantedApp) {
+  const app = state.apps.find((a) => a.id === wantedApp && a.hasPlayer);
+  if (app) state.focusId = app.id;
+}
+
+function routeShort(app) {
+  if (app.route === "follow-preferred") return "Follow preferred";
+  const device = state.devices.find((d) => d.id === app.override);
+  return device ? deviceShort(device.name) : "No route";
+}
+
+function routeFull(app) {
+  if (app.route === "follow-preferred") {
+    return `Follow preferred · ${currentDevice().name}`;
+  }
+  const device = state.devices.find((d) => d.id === app.override);
+  return device ? `${device.name} · Override` : "No current route";
+}
+
+function appSub(app) {
+  if (!app.hasPlayer) return "Audio only";
+  const track = trackOf(app);
+  return `${track.title} · ${track.artist}`;
+}
+
+/* ── toast ───────────────────────────────────────────────────── */
+
+let toastTimer = null;
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1900);
+}
+
+/* ── menus ───────────────────────────────────────────────────── */
+
+let openMenuState = null; // { el, anchor }
+let keyboardMode = false;
+window.addEventListener("keydown", () => { keyboardMode = true; }, true);
+window.addEventListener("pointerdown", () => { keyboardMode = false; }, true);
+
+function closeMenu(restoreFocus = false) {
+  if (!openMenuState) return;
+  const { el, anchor } = openMenuState;
+  el.remove();
+  anchor.setAttribute("aria-expanded", "false");
+  openMenuState = null;
+  if (restoreFocus) anchor.focus();
+}
+
+function openMenu(anchor, { title, items, width = 248, align = "left" }) {
+  closeMenu(false);
+
+  const menu = document.createElement("div");
+  menu.className = "menu";
+  menu.setAttribute("role", "menu");
+  menu.style.width = `${width}px`;
+
+  const heading = document.createElement("div");
+  heading.className = "menu-title";
+  heading.textContent = title;
+  menu.appendChild(heading);
+
+  items.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.className = "menu-item" + (item.selected ? " is-selected" : "");
+    button.type = "button";
+    button.dataset.i = String(index);
+    button.setAttribute("role", "menuitem");
+    if (item.selected) button.setAttribute("aria-current", "true");
+    if (item.disabled) button.disabled = true;
+
+    const check = document.createElement("span");
+    check.className = "check";
+    check.innerHTML = item.selected ? ICON.check : "";
+    const name = document.createElement("span");
+    name.className = "mi-name";
+    name.textContent = item.label;
+    button.append(check, name);
+    if (item.note) {
+      const note = document.createElement("span");
+      note.className = "mi-note";
+      note.textContent = item.note;
+      button.appendChild(note);
+    }
+    menu.appendChild(button);
+  });
+
+  document.body.appendChild(menu);
+
+  const rect = anchor.getBoundingClientRect();
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  let left = align === "right" ? rect.right - mw : rect.left;
+  left = clamp(left, 8, window.innerWidth - mw - 8);
+  let top = rect.bottom + 6;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, rect.top - mh - 6);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+
+  menu.addEventListener("click", (event) => {
+    const button = event.target.closest(".menu-item");
+    if (!button || button.disabled) return;
+    const item = items[Number(button.dataset.i)];
+    closeMenu(false);
+    item.onSelect?.();
+  });
+
+  anchor.setAttribute("aria-expanded", "true");
+  openMenuState = { el: menu, anchor };
+
+  const selected = menu.querySelector(".menu-item.is-selected:not(:disabled)") ||
+    menu.querySelector(".menu-item:not(:disabled)");
+  if (keyboardMode) selected?.focus({ preventScroll: true });
+}
+
+/* ── render: hero ────────────────────────────────────────────── */
+
+function renderHero() {
+  const device = currentDevice();
+  const muted = device.muted;
+
+  $("outputDeviceName").textContent = device.name;
+  $("outputDevice").disabled = !state.devices.some((d) => d.available);
+  $("outputValue").innerHTML = `${device.level}<span class="unit">%</span>`;
+  $("outputRange").value = String(device.level);
+  $("outputRange").disabled = !device.available;
+  setFill($("outputRange"), device.level);
+
+  $("outputMute").innerHTML = volumeIcon(muted, device.level);
+  $("outputMute").classList.toggle("is-on", muted);
+  $("outputMute").setAttribute("aria-pressed", String(muted));
+  $("outputMute").setAttribute("aria-label", `${muted ? "Unmute" : "Mute"} ${device.name}`);
+  $("outputMute").disabled = !device.available;
+
+  $("mutedPill").hidden = !muted;
+  $("mutedNote").hidden = !muted;
+  $("panel").classList.toggle("is-output-muted", muted);
+}
+
+/* ── render: media ───────────────────────────────────────────── */
+
+function updateSeek(app) {
+  const seek = $("seekRange");
+  if (!app || !app.canSeek) return;
+  const track = trackOf(app);
+  if (!track.length) return;
+  const value = clamp((app.position / track.length) * 1000, 0, 1000);
+  seek.value = String(value);
+  setFill(seek, value / 10);
+  seek.setAttribute("aria-valuetext", `${fmt(app.position)} of ${fmt(track.length)}`);
+  $("elapsed").textContent = fmt(app.position);
+  $("duration").textContent = fmt(track.length);
+}
+
+function renderMedia() {
+  const app = focusedApp();
+  const player = $("player");
+  const empty = $("mediaEmpty");
+  const source = $("mediaSource");
+  const live = $("liveBadge");
+  const seekBlock = $("seekBlock");
+
+  if (!app) {
+    player.hidden = true;
+    empty.hidden = false;
+    source.hidden = true;
+    live.hidden = true;
+    return;
+  }
+
+  const track = trackOf(app);
+  player.hidden = false;
+  empty.hidden = true;
+  source.hidden = false;
+  source.textContent = app.name;
+  source.title = app.name;
+
+  $("artwork").className = `artwork ${track.art}`;
+  $("trackTitle").textContent = track.title;
+  $("trackTitle").title = track.title;
+  $("trackArtist").textContent = track.artist;
+  $("trackAlbum").textContent = track.album;
+  $("trackAlbum").hidden = !track.album;
+
+  $("playBtn").innerHTML = app.playing ? ICON.pause : ICON.play;
+  $("playBtn").setAttribute("aria-label", `${app.playing ? "Pause" : "Play"} ${track.title}`);
+  $("playBtn").title = `${app.playing ? "Pause" : "Play"} · ${app.name}`;
+
+  $("prevBtn").innerHTML = ICON.prev;
+  $("nextBtn").innerHTML = ICON.next;
+  $("prevBtn").hidden = !app.canPrev;
+  $("nextBtn").hidden = !app.canNext;
+  $("transportRow").hidden = !app.canSeek && !app.canPrev && !app.canNext;
+
+  live.hidden = app.canSeek;
+  seekBlock.hidden = !app.canSeek;
+  if (app.canSeek) {
+    $("seekRange").disabled = false;
+    $("seekRange").setAttribute("aria-label", `${track.title} playback position`);
+    updateSeek(app);
+  }
+}
+
+/* ── render: app mixer ───────────────────────────────────────── */
+
+function appRowHTML(app) {
+  const focused = app.id === state.focusId && app.hasPlayer;
+  const track = trackOf(app);
+  const mutedClass = app.muted ? " is-muted" : "";
+  const muteLabel = `${app.muted ? "Unmute" : "Mute"} ${app.name}`;
+
+  return `
+    <div class="app${focused ? " is-focused" : ""}" data-app="${app.id}">
+      <div class="app-head">
+        <span class="app-art ${app.artClass}" aria-hidden="true">${app.initial}</span>
+        <button class="app-focus" data-app-focus="${app.id}"
+                ${app.hasPlayer ? "" : "disabled"}
+                title="${app.hasPlayer ? "Show in the player" : "Audio only"}"
+                aria-label="${app.hasPlayer ? `Show ${app.name} in the player` : `${app.name}, audio only`}">
+          <span class="app-name-line">
+            <span class="app-name">${app.name}</span>
+            ${app.hasPlayer && app.playing ? '<span class="app-playing-dot" aria-label="Playing"></span>' : ""}
+          </span>
+          <span class="app-sub">${appSub(app)}</span>
+        </button>
+        <button class="route" data-app-route="${app.id}" aria-haspopup="menu" aria-expanded="false"
+                title="${routeFull(app)}" aria-label="${app.name} route: ${routeFull(app)}">
+          <span class="rt">${routeShort(app)}</span>
+          <span class="chev" aria-hidden="true">${ICON.chevron}</span>
+        </button>
+      </div>
+      <div class="app-controls">
+        <button class="icon-btn sm${app.muted ? " is-on" : ""}" data-app-mute="${app.id}"
+                aria-pressed="${app.muted}" aria-label="${muteLabel}">
+          ${volumeIcon(app.muted, app.volume)}
+        </button>
+        <input class="range secondary${mutedClass}" type="range" min="0" max="100" step="1"
+               value="${app.volume}" data-app-range="${app.id}"
+               style="--fill:${app.volume}%" aria-label="${app.name} volume">
+        <span class="app-value">
+          <span class="app-pct" data-app-pct="${app.id}">${app.volume}%</span>
+          ${app.mixed ? `<span class="app-mixed" title="This app has streams at different levels">Mixed</span>` : ""}
+        </span>
+      </div>
+    </div>`;
+}
+
+function renderApps() {
+  const head = $("appsHead");
+  const body = $("appsBody");
+  head.setAttribute("aria-expanded", String(state.appsOpen));
+  $("appsCount").textContent = String(state.apps.length);
+  body.hidden = !state.appsOpen;
+
+  if (!state.appsOpen) return;
+
+  if (state.apps.length === 0) {
+    body.innerHTML = `
+      <div class="empty" style="padding-left:8px;padding-right:8px;">
+        <strong>No apps playing</strong>
+        Apps with audio show up here with their own level and route.
+      </div>`;
+    return;
+  }
+
+  body.innerHTML = state.apps.map(appRowHTML).join("");
+}
+
+/* ── render: input ───────────────────────────────────────────── */
+
+function renderInput() {
+  const input = state.input;
+  const head = $("inputHead");
+  const body = $("inputBody");
+  const device = currentInput();
+  const available = input.available;
+  const name = device?.name ?? "No input available";
+
+  head.setAttribute("aria-expanded", String(state.inputOpen));
+  $("inputSummary").textContent = available
+    ? (input.muted ? `${name} · Muted` : name)
+    : "No input available";
+  $("inputDot").hidden = !(available && input.consumers.length > 0);
+
+  body.hidden = !state.inputOpen;
+  if (!state.inputOpen) return;
+
+  $("inputDeviceName").textContent = name;
+  $("inputDevice").disabled = !available;
+  $("inputMute").innerHTML = input.muted ? ICON.micMute : ICON.mic;
+  $("inputMute").classList.toggle("is-on", input.muted);
+  $("inputMute").disabled = !available;
+  $("inputMute").setAttribute("aria-pressed", String(input.muted));
+  $("inputMute").setAttribute("aria-label", `${input.muted ? "Unmute" : "Mute"} ${name}`);
+
+  $("inputRange").value = String(input.level);
+  $("inputRange").disabled = !available;
+  $("inputRange").classList.toggle("is-muted", input.muted);
+  setFill($("inputRange"), input.level);
+  $("inputValue").textContent = available ? `${input.level}%` : "—";
+
+  const consumer = input.consumers[0];
+  $("micConsumer").hidden = !(available && consumer);
+  if (consumer) {
+    $("micConsumer").querySelector(".who").textContent = consumer.name;
+    $("micConsumer").querySelector(".mini-art").className = `mini-art ${consumer.artClass}`;
+  }
+  $("inputEmpty").hidden = Boolean(consumer) && available;
+  $("inputEmpty").textContent = available ? "No microphone use right now." : "No microphone detected.";
+}
+
+/* ── render: bar ─────────────────────────────────────────────── */
+
+function renderBar() {
+  const device = currentDevice();
+  const volumeBtn = $("barVolume");
+  volumeBtn.innerHTML = volumeIcon(device.muted, device.level);
+  volumeBtn.classList.toggle("is-active", state.panelOpen);
+  volumeBtn.setAttribute("aria-expanded", String(state.panelOpen));
+  volumeBtn.setAttribute("aria-label",
+    `Sound, ${device.name}, ${device.muted ? "muted" : `${device.level} percent`}`);
+
+  const mic = $("barMic");
+  const live = state.input.available && state.input.consumers.length > 0;
+  mic.hidden = !live;
+  mic.setAttribute("aria-label", state.input.muted
+    ? "Microphone in use, muted"
+    : "Microphone in use");
+}
+
+/* ── render all ──────────────────────────────────────────────── */
+
+function renderAll() {
+  renderHero();
+  renderMedia();
+  renderApps();
+  renderInput();
+  renderBar();
+}
+
+/* ── panel open / close ──────────────────────────────────────── */
+
+function setPanelOpen(open, { toastOnClose = false } = {}) {
+  state.panelOpen = open;
+  document.body.classList.toggle("is-closed", !open);
+  if (!open) closeMenu(false);
+  renderBar();
+  if (!open && toastOnClose) toast("Sound closed — click the speaker to reopen");
+}
+
+/* ── device & route menus ────────────────────────────────────── */
+
+function openOutputMenu() {
+  const anchor = $("outputDevice");
+  if (openMenuState?.anchor === anchor) { closeMenu(true); return; }
+  const current = currentDevice();
+  openMenu(anchor, {
+    title: "Output device",
+    width: 252,
+    items: state.devices.map((device) => ({
+      label: device.name,
+      note: device.available ? (device.id === current.id ? "Selected" : "") : "Unavailable",
+      selected: device.id === current.id,
+      disabled: !device.available,
+      onSelect: () => {
+        state.outputId = device.id;
+        renderHero();
+        renderApps();
+        renderBar();
+        toast(`Output · ${device.name}`);
+      }
+    }))
+  });
+}
+
+function openInputMenu() {
+  const anchor = $("inputDevice");
+  if (openMenuState?.anchor === anchor) { closeMenu(true); return; }
+  const current = currentInput();
+  openMenu(anchor, {
+    title: "Input device",
+    width: 252,
+    items: state.inputs.map((device) => ({
+      label: device.name,
+      note: device.available ? (device.id === current?.id ? "Selected" : "") : "Unavailable",
+      selected: device.id === current?.id,
+      disabled: !device.available,
+      onSelect: () => {
+        state.input.deviceId = device.id;
+        renderInput();
+        toast(`Input · ${device.name}`);
+      }
+    }))
+  });
+}
+
+function openRouteMenu(app, anchor) {
+  if (openMenuState?.anchor === anchor) { closeMenu(true); return; }
+  openMenu(anchor, {
+    title: `${app.name} output route`,
+    width: 248,
+    align: "right",
+    items: [
+      {
+        label: `Follow preferred · ${currentDevice().name}`,
+        selected: app.route === "follow-preferred",
+        onSelect: () => {
+          app.route = "follow-preferred";
+          app.override = null;
+          renderApps();
+          toast(`${app.name} follows ${currentDevice().name}`);
+        }
+      },
+      ...state.devices.map((device) => ({
+        label: device.available ? `${device.name} · Override` : device.name,
+        note: device.available ? "" : "Unavailable",
+        selected: app.route === "explicit" && app.override === device.id,
+        disabled: !device.available,
+        onSelect: () => {
+          app.route = "explicit";
+          app.override = device.id;
+          renderApps();
+          toast(`${app.name} routed to ${device.name}`);
+        }
+      }))
+    ]
+  });
+}
+
+/* ── media controls ──────────────────────────────────────────── */
+
+function togglePlay() {
+  const app = focusedApp();
+  if (!app) return;
+  app.playing = !app.playing;
+  renderMedia();
+  renderApps();
+}
+
+function changeTrack(delta) {
+  const app = focusedApp();
+  if (!app || !app.hasPlayer) return;
+  if (delta < 0 && app.position > 5) {
+    app.position = 0;
+  } else {
+    app.trackIndex = (app.trackIndex + delta + app.tracks.length) % app.tracks.length;
+    app.position = 0;
+  }
+  renderMedia();
+  renderApps();
+}
+
+/* ── wiring ──────────────────────────────────────────────────── */
+
+$("barVolume").addEventListener("click", () => {
+  setPanelOpen(!state.panelOpen);
+});
+
+$("barMic").addEventListener("click", () => {
+  state.inputOpen = true;
+  setPanelOpen(true);
+  renderInput();
+});
+
+$("outputMute").addEventListener("click", () => {
+  const device = currentDevice();
+  if (!device.available) return;
+  device.muted = !device.muted;
+  renderHero();
+  renderBar();
+});
+
+$("outputDevice").addEventListener("click", openOutputMenu);
+
+$("outputRange").addEventListener("input", (event) => {
+  const device = currentDevice();
+  if (!device.available) return;
+  device.level = Number(event.target.value);
+  $("outputValue").innerHTML = `${device.level}<span class="unit">%</span>`;
+  setFill(event.target, device.level);
+  event.target.setAttribute("aria-valuetext", `${device.level} percent`);
+  renderBar();
+});
+
+$("appsHead").addEventListener("click", () => {
+  state.appsOpen = !state.appsOpen;
+  renderApps();
+});
+
+$("inputHead").addEventListener("click", () => {
+  state.inputOpen = !state.inputOpen;
+  renderInput();
+});
+
+$("inputDevice").addEventListener("click", openInputMenu);
+
+$("inputMute").addEventListener("click", () => {
+  if (!state.input.available) return;
+  state.input.muted = !state.input.muted;
+  renderInput();
+  renderBar();
+});
+
+$("inputRange").addEventListener("input", (event) => {
+  if (!state.input.available) return;
+  state.input.level = Number(event.target.value);
+  $("inputValue").textContent = `${state.input.level}%`;
+  setFill(event.target, state.input.level);
+  event.target.setAttribute("aria-valuetext", `${state.input.level} percent`);
+});
+
+$("playBtn").addEventListener("click", togglePlay);
+$("prevBtn").addEventListener("click", () => changeTrack(-1));
+$("nextBtn").addEventListener("click", () => changeTrack(1));
+
+/* app rows are delegated because the mixer re-renders */
+$("appsBody").addEventListener("click", (event) => {
+  const mute = event.target.closest("[data-app-mute]");
+  if (mute) {
+    const app = state.apps.find((a) => a.id === mute.dataset.appMute);
+    if (!app) return;
+    app.muted = !app.muted;
+    renderApps();
+    return;
+  }
+
+  const route = event.target.closest("[data-app-route]");
+  if (route) {
+    const app = state.apps.find((a) => a.id === route.dataset.appRoute);
+    if (app) openRouteMenu(app, route);
+    return;
+  }
+
+  const focus = event.target.closest("[data-app-focus]");
+  if (focus && !focus.disabled) {
+    const app = state.apps.find((a) => a.id === focus.dataset.appFocus);
+    if (!app?.hasPlayer) return;
+    state.focusId = app.id;
+    renderApps();
+    renderMedia();
+  }
+});
+
+$("appsBody").addEventListener("input", (event) => {
+  const range = event.target.closest("[data-app-range]");
+  if (!range) return;
+  const app = state.apps.find((a) => a.id === range.dataset.appRange);
+  if (!app) return;
+  app.volume = Number(range.value);
+  setFill(range, app.volume);
+  range.setAttribute("aria-valuetext", `${app.volume} percent`);
+  const pct = $("appsBody").querySelector(`[data-app-pct="${app.id}"]`);
+  if (pct) pct.textContent = `${app.volume}%`;
+});
+
+/* seek: dragging holds the live clock while the user moves the thumb */
+let seeking = false;
+const seek = $("seekRange");
+seek.addEventListener("pointerdown", () => { seeking = true; });
+seek.addEventListener("input", () => {
+  const app = focusedApp();
+  if (!app?.canSeek) return;
+  const track = trackOf(app);
+  if (!track.length) return;
+  seeking = true;
+  app.position = (Number(seek.value) / 1000) * track.length;
+  $("elapsed").textContent = fmt(app.position);
+  setFill(seek, Number(seek.value) / 10);
+});
+seek.addEventListener("change", () => { seeking = false; });
+seek.addEventListener("pointerup", () => { seeking = false; });
+
+/* ── outside click / Esc / scrolling ─────────────────────────── */
+
+document.addEventListener("click", (event) => {
+  if (openMenuState && !event.target.closest(".menu") && !openMenuState.anchor.contains(event.target)) {
+    closeMenu(false);
+  }
+
+  if (!state.panelOpen) return;
+  if (event.target.closest("#panel") || event.target.closest(".menu") || event.target.closest("#barVolume")) return;
+  setPanelOpen(false, { toastOnClose: true });
+});
+
+$("popScroll").addEventListener("scroll", () => closeMenu(false), { passive: true });
+window.addEventListener("resize", () => closeMenu(false));
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+
+  if (openMenuState) {
+    event.preventDefault();
+    closeMenu(true);
+    return;
+  }
+
+  if (state.panelOpen) {
+    event.preventDefault();
+    setPanelOpen(false, { toastOnClose: true });
+  }
+});
+
+/* ── live simulation ─────────────────────────────────────────── */
+
+setInterval(() => {
+  const app = focusedApp();
+  if (!app || !app.playing || !app.canSeek || seeking) return;
+  const track = trackOf(app);
+  if (!track.length) return;
+  app.position = Math.min(track.length, app.position + 1);
+  if (app.position >= track.length) {
+    app.position = 0;
+    app.trackIndex = (app.trackIndex + 1) % app.tracks.length;
+    renderMedia();
+    renderApps();
+    return;
+  }
+  updateSeek(app);
+}, 1000);
+
+/* ── boot ────────────────────────────────────────────────────── */
+
+setPanelOpen(true);
+renderAll();
+</script>
+</body>
+</html>

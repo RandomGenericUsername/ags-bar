@@ -88,6 +88,45 @@ AD-37: installed tags are immutable; writable state lives under XDG.
   for provisioning. It is **not** user state and never a read/write target; the
   service state lives under `$XDG_STATE_HOME/ags/`. See the cutover section.
 
+## Design contract
+
+The sound popover's redesign is recorded as a design-only ticket:
+[`tickets/REQ-005-sound-panel-design/ticket.md`](tickets/REQ-005-sound-panel-design/ticket.md).
+The normative, self-contained mock is
+[`tickets/REQ-005-sound-panel-design/mock.html`](tickets/REQ-005-sound-panel-design/mock.html);
+open it directly, there is no build step. It is a design artifact, not deployed
+code, and changes no bar source.
+
+The contract inherits batch docs 106 (wallpaper selector) and 107 (clipboard):
+one glass chrome layer, no accent frame, accent only for state/action, the
+10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
+The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
+
+- **Hero** — output volume (big value, slider, mute) and the preferred output
+  device selector. This is the single output control; per-app levels live in the
+  mixer, resolving the old "competing volume line" objection by hierarchy.
+- **Now playing** — CSS-art artwork, title/artist/album, previous/play-pause/
+  next and seek, with live-stream and empty states. Clicking an app row focuses
+  that app's player here, so per-app transport/seek is preserved without
+  repeating controls in every mixer row.
+- **Apps · N** — collapsed by default; expands to app icon/name, current media
+  or `Audio only`, output route, volume and mute, plus a `Mixed` badge.
+- **Input** — collapsed by default; device, level, mute and microphone consumers,
+  with unavailable-input and no-consumer states.
+
+Deep links exercise the states without a backend: `?muted=1`, `?apps=1`,
+`?apps=0`, `?playing=1`, `?playing=0`, `?input=1`, `?input=0`, `?mic=0`,
+`?device=headphones` and `?app=firefox`.
+
+All chrome tokens are `:root` custom properties (`--ink*`, `--glass*`,
+`--hairline*`, `--accent`/`--on-accent`, `--live`, `--panel-w`, radii) with
+`--surface`, `--outline` and `--focus-ring` as the single aliases the skin plane
+remaps. Content art (wallpaper, album covers, app tiles) is deliberately not
+tokenised. The current popup has no settings entry, so the mock adds no gear and
+no config file; right-click → `pavucontrol` remains a bar-widget gesture outside
+this surface. Implementation maps to the existing audio actions and is not part
+of this design ticket.
+
 ## Cutover state migration (wifi-speedtest)
 
 AD-37: installed tags are immutable; writable state lives under XDG.

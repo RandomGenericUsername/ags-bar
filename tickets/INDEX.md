@@ -14,6 +14,7 @@
 - [REQ-002-theme-roles/ticket.md](./REQ-002-theme-roles/ticket.md) — Migrate the bar CSS to semantic tpr roles (Phase B) | `done` | links: worktree `.worktrees/REQ-002/`, branch `ticket/REQ-002-theme-roles`
 - [REQ-003-skin-plane-pilot/ticket.md](./REQ-003-skin-plane-pilot/ticket.md) — Pilot the skin plane in the bar at USER priority | `done` | links: worktree `.worktrees/REQ-003/`, branch `ticket/REQ-003-skin-plane-pilot`
 - [REQ-004-appearance-migration/ticket.md](./REQ-004-appearance-migration/ticket.md) — Migrate the bar to the v2 Appearance plane | `done` | links: worktree `.worktrees/REQ-004/`, branch `ticket/REQ-004-appearance-migration`
+- [REQ-005-sound-panel-design/ticket.md](./REQ-005-sound-panel-design/ticket.md) — Redesign the sound panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-005/`, branch `ticket/REQ-005-sound-panel-design`
 
 ## Bugs
 
