@@ -57,32 +57,35 @@ The popover has three surfaces:
    device selector, microphone level, mute, and the apps currently using the
    microphone. No input and no consumer both have honest states.
 
-**Tray now-playing (outside the panel).** The bar's end cluster keeps a quiet
-reserved tray slot; this widget is its first item, before the microphone,
-network, volume and battery icons, with up to two placeholder tray dots. It is a
-tray icon, not a custom expanding strip:
-- At rest: 20 px rounded album art with a 1 px ring, a playing dot (paused shows
-  a small play glyph), no title/artist text, tooltip `Title — Artist`. Click
-  toggles a dropdown; hover never opens it. Hidden when there is no player.
-  **Exclusivity:** the tray dropdown and the sound panel are never open together.
-  The tray icon closes the panel before toggling; the volume icon and the
-  dropdown footer close the tray and open the panel; `?tray=1` opens with the
-  panel closed. Esc closes the tray first, then the panel; outside click closes
-  the tray.
+**Tray playback strip (outside the panel).** The bar's end cluster keeps its
+reserved tray slot; this is an always-visible full playback strip, not an
+icon-only or hover-only widget. It sits before the microphone/network/volume/
+battery icons, with two quiet placeholder tray dots:
+- Rest/default: 24 px rounded artwork with a 1 px ring, stacked title/artist,
+  previous/play-pause/next and supported shuffle/repeat. Max width 340 px; the
+  title/artist truncate on narrow widths while the controls stay visible. A
+  subtle tray hover tint; no heavy box. Hidden when there is no player.
+- Clicking the art/title/background opens the existing tray dropdown; the
+  transport buttons act on the active player and never open it.
+- Scrolling the strip cycles to the next/previous current player (wrap), with
+  one switch per ~250 ms wheel gesture and a brief `n/N · App` cue. The strip,
+  dropdown and panel carousel stay in sync. No app switching is added to the
+  dropdown; it switches players only through the Players list.
 - Dropdown: 300 px glass, radius 14, hairline and shadow, anchored below the
-  icon. Header `Now playing` + source app. Active track: 36 px art,
+  strip. Header `Now playing` + source app. Active track: 36 px art,
   title/artist, previous / play-pause / next, shuffle/repeat only when
   supported, 2 px seek line with 9.5 px times. A divider and `Players` list only
   when more than one current player: app tile, track, playing dot, active check;
-  choosing a row switches the active player and updates the panel Playing page.
-  Footer `Open sound panel` closes the tray and opens the panel on Playing.
-  Menu-like; no nested cards.
-- The tray follows the panel carousel's active player; switching carousel pages
-  updates the icon/dropdown, and selecting a dropdown player updates the panel.
-  Pausing shows a play glyph; no player hides the tray and closes the dropdown.
-  `?tray=1` opens the dropdown; `?tray=1&player=2` opens it on the second player.
+  choosing a row switches the active player and updates the strip and panel
+  Playing page. Footer `Open sound panel` closes the tray and opens the panel on
+  Playing. Menu-like; no nested cards.
+- **Exclusivity:** the tray dropdown and the sound panel are never open together.
+  The strip closes the panel before toggling; the volume icon and footer close
+  the tray and open the panel; `?tray=1` opens with the panel closed. Esc closes
+  the tray first, then the panel; outside click closes the tray. No player hides
+  the strip and closes the dropdown.
 
-Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
+Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player)Fixture roles: Spotify (normal player), Tidal (paused player), VLC (live player,
 no seek) are Playing pages; Firefox is the audio-only app that lives only in
 Mixer. The app tile/name is the source badge; a second "Spotify" pill would
 duplicate it.
@@ -115,9 +118,10 @@ VLC live page.
 | `inputConsumers` | “Using microphone” line under the input controls |
 | Shuffle / Loop (new MPRIS capability) | Playing page icons; toggled per page; hidden when unsupported |
 | Mode switch / session mode | Deck `Playing | Mixer` tabs; default from players; no auto-switch; accent dot on Playing while Mixer and playing |
-| Tray now-playing | Tray icon reports the active player; click opens a dropdown; dropdown transport acts on the same player; no app switching |
+| Tray playback strip | Always-visible title/artist/transport; click art/title/background opens dropdown; wheel cycles players; no app switching |
 | Tray dropdown | Track transport/seek, player switcher, active check, `Open sound panel`; hidden with no player |
-| `?tray=1` | Open the tray dropdown; `?tray=1&player=2` opens it on the second player |
+| Tray wheel | Wrap through current players with ~250 ms debounce and a brief `n/N · App` cue; syncs strip, dropdown and panel |
+| `?tray=1` | Open the tray dropdown with the panel closed; `?tray=1&player=2` opens it on the second player |
 | Output / app / input empty or unavailable states | No apps, audio-only Mixer rows, empty Playing, live page, unavailable output entry, no input, no mic consumer |
 
 ## Acceptance
@@ -150,24 +154,24 @@ Design deliverable:
 - [x] Arrows flank Playing pages when >1 and hide at ≤1; swipe/scroll snap
       switches pages. `?player=2`, `?app=vlc` focus Playing pages; `?app=firefox`
       opens Mixer on its row.
-- [x] The tray icon is the first item in the bar's end cluster, before the
+- [x] The playback strip is the first item in the bar's end cluster, before the
       microphone/network/volume/battery icons, with two quiet placeholder dots.
-      Rest is 20 px art + ring + playing dot/paused glyph, no text, tooltip
-      `Title — Artist`, and a 40 px bar height. It is hidden with no player.
-- [x] Hover never opens the dropdown; click toggles it. The dropdown is 300 px,
-      radius 14, glass/hairline/shadow, anchored below the icon, with a header,
-      active track/transport/seek, a `Players` list only when >1 player, active
-      check, and `Open sound panel` footer.
-- [x] Choosing a player updates the tray icon and the panel Playing page;
-      switching panel pages updates the tray. Pausing shows the play glyph;
-      no player hides the tray/dropdown. `?tray=1` and
-      `?tray=1&player=2` open the dropdown.
-- [x] Tray and panel are mutually exclusive: the tray icon closes the panel
-      before toggling; the volume icon and `Open sound panel` close the tray and
-      open the panel; `?tray=1` opens with the panel closed; Esc closes the tray
-      first, then the panel.
-- [x] The panel is shorter than the previous carousel + apps version: Playing is
-      compact; Mixer uses four tight rows.
+      It is always visible with a player: 24 px art + ring, title/artist,
+      prev/play-pause/next and supported shuffle/repeat, max 340 px, bar 40 px.
+      No player hides it. No hover-only state.
+- [x] Clicking the strip's art/title/background opens the 300 px dropdown and
+      closes the panel; clicking transport buttons acts on the player and never
+      opens the dropdown. Transport changes stay in sync with the panel.
+- [x] Wheel over the strip wraps through players with one switch per ~250 ms
+      gesture and a brief `n/N · App` cue; strip, dropdown and panel carousel
+      update together.
+- [x] The dropdown is 300 px, radius 14, glass/hairline/shadow, anchored below
+      the strip, with header, active track/transport/seek, `Players` list only
+      when >1 player, active check and `Open sound panel` footer.
+- [x] Choosing a player updates the strip/dropdown and panel Playing page;
+      switching panel pages updates the strip. Tray and panel are mutually
+      exclusive; `?tray=1` opens with the panel closed; Esc closes tray first,
+      then panel; outside click closes tray.
 - [x] The input section is collapsed by default and covers device, level, mute,
       consumers, unavailable input and no-consumer states.
 - [x] Sliders, mute buttons, route menus, transport, seek, page arrows, scroll
@@ -203,7 +207,7 @@ google-chrome-stable --new-window \
 | `?muted=1` | Preferred output muted; the level is kept and labelled |
 | `?apps=1` / `?apps=0` | Default alias / zero apps (empty Mixer; empty Playing if forced) |
 | `?playing=1` / `?playing=0` | Explicit playing (the default) / every app audio-only; default mode Mixer |
-| `?player=2` | Focus the 2nd Playing page (1-based over current players) |
+| `?player=2` | Focus the 2nd Playing page (1-based over current players); updates the bar strip |
 | `?app=vlc` | Focus a Playing page by app id |
 | `?app=firefox` | Focus an audio-only app in Mixer, switching to Mixer |
 | `?input=1` / `?input=0` | Input expanded / no input device (disabled controls) |
@@ -211,7 +215,7 @@ google-chrome-stable --new-window \
 | `?device=headphones` | Select an available output (`speakers`, `headphones`) |
 | `?tray=1` | Open the tray dropdown on the active player, with the panel closed |
 | `?tray=1&player=2` | Open the tray dropdown on the second player, with the panel closed |
-| `?panel=closed` | Start with the popover closed; tray icon remains visible (review helper) |
+| `?panel=closed` | Start with the popover closed; tray strip remains visible (review helper) |
 
 ## Token / skin mapping
 
@@ -269,20 +273,24 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
    to a second row.
 10. **Page height.** The active Playing page's natural height sets the carousel
     height; the 180 ms transition is decorative. No state depends on it.
-11. **Tray reports; the dropdown operates.** The rest icon has no text and no
-    inline expansion; only the dropdown carries transport. It switches players
-    but never adds bar app-switching controls. The tray icon is 28 px inside a
-    40 px bar; the panel keeps the 40–44 px primary targets.
-12. **Tray active-player resolution.** The tray follows the panel carousel's
+11. **The strip is not hover-expanded.** The earlier full strip is now the
+    default bar state; only the dropdown is a separate overlay. The strip
+    operates transport directly; the dropdown additionally exposes seek and
+    player switching. The tray is 30 px high inside the 40 px bar; the panel
+    keeps the 40–44 px primary targets.
+12. **Tray active-player resolution.** The strip follows the panel carousel's
     current player (`playingId`). The Mixer focus does not override it. The
     dropdown's Players list contains current players (a paused player remains
     selectable; its playing dot is absent); with one current player the list is
-    omitted. No current player hides the tray. `?tray` and `?panel` are mock
+    omitted. No current player hides the strip. `?tray` and `?panel` are mock
     review links, not app config.
-13. **Mutual exclusivity.** The tray dropdown and the panel share one overlay
-    budget: opening either closes the other. The tray icon is the media
-    entry point; the volume icon and the footer are panel entry points. This is
-    UI behavior only, not a config key.
+13. **Mutual exclusivity.** The tray dropdown and panel share one overlay
+    budget: opening either closes the other. The strip is the media entry point;
+    the volume icon and the dropdown footer are panel entry points. This is UI
+    behavior only, not a config key.
+14. **Wheel debounce.** A ~250 ms cooldown admits one player switch per wheel
+    gesture; the cue is decorative and no state depends on it. Wrap order is the
+    panel's current-player order.
 
 ## Evidence
 
@@ -298,13 +306,15 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
   `?player=2`, `?app=vlc`, `?app=firefox`, `?playing=0`,
   `?mode=playing&playing=0`, `?apps=0`, `?mode=playing&apps=0`, `?muted=1`,
   `?input=0`, `?mic=0` and `?device=headphones`.
-- The tray harness passed 93 checks: tray placement/height, placeholders, rest
-  tooltip/dot, hover-does-not-open, click toggle, dropdown content, player
-  switching, panel carousel sync, transport/seek, footer toggle, Esc order,
-  outside click, hidden idle states, and `?tray=1` / `?tray=1&player=2` / `?panel=closed`.
-- Tray screenshots: `/tmp/opencode/tray-rest-final.png`,
-  `tray-open-panel-closed-final.png` (`?tray=1` with panel closed), and
-  `tray-closed-final.png`; panel states remain the `final-twomode-*` captures.
+- The tray harness passed 116 checks: strip placement/height, strip content and
+  controls, hover-no-open, click-open versus transport-no-open, wheel
+  cycling/wrap/debounce/cue, dropdown content, player switching, panel carousel
+  sync, transport/seek, footer, exclusivity, Esc/outside, hidden idle states, and
+  `?tray=1` / `?tray=1&player=2` / `?player=2` / `?panel=closed`.
+- Strip screenshots: `/tmp/opencode/strip-rest.png` (strip rest),
+  `strip-dropdown.png` (dropdown open, panel closed), and `strip-scrolled.png`
+  (wheel to the second player + cue); panel states remain the
+  `final-twomode-*` captures.
 - `mock.html` was checked for external URLs and `url(...)`: none.
 
 ## Follow-up
@@ -328,10 +338,10 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   (`audio-actions.ts:69-121`).
 - The menus replace the current `openChoicePopover` lists with the same
   selected/disabled semantics.
-- Tray → consume the same `AudioPanelBinding`/projection for the active player;
-  the dropdown dispatches `playerAction`/`seek` and player selection updates the
-  panel's `playingId`; the tray itself has no app-switch control. `openAudio`/
-  `toggle` handles the footer. `?tray`/`?panel` are mock-only review links, not
-  persisted config.
+- Tray strip → consume the same `AudioPanelBinding`/projection for the active
+  player; strip transport and dropdown dispatch `playerAction`/`seek`; wheel
+  selection updates the panel's `playingId`; no app-switch control is added.
+  `openAudio`/`toggle` handles the footer. `?tray`/`?panel` are mock-only review
+  links, not persisted config.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.

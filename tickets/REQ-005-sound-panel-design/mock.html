@@ -225,60 +225,124 @@ kbd {
 }
 .tray[hidden] { display: none; }
 
-.tray-media {
-  position: relative;
-  width: 28px;
+.tray-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  max-width: 340px;
+  min-width: 0;
+  padding: 0 4px;
+  border-radius: 8px;
+  transition: background .16s;
+  cursor: pointer;
+}
+.tray-strip:hover { background: rgba(255, 255, 255, .06); }
+
+.tray-strip-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  color: inherit;
+}
+.tray-strip-main:focus-visible { outline-offset: 1px; }
+
+.tray-art {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .20);
+}
+.tray-strip-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.tray-strip-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, .90);
+}
+.tray-strip-artist {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, .58);
+}
+
+.tray-strip-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.tray-strip-btn {
+  width: 22px;
   height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
-  transition: background .16s;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, .66);
+  transition: background .16s, color .16s;
 }
-.tray-media:hover,
-.tray-media[aria-expanded="true"] { background: rgba(255, 255, 255, .09); }
-
-.tray-art {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background-size: cover;
-  background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22);
-}
-.tray-badge {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 9px;
-  height: 9px;
-  display: grid;
-  place-items: center;
+.tray-strip-btn:hover { background: rgba(255, 255, 255, .08); color: var(--ink); }
+.tray-strip-btn.is-on { color: var(--accent); background: rgba(255, 138, 106, .10); }
+.tray-strip-btn[hidden] { display: none; }
+.tray-strip-btn.play {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(8, 8, 12, .92);
-  box-shadow: 0 0 0 1px rgba(8, 8, 12, .40);
+  background: var(--accent);
+  color: var(--on-accent);
 }
-.tray-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--live);
-}
-.tray-play {
-  display: none;
-  width: 7px;
-  height: 7px;
-  color: var(--ink);
-}
-.tray-media.is-paused .tray-dot { display: none; }
-.tray-media.is-paused .tray-play { display: block; }
+.tray-strip-btn.play:hover { background: var(--accent); color: var(--on-accent); filter: brightness(1.06); }
 
 /* Quiet reserved-tray placeholders. */
 .tray-placeholder {
+  pointer-events: none;
   width: 4px;
   height: 4px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .22);
 }
+
+/* Brief scroll cue, below the bar; never affects bar height. */
+.tray-cue {
+  position: fixed;
+  z-index: 70;
+  top: calc(var(--bar-h) + 6px);
+  right: 12px;
+  padding: 5px 9px;
+  border-radius: var(--r-pill);
+  background: var(--surface-strong);
+  border: 1px solid var(--outline);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .42);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+  transition: opacity .16s, transform .16s;
+}
+.tray-cue.show { opacity: 1; transform: none; }
 
 /* Dropdown: menu-like, anchored under the tray icon. */
 .tray-pop {
@@ -1463,16 +1527,39 @@ body.is-closed .audio-pop {
   <div class="db-center">Fri 6 Nov · 10:42</div>
   <div class="db-right">
     <div class="tray" id="trayCluster" hidden>
-      <button class="tray-media" id="trayMedia" aria-haspopup="dialog" aria-expanded="false"
-              aria-label="Now playing" title="Now playing">
-        <span class="tray-art" id="trayArt" aria-hidden="true"></span>
-        <span class="tray-badge" aria-hidden="true">
-          <span class="tray-dot" id="trayDot"></span>
-          <svg class="tray-play" id="trayPlay" width="7" height="7" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5.2v13.6a.8.8 0 0 0 1.22.68l10.4-6.8a.8.8 0 0 0 0-1.36L9.22 4.52A.8.8 0 0 0 8 5.2Z"></path>
-          </svg>
+      <div class="tray-strip" id="trayStrip">
+        <button class="tray-strip-main" id="trayMain" aria-haspopup="dialog"
+                aria-expanded="false" aria-label="Open now playing" title="Now playing">
+          <span class="tray-art" id="trayArt" aria-hidden="true"></span>
+          <span class="tray-strip-text">
+            <span class="tray-strip-title" id="trayTitle"></span>
+            <span class="tray-strip-artist" id="trayArtist"></span>
+          </span>
+        </button>
+        <span class="tray-strip-controls" id="trayStripControls">
+          <button class="tray-strip-btn" id="trayPrev" data-tray-action="prev" aria-label="Previous track" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7 5.5a1 1 0 0 1 1 1v11a1 1 0 1 1-2 0v-11a1 1 0 0 1 1-1Zm1.9 6.14 9.1 5.5a.9.9 0 0 0 1.35-.78V6.64a.9.9 0 0 0-1.35-.78l-9.1 5.5a.5.5 0 0 0 0 .86l-.1.1Z"></path>
+            </svg>
+          </button>
+          <button class="tray-strip-btn play" id="trayPlayPause" data-tray-action="play-pause" aria-label="Play"></button>
+          <button class="tray-strip-btn" id="trayNext" data-tray-action="next" aria-label="Next track" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17 5.5a1 1 0 0 0-1 1v11a1 1 0 1 0 2 0v-11a1 1 0 0 0-1-1Zm-1.9 6.14-9.1 5.5A.9.9 0 0 1 4.65 16.36V6.64a.9.9 0 0 1 1.35-.78l9.1 5.5a.5.5 0 0 1 0 .86l.1.1Z"></path>
+            </svg>
+          </button>
+          <button class="tray-strip-btn" id="trayShuffle" data-tray-action="shuffle" aria-label="Shuffle off" aria-pressed="false" hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 3h5v5"></path><path d="m21 3-8 8"></path><path d="m3 3 5 5"></path><path d="M16 21h5v-5"></path><path d="m21 21-3-3"></path><path d="M3 21h2.1a5 5 0 0 0 4.2-2.3L14 11"></path>
+            </svg>
+          </button>
+          <button class="tray-strip-btn" id="trayRepeat" data-tray-action="repeat" aria-label="Repeat off" aria-pressed="false" hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m17 2 4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="m7 22-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
         </span>
-      </button>
+      </div>
       <span class="tray-placeholder" aria-hidden="true"></span>
       <span class="tray-placeholder" aria-hidden="true"></span>
     </div>
@@ -1654,6 +1741,7 @@ body.is-closed .audio-pop {
 </main>
 
 <div class="tray-pop" id="trayPop" role="dialog" aria-label="Now playing" hidden></div>
+<div class="tray-cue" id="trayCue" hidden></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1773,6 +1861,7 @@ const playingPage = () => {
 };
 const anyPlaying = () => state.apps.some((app) => app.hasPlayer && app.playing);
 const trayPlayer = () => playingPage();
+let trayCueTimer = null;
 
 const fmt = (seconds) => {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -2345,6 +2434,7 @@ function updateTray() {
   const app = trayPlayer();
   cluster.hidden = !app;
   if (!app) {
+    $("trayCue").hidden = true;
     closeTray(false);
     return;
   }
@@ -2352,14 +2442,51 @@ function updateTray() {
   const track = trackOf(app);
   const title = track?.title || app.name;
   const artist = track?.artist || "";
-  const media = $("trayMedia");
+  const main = $("trayMain");
   $("trayArt").className = `tray-art ${track?.art || "art-empty"}`;
-  media.title = artist ? `${title} — ${artist}` : title;
-  media.setAttribute("aria-label", artist ? `Now playing: ${title} — ${artist}` : `Now playing: ${title}`);
-  media.classList.toggle("is-paused", !app.playing);
-  media.setAttribute("aria-expanded", String(state.trayOpen));
+  $("trayTitle").textContent = title;
+  $("trayArtist").textContent = artist;
+  $("trayArtist").hidden = !artist;
+  main.title = artist ? `${title} — ${artist}` : title;
+  main.setAttribute("aria-label", artist ? `Open now playing: ${title} — ${artist}` : `Open now playing: ${title}`);
+  main.setAttribute("aria-expanded", String(state.trayOpen));
+
+  const play = $("trayPlayPause");
+  play.innerHTML = app.playing ? ICON.pause : ICON.play;
+  play.setAttribute("aria-label", `${app.playing ? "Pause" : "Play"} ${title}`);
+  play.title = `${app.playing ? "Pause" : "Play"} ${title}`;
+
+  $("trayPrev").hidden = !app.canPrev;
+  $("trayNext").hidden = !app.canNext;
+
+  const shuffle = $("trayShuffle");
+  shuffle.hidden = !app.shuffleSupported;
+  shuffle.classList.toggle("is-on", Boolean(app.shuffle));
+  shuffle.setAttribute("aria-pressed", String(Boolean(app.shuffle)));
+  shuffle.setAttribute("aria-label", app.shuffle ? "Shuffle on" : "Shuffle off");
+
+  const repeat = $("trayRepeat");
+  repeat.hidden = !app.repeatSupported;
+  repeat.classList.toggle("is-on", app.repeat !== "off");
+  repeat.setAttribute("aria-pressed", String(app.repeat !== "off"));
+  repeat.setAttribute("aria-label", `Repeat ${app.repeat}`);
 
   if (state.trayOpen) renderTrayPop();
+}
+
+function showTrayCue() {
+  const app = trayPlayer();
+  if (!app) return;
+  const pages = playingApps();
+  const cue = $("trayCue");
+  cue.textContent = `${playingIndex(app.id) + 1}/${pages.length} · ${app.name}`;
+  cue.hidden = false;
+  requestAnimationFrame(() => cue.classList.add("show"));
+  clearTimeout(trayCueTimer);
+  trayCueTimer = setTimeout(() => {
+    cue.classList.remove("show");
+    setTimeout(() => { cue.hidden = true; }, 180);
+  }, 1000);
 }
 
 function trayPlayerRowHTML(player, activeId) {
@@ -2459,9 +2586,9 @@ function updateTraySeek(app) {
 
 function positionTrayPop() {
   const pop = $("trayPop");
-  const icon = $("trayMedia");
-  if (pop.hidden || !icon) return;
-  const rect = icon.getBoundingClientRect();
+  const strip = $("trayStrip");
+  if (pop.hidden || !strip) return;
+  const rect = strip.getBoundingClientRect();
   const width = pop.offsetWidth;
   const height = pop.offsetHeight;
   let left = Math.min(window.innerWidth - width - 8, Math.max(8, rect.right - width));
@@ -2475,7 +2602,7 @@ function openTray() {
   const app = trayPlayer();
   if (!app) return;
   state.trayOpen = true;
-  $("trayMedia").setAttribute("aria-expanded", "true");
+  $("trayMain").setAttribute("aria-expanded", "true");
   renderTrayPop();
   if (keyboardMode) $("trayPop").querySelector('[data-tray-action="play-pause"]')?.focus({ preventScroll: true });
 }
@@ -2484,8 +2611,8 @@ function closeTray(restoreFocus = false) {
   if (!state.trayOpen) return;
   state.trayOpen = false;
   $("trayPop").hidden = true;
-  $("trayMedia").setAttribute("aria-expanded", "false");
-  if (restoreFocus) $("trayMedia").focus();
+  $("trayMain").setAttribute("aria-expanded", "false");
+  if (restoreFocus) $("trayMain").focus();
 }
 
 function toggleTray() {
@@ -2710,10 +2837,30 @@ $("barVolume").addEventListener("click", () => {
   setPanelOpen(!state.panelOpen);
 });
 
-$("trayMedia").addEventListener("click", () => {
+$("trayStrip").addEventListener("click", (event) => {
+  if (event.target.closest(".tray-strip-controls")) return;
   setPanelOpen(false);
   toggleTray();
 });
+
+$("trayStripControls").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-tray-action]");
+  if (!button) return;
+  event.stopPropagation();
+  trayAction(button.dataset.trayAction);
+});
+
+let lastTrayWheel = 0;
+$("trayStrip").addEventListener("wheel", (event) => {
+  event.preventDefault();
+  const now = Date.now();
+  if (now - lastTrayWheel < 250) return;
+  lastTrayWheel = now;
+  const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+  if (!delta) return;
+  goToPlayer(delta > 0 ? 1 : -1);
+  showTrayCue();
+}, { passive: false });
 
 $("trayPop").addEventListener("click", (event) => {
   event.stopPropagation();
@@ -2906,7 +3053,7 @@ playingViewport.addEventListener("scroll", () => {
 /* ── outside click / Esc / scrolling ─────────────────────────── */
 
 document.addEventListener("click", (event) => {
-  if (state.trayOpen && !event.target.closest("#trayPop") && !event.target.closest("#trayMedia")) {
+  if (state.trayOpen && !event.target.closest("#trayPop") && !event.target.closest("#trayStrip")) {
     closeTray(false);
   }
 
@@ -2917,7 +3064,7 @@ document.addEventListener("click", (event) => {
   if (!state.panelOpen) return;
   if (event.target.closest("#panel") || event.target.closest(".menu") ||
       event.target.closest("#barVolume") || event.target.closest("#barMic") ||
-      event.target.closest("#trayPop") || event.target.closest("#trayMedia")) return;
+      event.target.closest("#trayPop") || event.target.closest("#trayStrip")) return;
   setPanelOpen(false, { toastOnClose: true });
 });
 

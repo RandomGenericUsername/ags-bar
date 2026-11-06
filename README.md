@@ -102,21 +102,24 @@ one glass chrome layer, no accent frame, accent only for state/action, the
 9.5/10.5/11.5/13/15/28 type ramp, sentence case, 8 px rhythm and 40–44 px targets.
 The popover is 352 px wide, anchored 8 px under the bar's volume indicator:
 
-- **Tray now-playing** — a tray icon in the reserved tray slot at the start of
-  the bar's end cluster, before the microphone/network/volume/battery icons.
-  Rest: 20 px rounded album art with a 1 px ring, a playing dot or paused play
-  glyph, no text, tooltip `Title — Artist`, and two quiet placeholder tray dots.
-  Click toggles a 300 px glass dropdown below the icon; hover never opens it.
-  The tray dropdown and the sound panel are mutually exclusive: the tray icon
-  closes the panel before toggling; the volume icon and the dropdown's
-  `Open sound panel` close the dropdown and open the panel. `?tray=1` opens the
-  dropdown with the panel closed. Hidden when no player is active. The dropdown has `Now playing` + source app,
-  36 px art/title/artist, previous/play-pause/next, supported shuffle/repeat, a
-  2 px seek line with times, a `Players` list when there is more than one player
-  (app tile, track, playing dot, active check; choosing one updates the tray and
-  the panel Playing page), and an `Open sound panel` footer. `?tray=1` opens the
-  dropdown, `?tray=1&player=2` opens it on the second player, and
-  `?panel=closed` is a review helper.
+- **Tray playback strip** — in the reserved tray slot at the start of the bar's
+  end cluster, before the microphone/network/volume/battery icons, with two
+  quiet placeholder tray dots. It is an always-visible full strip while a player
+  exists: 24 px artwork, title/artist, previous/play-pause/next and supported
+  shuffle/repeat; max 340 px, with title/artist truncating on narrow widths.
+  Clicking the art/title/background opens the existing 300 px tray dropdown;
+  transport buttons act on the player and never open it. Scrolling the strip
+  cycles players (wrap, one switch per ~250 ms gesture) and flashes a brief
+  `n/N · App` cue; the strip, dropdown and sound-panel carousel stay in sync.
+  The dropdown has `Now playing` + source app, 36 px art/title/artist, transport,
+  supported shuffle/repeat, a 2 px seek line, a `Players` list when there is more
+  than one current player (app tile, track, playing dot, active check), and an
+  `Open sound panel` footer. Tray and panel are mutually exclusive: the strip
+  closes the panel before toggling the dropdown; the volume icon and footer close
+  the tray and open the panel. Hidden with no player; the bar stays 40 px high.
+  `?tray=1` opens the dropdown with the panel closed,
+  `?tray=1&player=2` opens it on the second player, and `?panel=closed` is a
+  review helper.
 - **Output** — a persistent header above the scroll area: preferred output device
   and the global volume (numeric value, slider, mute). It is the master fader and
   never scrolls away. Per-device state and the unavailable device remain.
