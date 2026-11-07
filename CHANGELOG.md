@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.6.0 — 2026-11-07
+
+### Changed
+
+- Bump the local program tuple to Generations v3: `ags-platform` v1.0.0 /
+  `contracts` v0.8.0 (`dotfiles-assets` v0.12.0 / `dotfiles-runtime` v1.0.0).
+  The Makefile, CI workflow and conformance pin test name the same tuple.
+- Keep the bar's ONE shared `createAppearance({ configDir: "ags" })` instance
+  and its single `appearance.apply()` at startup. The platform now resolves
+  `$XDG_STATE_HOME/dotfiles/current` (manifest/appearance/tokens); the bar
+  hardcodes no state path and reads no `$XDG_CONFIG_HOME` appearance link.
+
+### Tests
+
+- `tests/validation/skin-plane.test.mjs` asserts the v1.0.0/v0.8.0 pins, the
+  platform v3 adapter import, no hardcoded current-state path, no
+  `appearance-refresh` handler and the unchanged `layout.ags.*` reads.
+- `tests/app-contract.test.mjs` asserts the contracts v0.8.0 manifest schema
+  and rejects the v3 live refresh command alongside `palette-refresh`.
+
+### Unchanged
+
+- `style.css` stays the bundled glass fallback; the bar remains `restart` with
+  no request handler for appearance changes. `layout.ags.*` tokens and their
+  `312` / `4` fallbacks are unchanged.
+
 ## v0.5.0 — 2026-11-06
 
 ### Added

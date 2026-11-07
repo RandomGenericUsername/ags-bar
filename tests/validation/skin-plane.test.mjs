@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-// Appearance-v2 gate (REQ-004).
+// Generations v3 consumer gate (REQ-006).
 //
-// The runtime publishes palette + skin + mode as ONE generation and the app
-// installs it through the Appearance port. These assertions pin the app-side
-// contract so a later refactor can not silently reintroduce a split
-// theme+skin path, a live-refresh handler or an unnamespaced layout token:
+// contracts v0.8.0 commits palette + skin + mode as ONE immutable generation
+// behind the single `$XDG_STATE_HOME/dotfiles/current` pointer; ags-platform
+// v1.0.0 resolves it. These assertions pin the app-side contract so a later
+// refactor can not silently reintroduce a split theme+skin path, a live-refresh
+// handler, a hardcoded state path or an unnamespaced layout token:
 //
 //   1. one module-level `createAppearance({ configDir: "ags" })` instance is
 //      shared by startup and both token consumers, and `main()` applies it;
-//   2. the request surface is unchanged and appearance is not a request
-//      handler (restart lane only);
+//   2. the adapter owns generation/current resolution; the bar hardcodes no
+//      XDG state or config appearance path and has no refresh handler;
 //   3. SettingsPanel/BluetoothContent read their namespaced layout tokens with
 //      fallbacks;
-//   4. style.css still carries the bundled glass fallback.
+//   4. the Makefile pins the v1.0.0 platform / v0.8.0 contracts tuple;
+//   5. style.css still carries the bundled glass fallback.
 //
 // Static, no desktop stack needed.
 
@@ -61,6 +63,21 @@ assert.match(
   "lib/appearance.ts must own the bar's one createAppearance({ configDir: \"ags\" }) instance",
 );
 assert.match(
+  singleton,
+  /import \{ createAppearance \} from "ags-platform\/adapters\/appearance"/,
+  "the bar must consume the platform's v3 state-plane adapter",
+);
+assert.doesNotMatch(
+  singleton,
+  /dotfiles\/current|XDG_STATE_HOME|get_user_state_dir|appearance\/ags\.css/,
+  "the v3 adapter resolves current; the bar must not hardcode the state path",
+);
+assert.doesNotMatch(
+  singleton,
+  /appearance-refresh|palette-refresh/,
+  "the shared instance must not grow a live-refresh path",
+);
+assert.match(
   app,
   /import \{ appearance \} from "\.\/lib\/appearance"/,
   "app.tsx must import the shared Appearance instance",
@@ -85,6 +102,7 @@ assert.ok(applyAt >= 0 && mainAt >= 0 && applyAt > mainAt, "appearance.apply() m
 
 assert.doesNotMatch(app, /palette-refresh/);
 assert.doesNotMatch(app, /skin-refresh/);
+assert.doesNotMatch(app, /appearance-refresh/);
 assert.doesNotMatch(app, /wallpaper\.state/);
 
 const commands = [...app.matchAll(/argv\[0\] === "([^"]+)"/g)].map((m) => m[1]);
@@ -142,7 +160,21 @@ assert.equal(
 );
 assert.doesNotMatch(bluetooth, /spacing=\{4\}/);
 
-// ── 4. Bundled glass fallback survives ────────────────────────────────────
+// ── 4. Program tuple ──────────────────────────────────────────────────────
+
+const makefile = read("Makefile");
+assert.match(
+  makefile,
+  /^AGS_PLATFORM_VERSION := v1\.0\.0$/m,
+  "the platform pin must be the Generations v3 adapter release",
+);
+assert.match(
+  makefile,
+  /^CONTRACTS_VERSION := v0\.8\.0$/m,
+  "the contracts pin must be the Generations v3 contract release",
+);
+
+// ── 5. Bundled glass fallback survives ────────────────────────────────────
 
 const css = read("style.css");
 assert.match(

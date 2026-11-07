@@ -141,12 +141,13 @@ app.start({
     res(`unknown request: ${argv.join(" ")}`)
   },
   main() {
-    // The v2 Appearance plane (contracts v0.7.0). ONE composed generation is
-    // applied through the Appearance port; it already contains the palette and
-    // the runtime-expanded skin, installed last at USER priority so it
-    // overrides the bundled style.css glass fallback. Missing artifacts are a
-    // no-op. This is a restart-mode app: a change is picked up by the runtime's
-    // serialized restart lane, not a live request handler.
+    // The v3 Appearance plane (contracts v0.8.0, ags-platform v1.0.0). ONE
+    // committed generation is applied through the Appearance port; it already
+    // contains the palette and the runtime-expanded skin, installed last at
+    // USER priority so it overrides the bundled style.css glass fallback.
+    // Missing artifacts are a no-op. This is a restart-mode app: a change is
+    // picked up by the runtime's serialized restart lane, not a live request
+    // handler.
     appearance.apply()
     // The redesigned panel's stylesheet (tasks.md 6.0e). It was written but
     // imported by nothing, so all 345 lines were dead and the popup fell back

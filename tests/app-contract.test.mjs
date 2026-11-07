@@ -11,7 +11,8 @@
 //      wifi-speedtest state are documented and stay outside app writes;
 //   5. the shared dev-flow template is present and the platform's own
 //      `checkAppRepo` template gate passes;
-//   6. the contracts v0.7.0 manifest schema and the Makefile pins agree.
+//   6. the contracts v0.8.0 manifest schema and the v1.0.0/v0.8.0 Makefile
+//      pins agree.
 //
 // Run from the repo root:  make conformance
 // ---------------------------------------------------------------------------
@@ -111,12 +112,17 @@ test("the bar keeps its complete request handler surface", () => {
   }
 });
 
-test("the bar is restart with no palette-refresh handler", () => {
+test("the bar is restart with no live appearance-refresh handler", () => {
   const app = readText("app.tsx");
   assert.doesNotMatch(app, /PALETTE_REFRESH_COMMAND/);
   assert.doesNotMatch(app, /createPaletteRefreshHandler/);
   assert.doesNotMatch(app, /ags-platform\/ports\/palette-refresh/);
   assert.doesNotMatch(app, /palette-refresh/);
+  // v3 live apps answer `appearance-refresh`; this bar is restart-only.
+  assert.doesNotMatch(app, /APPEARANCE_REFRESH_COMMAND/);
+  assert.doesNotMatch(app, /createAppearanceRefreshHandler/);
+  assert.doesNotMatch(app, /ags-platform\/ports\/appearance-refresh/);
+  assert.doesNotMatch(app, /appearance-refresh/);
   // Appearance is applied once at startup; no wallpaper-driven palette path.
   assert.match(app, /appearance\.apply\(\)/);
   assert.doesNotMatch(app, /wallpaper\.state/);
@@ -265,7 +271,7 @@ test("the standalone dev-flow files are present", () => {
   }
 });
 
-test("the contracts v0.7.0 manifest schema agrees with the platform", () => {
+test("the contracts v0.8.0 manifest schema agrees with the platform", () => {
   const contractsRoot = findContractsRoot();
   assert.notEqual(contractsRoot, null, "cannot find contracts (set CONTRACTS_ROOT)");
   const schema = JSON.parse(
@@ -284,9 +290,9 @@ test("the contracts v0.7.0 manifest schema agrees with the platform", () => {
   );
 });
 
-test("the Makefile pins the v0.9.0 platform / v0.7.0 contracts tuple", () => {
+test("the Makefile pins the v1.0.0 platform / v0.8.0 contracts tuple", () => {
   const makefile = readText("Makefile");
-  assert.match(makefile, /^AGS_PLATFORM_VERSION := v0\.9\.0$/m);
-  assert.match(makefile, /^CONTRACTS_VERSION := v0\.7\.0$/m);
+  assert.match(makefile, /^AGS_PLATFORM_VERSION := v1\.0\.0$/m);
+  assert.match(makefile, /^CONTRACTS_VERSION := v0\.8\.0$/m);
   assert.match(makefile, /^BUNDLE_FILE := build\/ags-bar\.js$/m);
 });

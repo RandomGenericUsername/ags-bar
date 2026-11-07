@@ -33,14 +33,17 @@ mode=restart  holdsUnsavedState=false
   unknown-request response. Do not drop or rename these while extracting.
 - No app imports another app. Depend on `ags-platform` (and `contracts` at test
   time only), never on a sibling app repo.
-- **No `palette-refresh` handler.** The bar is the explicit `restart` app. The
-  runtime's serialized restart lane restarts it after an appearance change; the
-  app does not subscribe to `wallpaper.state`, invent a palette event, or answer
-  a live-refresh command. `appearance.apply()` runs once at startup.
+- **No `appearance-refresh`/`palette-refresh` handler.** The bar is the
+  explicit `restart` app. Generations v3 binds a live refresh to a `genHash`;
+  restart apps do not implement it and are restarted after the commit. The
+  runtime's serialized restart lane restarts the bar; the app does not subscribe
+  to `wallpaper.state`, invent a palette event, or answer a live-refresh
+  command. `appearance.apply()` runs once at startup.
 - **One Appearance plane.** `lib/appearance.ts` owns the bar's single
   `createAppearance({ configDir: "ags" })` instance; `main()` calls
-  `appearance.apply()`. The composed provider carries the palette role block
-  plus the runtime-expanded skin and is installed last at USER priority, so it
+  `appearance.apply()`. The platform resolves
+  `$XDG_STATE_HOME/dotfiles/current` and installs the composed provider (palette
+  role block plus the runtime-expanded skin) last at USER priority, so it
   overrides the bundled `style.css` glass fallback. Missing appearance artifacts
   keep today's rendering.
 - **Layout tokens are TSX-owned and app-namespaced.** A skin is palette/ink +
@@ -101,7 +104,7 @@ no self-hosted runner and no CI secret dependency.
 - `make bundle` — LOCAL: `ags bundle app.tsx build/ags-bar.js`.
 - `make gates` — all of the above.
 
-The program tuple is `ags-platform` v0.9.0 / `contracts` v0.7.0, local-only in
+The program tuple is `ags-platform` v1.0.0 / `contracts` v0.8.0, local-only in
 this run. `.dev/` is gitignored; never commit a fetched platform,
 `node_modules/`, `@girs/`, generated `tsconfig.json` or bundle output.
 
