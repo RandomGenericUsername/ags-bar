@@ -25,6 +25,7 @@
 
 - [OPS-001-cutover-state-migration/ticket.md](./OPS-001-cutover-state-migration/ticket.md) — Move wifi-speedtest state and verify install-time artifacts before cutover | `done` | links: worktree `.worktrees/OPS-001/`, branch `ticket/OPS-001-cutover-state-migration`
 - [OPS-002-green-colors-pointer-conformance/ticket.md](./OPS-002-green-colors-pointer-conformance/ticket.md) — Green the conformance gate for the committed colors.css pointer | `done` | links: worktree none, branch main
+- [OPS-003-dev-pin-parity/ticket.md](./OPS-003-dev-pin-parity/ticket.md) — Bump the local ags-platform pin to v1.0.1 | `in-progress` | links: worktree `.worktrees/OPS-003/`, branch `ticket/OPS-003-dev-pin-parity`
 
 ## Spikes
 
