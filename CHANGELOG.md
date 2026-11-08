@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.6.1 — 2026-11-07
+
+### Changed
+
+- Bump the local `ags-platform` dev pin from v1.0.0 to v1.0.1 (appearance CSS
+  hex-literal validation, ags-platform `BUG-002`); `contracts` stays v0.8.0.
+  The Makefile, CI workflow and the conformance/validation pin tests name the
+  same tuple.
+
+### Unchanged
+
+- No bar runtime code, `style.css`, layout token, handler/lane policy or
+  behaviour change. The v1.0.1 patch only affects the live-refresh CSS
+  validation path, which this restart-mode bar does not use.
+
 ## v0.6.0 — 2026-11-07
 
 ### Changed
