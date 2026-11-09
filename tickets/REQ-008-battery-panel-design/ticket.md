@@ -21,6 +21,16 @@ selected/action, sentence case, 8 px rhythm and 40–44 px primary targets.
 
 > **Ticket id.** `tickets/INDEX.md` ends at REQ-007; the next free id is REQ-008.
 
+## Frozen final (approved 2026-11-09)
+
+This is the approved battery panel design and the **intent** for the feature.
+
+- Design commit: `9ac2994`.
+- Mock sha256: `2944b329d2e69a73b4c6e1fe8a59efdace2336e53ab83613e2051362872ef3f1`
+  (recorded in `mock.sha256`).
+- The design deliverable below is the criteria; implementation follows.
+- The old battery panel remains live until implementation.
+
 ## Two problems to fix
 
 1. **Charging with no estimate reserves an empty hero.** `formatBatteryTime()`
@@ -168,8 +178,25 @@ Design deliverable:
 - [x] The DOM harness passes 90/90 checks at 1600×1000 and 1280×800.
 - [x] No bar source was changed and no app→app import was added.
 
-Implementation acceptance is intentionally out of scope for this ticket; see
-Follow-up.
+Implementation acceptance is tracked below; the design deliverable above is
+frozen.
+
+## Implementation acceptance (follow-up)
+
+- [ ] The battery drawer is replaced by the 352 px anchored popover: compact
+      header, always-filled hero (fill bar + primary/sub/detail), segmented
+      power mode, variant row only when needed, meta line and `Power Options`
+      footer.
+- [ ] The no-estimate charging state renders `Charging` / `Estimating full
+      time…` / `% · rate` at the same hero height; no fake time and no reserved
+      blank. The discharging/full/unknown states match the mock.
+- [ ] `energyRate` is added if the battery daemon exposes it; otherwise the
+      detail falls back to `% · estimating` and the bar/percentage still fill
+      the hero.
+- [ ] The existing `power-service` profiles, modes, variants, `powerReady` and
+      `power-options-gtk` handoff are reused; no new config file.
+- [ ] `make ci` / `make gates` pass; composition pin bumped if the bar tag
+      changes.
 
 ## Mock path
 
