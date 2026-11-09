@@ -24,15 +24,25 @@ rhythm and 40–44 px primary targets.
 
 ## Design status
 
-- Design commit: `2651c58`.
-- **Status: in review — not approved and not merged.** The owner has not recorded
-  approval; the `Frozen final` section is added only after that approval.
+- Design commit: `2651c58`; review commit `fb37490`.
 - Mock sha256: `0df4939a4c02b1df38f8f966d0539b9569ad27c17aa1c55532fb8807d3d57eed`
   (recorded in `mock.sha256`).
-- The mock is the normative look/interaction source until owner review; this
-  ticket is the criteria source. The old 312 px Bluetooth drawer remains live
-  until implementation.
+- The mock is the normative look/interaction source and this ticket the criteria
+  source; both are frozen as of 2026-11-09. The old 312 px Bluetooth drawer
+  remains live until implementation.
 - No bar source, service or CSS was changed.
+
+## Frozen final (approved 2026-11-09)
+
+This is the approved Bluetooth panel design and the **intent** for the feature.
+
+- Design commit: `2651c58`; review commit `fb37490`.
+- Mock sha256: `0df4939a4c02b1df38f8f966d0539b9569ad27c17aa1c55532fb8807d3d57eed`
+  (recorded in `mock.sha256`).
+- The design deliverable below is the criteria; implementation follows.
+- The old 312 px Bluetooth drawer remains live until implementation.
+- `Nearby` auto-open is approved as the default; collapsed remains available
+  (`?nearby=0` / `?nearby=1`).
 
 ## Current inventory (kept, not replaced)
 
@@ -267,8 +277,8 @@ Design deliverable:
 - [x] The DOM harness passes 516/516 checks at both sizes.
 - [x] No bar source was changed and no app→app import was added.
 
-Implementation acceptance is tracked below; the design deliverable above is the
-review target.
+Implementation acceptance is tracked below; the design deliverable above is
+frozen.
 
 ## Implementation acceptance (follow-up)
 
@@ -370,8 +380,9 @@ width, pinned adapter line and footer belong to the popover variant only.
    popover and then silently populate a section the user never opened. The
    approved Wi-Fi `Nearby` starts collapsed because its `Known` list is always
    populated. Bluetooth has no such always-visible list in the empty case, so the
-   panel uses the current auto-open tri-state. **Flagged for owner review.** The
-   mock supports both: `?nearby=0` forces collapsed, `?nearby=1` expands.
+   panel uses the current auto-open tri-state. **Approved 2026-11-09:** auto-open
+   remains the default; the mock supports both: `?nearby=0` forces collapsed,
+   `?nearby=1` expands.
 3. **Keyboard mode is NONE.** The agent is `NoInputNoOutput`
    (`BluetoothPopup.tsx:26-30`), so there is no PIN/passkey field and no
    `ON_DEMAND`. Blueman completes passkey pairing. The mock has no `<input>` and
