@@ -183,6 +183,30 @@ remains a bar-widget gesture outside this surface. Implementation maps to the
 existing audio actions plus the new MPRIS shuffle/loop capability, and is not
 part of this design ticket.
 
+### Wi-Fi panel design (REQ-007)
+
+The Wi-Fi panel follows the same control-centre language:
+[`tickets/REQ-007-wifi-panel-design/ticket.md`](tickets/REQ-007-wifi-panel-design/ticket.md),
+with the normative mock at
+[`tickets/REQ-007-wifi-panel-design/mock.html`](tickets/REQ-007-wifi-panel-design/mock.html).
+
+It is a 352 px glass popover anchored 8 px under the bar's Wi-Fi icon. One
+surface carries a persistent header (glyph, `Wi-Fi`, live status, on/off switch,
+settings gear), a current-connection hero (SSID, signal, security, `Connected`,
+weak-security warning, `IP / iface`, `MAC`, and the latest
+`Download / Upload / Ping / Ran` speed-test result with `Run test`), and a flat
+`Known` then `Nearby` list. The old `Other Networks` chevron is gone. Secured
+unsaved rows open a password prompt; saved and open networks connect directly.
+The gear opens a sibling speed-test settings popover over the existing
+`wifi-speedtest.json` shape (interval chips plus custom milliseconds, auto-run,
+notify, `Run now`), and the `Network settings` footer row still opens
+`nm-connection-editor`. Design only: bar source is unchanged.
+
+Deep links exercise the review states: `?off=1`, `?scanning=1`, `?empty=1`,
+`?password=<ssid>` (plus `&fail=1`), `?weak=0|1`, `?error=1`, `?settings=1`,
+`?test=running|done|error|none`, `?connected=<ssid>|none`, `?nearby=0`,
+`?known=0`, `?connecting=<ssid>` and `?panel=closed`.
+
 ## Cutover state migration (wifi-speedtest)
 
 AD-37: installed tags are immutable; writable state lives under XDG.

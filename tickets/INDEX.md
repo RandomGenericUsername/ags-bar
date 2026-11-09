@@ -16,6 +16,7 @@
 - [REQ-004-appearance-migration/ticket.md](./REQ-004-appearance-migration/ticket.md) — Migrate the bar to the v2 Appearance plane | `done` | links: worktree `.worktrees/REQ-004/`, branch `ticket/REQ-004-appearance-migration`
 - [REQ-005-sound-panel-design/ticket.md](./REQ-005-sound-panel-design/ticket.md) — Redesign the sound panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-005/`, branch `ticket/REQ-005-sound-panel-design`
 - [REQ-006-generations-v3/ticket.md](./REQ-006-generations-v3/ticket.md) — Consume Generations v3 from the current state pointer | `done` | links: worktree `.worktrees/REQ-006/`, branch `ticket/REQ-006-generations-v3`
+- [REQ-007-wifi-panel-design/ticket.md](./REQ-007-wifi-panel-design/ticket.md) — Redesign the Wi-Fi panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-007/`, branch `ticket/REQ-007-wifi-panel-design`
 
 ## Bugs
 
