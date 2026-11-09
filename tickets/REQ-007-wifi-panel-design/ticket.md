@@ -69,6 +69,16 @@ The surface has four parts.
 6. **Footer.** A `Network settings` row, always reachable, opens
    `nm-connection-editor`. In the mock it reports the launch as a toast.
 
+## Frozen final (approved 2026-11-09)
+
+This is the approved Wi-Fi panel design and the **intent** for the feature.
+
+- Design commit: `abebee2`.
+- Mock sha256: `0f32f515a2081a9fa94baf9ae7d8f80ad80c19dc99f092a61d7477bcbcfba715`
+  (recorded in `mock.sha256`).
+- The design deliverable below is the criteria; implementation follows.
+- The old Wi-Fi drawer remains live until implementation.
+
 ## Interaction
 
 - **Switch.** Turning Wi-Fi off closes the prompt, cancels an in-flight connect
@@ -172,7 +182,25 @@ Design deliverable:
       layout/overflow regression at 1600×1000 and 1280×800.
 - [x] No bar source was changed and no app→app import was added.
 
-Implementation acceptance is out of scope here; see Follow-up.
+Implementation acceptance is tracked below; the design deliverable above is
+frozen.
+
+## Implementation acceptance (follow-up)
+
+- [ ] The Wi-Fi drawer is replaced by the 352 px anchored popover: persistent
+      header, current-connection hero, known list, `Nearby (n)` expander,
+      password prompt, speed-test results/gear, weak warning and
+      `Network settings` footer.
+- [ ] The existing `wifi-service`, `speedtest-service` and
+      `$XDG_STATE_HOME/ags/wifi-speedtest.json` are reused; no new config file.
+- [ ] Rows connect/prompt/retry, scanning is visibility-tied, `Nearby` is
+      collapsed by default with `aria-expanded`, and `Scan` works in both
+      states.
+- [ ] ON_DEMAND keyboard mode applies only while the password or interval field
+      is visible.
+- [ ] The mock states and copy are reproduced at 1600×1000 and 1280×800.
+- [ ] `make ci` / `make gates` pass; composition pin bumped if the bar tag
+      changes.
 
 ## Mock path
 
