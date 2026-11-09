@@ -237,6 +237,36 @@ Deep links exercise the review states: `?charge=eta|noeta`,
 `?variant=superpowersave|powersave`, `?unlisted=1`, `?loading=1`,
 `?rate=0` (no-rate fallback) and `?panel=closed`.
 
+### Bluetooth panel design (REQ-009)
+
+The Bluetooth panel follows the same control-centre language:
+[`tickets/REQ-009-bluetooth-panel-design/ticket.md`](tickets/REQ-009-bluetooth-panel-design/ticket.md),
+with the normative mock at
+[`tickets/REQ-009-bluetooth-panel-design/mock.html`](tickets/REQ-009-bluetooth-panel-design/mock.html).
+
+It is a 352 px glass popover anchored 8 px under the bar's Bluetooth icon. A
+persistent header (glyph, `Bluetooth`, live subtitle, power switch) sits over a
+scrolling device body, a pinned `Adapter …` line and the `Bluetooth Settings`
+footer. Connected devices render as stacked accent-washed cards (signal, name,
+`Connected` badge, connected-only battery, `Disconnect` / quiet `Unpair`), and
+paired-but-idle devices are flat rows with `Paired` / `Not in range`, Connect
+and Unpair. `Nearby (n)` is the only disclosure; it keeps the current auto-open
+tri-state, live count and scanning cue, with a centred `Scanning…` placeholder
+and `No devices found` when idle. Out-of-range Connect is refused, the inline
+unpair confirm (`Keep` / `Unpair device`) does not reflow, and BlueZ's
+single-flight rule disables every other action while one is in flight. Failures
+stay notification cards; audio routing on connect is silent; the footer opens
+`blueman-manager`. Keyboard mode stays `NONE` (no PIN/passkey field), because
+Blueman is the only way to complete a passkey pairing. Design only: bar source
+is unchanged.
+
+Deep links exercise the review states: `?state=connected`,
+`?state=multi&multi=1`, `?nearby=0|1`, `?state=scanning`, `?state=empty`,
+`?state=off`, `?state=noadapter`,
+`?state=busy&action=pair|connect|disconnect|unpair&device=…`,
+`?state=confirm&device=…`, `?outofrange=1`, `?long=1`, `?unknown=1`,
+`?adapter=<mac>` and `?panel=closed`.
+
 ## Cutover state migration (wifi-speedtest)
 
 AD-37: installed tags are immutable; writable state lives under XDG.

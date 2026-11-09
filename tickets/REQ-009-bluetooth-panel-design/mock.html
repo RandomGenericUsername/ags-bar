@@ -1,0 +1,1710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Bluetooth — anchored popover prototype</title>
+<style>
+/* ============================================================
+   BLUETOOTH — the AGS bar's Bluetooth popover, redesigned onto
+   the control-centre language approved for sound (REQ-005),
+   Wi-Fi (REQ-007) and battery (REQ-008):
+
+     · one glass chrome layer: surface + 1px hairline + soft shadow
+     · no accent frame; accent is for connected state / primary action
+     · ink / dim / faint ink, sentence case, no uppercase micro-labels
+     · 8px rhythm, 18px panel radius, 10.5/11.5/13/15 type
+     · 40-44px primary targets; every pointer action has a key
+     · the desktop/editor stays visible behind the glass
+
+   ANCHORED, NOT FULL-SCREEN. A 352px popover hangs 8px under the
+   bar's Bluetooth indicator. Clicking the wallpaper or pressing Esc
+   closes it; the bar icon toggles it back.
+
+   STRUCTURE. Header (persistent) / scrolling device body / adapter
+   line (persistent, hidden off) / footer (persistent). Only the
+   device sections scroll, so the footer can never leave the viewport.
+
+   KEYBOARD IS NONE. There is no input, no PIN/passkey prompt and no
+   ON_DEMAND widening. The shipped pairing agent is NoInputNoOutput;
+   Blueman is the only way to complete a passkey pairing.
+
+   SKIN / APPEARANCE MAPPING (for the parallel skin work):
+   the chrome colour roles and radii are custom properties on
+   :root. The appearance layer can remap:
+     ink / ink-dim / ink-faint   -> palette on-surface ramp
+     glass / glass-strong        -> palette surface at two opacities
+     hairline / hairline-soft    -> palette outline at two alphas
+     accent / on-accent          -> palette primary / on-primary
+     ok                          -> semantic green, not a palette role
+     danger                      -> semantic attention role
+     r-panel                     -> surface.panel.radius
+     r-card                      -> surface.card.radius
+     r-control                   -> surface.control.radius
+     r-pill                      -> surface.pill.radius
+   panel-w is an app literal (352px), not a skin layout token.
+   Some translucent hover/fill overlays and all content art (the
+   wallpaper, the editor window, the Bluetooth glyphs) stay literal.
+   ============================================================ */
+
+:root {
+  /* ink */
+  --ink: #f6f5f8;
+  --ink-dim: rgba(246, 245, 248, .62);
+  --ink-faint: rgba(246, 245, 248, .40);
+
+  /* chrome */
+  --hairline: rgba(255, 255, 255, .13);
+  --hairline-soft: rgba(255, 255, 255, .07);
+  --glass: rgba(9, 9, 13, .70);
+  --glass-strong: rgba(12, 12, 17, .94);
+  --control-bg: rgba(255, 255, 255, .055);
+  --control-hover: rgba(255, 255, 255, .10);
+
+  /* state + action */
+  --accent: #ff8a6a;
+  --on-accent: #1a0b06;
+  --ok: #4ade80;
+  --ok-ink: #baf7ca;
+  --danger: #ff8f8f;
+
+  /* geometry — panel-w is an app literal; the radii are skin roles */
+  --panel-w: 352px;
+  --bar-h: 40px;
+  --gap: 8px;
+  --r-panel: 18px;   /* surface.panel.radius */
+  --r-card: 12px;    /* surface.card.radius */
+  --r-control: 9px;  /* surface.control.radius */
+  --r-pill: 999px;   /* surface.pill.radius */
+
+  /* shared aliases used by the panel chrome */
+  --surface: var(--glass);
+  --outline: var(--hairline);
+  --focus-ring: var(--accent);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #050407;
+  color: var(--ink);
+  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; color: inherit; }
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled { cursor: default; }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── the desktop ─────────────────────────────────────────────── */
+
+/* Dragon wallpaper, shared with the sound, Wi-Fi and battery mocks
+   so the glass reads against the same content. */
+#wall {
+  position: fixed;
+  inset: -2%;
+  z-index: 0;
+  background-image:
+    radial-gradient(90% 80% at 22% 12%, #5b2f8a 0%, transparent 58%),
+    radial-gradient(70% 70% at 78% 28%, #c23a72 0%, transparent 55%),
+    radial-gradient(60% 50% at 52% 92%, #ff7a59 0%, transparent 60%),
+    linear-gradient(155deg, #0d0716 0%, #241033 45%, #090510 100%);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+}
+
+/* Edges only. The wallpaper stays the wallpaper. */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(125% 100% at 58% 40%, transparent 52%, rgba(0, 0, 0, .40) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .18), transparent 22%);
+}
+
+/* A quiet editor window behind the popover. It is content, not
+   chrome: it exists to prove the glass layer is translucent. */
+.editor {
+  position: fixed;
+  z-index: 2;
+  left: 7vw;
+  top: 15vh;
+  width: min(700px, 47vw);
+  height: 62vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(12, 12, 18, .60);
+  border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, .46);
+  backdrop-filter: blur(10px);
+  opacity: .92;
+}
+.editor-title {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  font-size: 11px;
+  color: rgba(255, 255, 255, .58);
+}
+.traffic { width: 8px; height: 8px; border-radius: 50%; }
+.traffic.r { background: #ff605c; }
+.traffic.y { background: #ffbd44; }
+.traffic.g { background: #00ca4e; }
+.editor-file { margin-left: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.editor-body {
+  display: grid;
+  grid-template-columns: 142px 1fr;
+  height: calc(100% - 34px);
+}
+.editor-side {
+  padding: 12px 9px;
+  border-right: 1px solid rgba(255, 255, 255, .06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 2.05;
+  color: rgba(255, 255, 255, .34);
+}
+.editor-side .active {
+  margin: 0 -3px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .07);
+  color: rgba(255, 255, 255, .82);
+}
+.editor-code {
+  padding: 13px 16px;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, .46);
+}
+.code-line { display: flex; gap: 14px; white-space: pre; }
+.ln { flex: 0 0 16px; text-align: right; color: rgba(255, 255, 255, .18); }
+.kw { color: #ff9d7e; }
+.str { color: #9be7b0; }
+.fn { color: #8fc7ff; }
+.cm { color: rgba(255, 255, 255, .24); }
+
+/* ── faux AGS bar ────────────────────────────────────────────── */
+
+.desktopbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: var(--bar-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(8, 8, 12, .52);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  backdrop-filter: blur(22px) saturate(1.2);
+  font-size: 11px;
+  color: rgba(255, 255, 255, .62);
+}
+
+.db-left { display: flex; align-items: center; gap: 3px; }
+.db-ws {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.db-ws.active { background: rgba(255, 255, 255, .14); color: var(--ink); }
+
+.db-center {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .84);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.db-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-btn {
+  width: 30px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .72);
+  transition: background .16s, color .16s;
+}
+.db-btn:hover { background: rgba(255, 255, 255, .08); color: var(--ink); }
+.db-btn.is-active { background: rgba(255, 255, 255, .13); color: var(--ink); }
+
+/* ── the popover ─────────────────────────────────────────────── */
+
+.bt-pop {
+  position: fixed;
+  top: calc(var(--bar-h) + var(--gap));
+  left: 12px;
+  z-index: 30;
+  width: min(var(--panel-w), calc(100vw - 24px));
+  max-height: calc(100vh - var(--bar-h) - var(--gap) - 12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(30px) saturate(1.3);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, .50),
+    0 3px 10px rgba(0, 0, 0, .26);
+  transform-origin: top right;
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+body.is-closed .bt-pop {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(.985);
+  pointer-events: none;
+}
+
+/* ── header (persistent) ─────────────────────────────────────── */
+
+.pop-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.head-glyph {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 26px;
+  color: var(--ink-dim);
+}
+.head-glyph.is-off { color: var(--ink-faint); }
+
+.head-text { flex: 1; min-width: 0; }
+.head-title {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+}
+.head-sub {
+  margin-top: 1px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .20);
+  transition: background-color .2s ease;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .30);
+  transition: transform .2s ease;
+}
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+.switch:disabled { opacity: .45; cursor: default; }
+
+/* ── scrolling device body ───────────────────────────────────── */
+
+.pop-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 0 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .18) transparent;
+}
+.pop-body::-webkit-scrollbar { width: 8px; }
+.pop-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.sect-label {
+  padding: 9px 16px 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+/* ── connected card(s) ───────────────────────────────────────── */
+
+.card-list { padding: 2px 0 2px; }
+
+.dev-card {
+  margin: 5px 8px;
+  padding: 0;
+  border-radius: var(--r-card);
+  border: 1px solid rgba(255, 138, 106, .26);
+  background:
+    linear-gradient(180deg, rgba(255, 138, 106, .085), rgba(255, 138, 106, .035)),
+    rgba(255, 255, 255, .018);
+  text-align: left;
+  transition: background .16s, border-color .16s;
+  cursor: pointer;
+}
+.dev-card:hover { border-color: rgba(255, 138, 106, .40); }
+.dev-card.is-confirming {
+  border-color: rgba(255, 255, 255, .20);
+  background: rgba(255, 255, 255, .045);
+}
+.dev-card.is-busy { border-color: rgba(255, 138, 106, .36); }
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 10px 0;
+}
+
+.dev-text { flex: 1; min-width: 0; }
+.dev-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.dev-sub {
+  margin-top: 1px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.dev-note {
+  margin-top: 1px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.sig {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+}
+.sig-svg { display: block; }
+
+.badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.badge.ok {
+  background: rgba(74, 222, 128, .14);
+  color: var(--ok-ink);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 4px 10px 9px;
+}
+
+.card-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.meta-icon { display: block; color: var(--ink-dim); }
+
+.busy-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-dim);
+}
+
+.confirm-q {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.32;
+  color: var(--ink);
+}
+
+.card-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── paired / nearby flat rows ───────────────────────────────── */
+
+.row-list { padding: 2px 0; }
+
+.dev-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  margin: 0 8px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .16s, opacity .16s;
+}
+.dev-row:hover { background: rgba(255, 255, 255, .05); }
+.dev-row.is-confirming { background: rgba(255, 255, 255, .06); }
+.dev-row.is-busy { background: rgba(255, 138, 106, .07); }
+.dev-row.out-of-range {
+  opacity: .45;
+  cursor: default;
+}
+.dev-row.out-of-range:hover { background: transparent; }
+
+.row-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── buttons ─────────────────────────────────────────────────── */
+
+.pill {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: border-color .16s, color .16s, background .16s;
+}
+.pill:hover:not(:disabled) { border-color: rgba(255, 255, 255, .42); color: var(--ink); }
+.pill.accent,
+.pill.primary {
+  border-color: rgba(255, 138, 106, .55);
+  color: var(--ink);
+  background: rgba(255, 138, 106, .08);
+}
+.pill.accent:hover:not(:disabled),
+.pill.primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(255, 138, 106, .16);
+}
+.pill.quiet {
+  border-color: transparent;
+  color: var(--ink-faint);
+  padding: 0 8px;
+}
+.pill.quiet:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, .18);
+  color: var(--ink-dim);
+  background: transparent;
+}
+.pill.danger {
+  border-color: rgba(255, 143, 143, .55);
+  color: var(--danger);
+}
+.pill.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: rgba(255, 143, 143, .08);
+}
+.pill:disabled,
+.pill.is-disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+/* ── Nearby: the only disclosure ─────────────────────────────── */
+
+.nearby-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 7px 8px 0;
+  padding: 0 8px;
+}
+
+.nearby-toggle {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 4px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background .16s;
+}
+.nearby-toggle:hover { background: rgba(255, 255, 255, .045); }
+
+.expander-chev {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-left: 5px solid var(--ink-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform .16s ease, border-color .16s;
+}
+.nearby-toggle:hover .expander-chev { border-left-color: var(--ink-dim); }
+.nearby-toggle[aria-expanded="true"] .expander-chev {
+  transform: rotate(90deg);
+  border-left-color: var(--ink-dim);
+}
+
+.nearby-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink-dim);
+}
+.nearby-count {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.scan-cue {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.nearby-body { padding-bottom: 4px; }
+
+.nearby-empty {
+  padding: 16px 22px 18px;
+  text-align: center;
+}
+.placeholder-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+.empty-title {
+  margin-top: 1px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.empty-copy {
+  margin: 4px auto 0;
+  max-width: 232px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+
+/* ── spinner ─────────────────────────────────────────────────── */
+
+.spinner {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .26);
+  border-top-color: var(--ink-dim);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── off / no-adapter block ──────────────────────────────────── */
+
+.state-block {
+  min-height: 330px;
+  padding: 34px 26px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.state-glyph {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 13px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  background: var(--control-bg);
+  border: 1px solid var(--hairline-soft);
+}
+.state-title {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.state-copy {
+  margin: 5px auto 0;
+  max-width: 240px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+/* ── adapter line (persistent, quiet) ────────────────────────── */
+
+.adapter-line {
+  flex: 0 0 auto;
+  padding: 7px 16px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── footer (persistent) ─────────────────────────────────────── */
+
+.pop-foot {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--hairline-soft);
+  background: rgba(9, 9, 13, .28);
+}
+.foot-row {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  text-align: left;
+  transition: background .16s;
+}
+.foot-row:hover { background: rgba(255, 255, 255, .04); }
+.foot-icon {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--ink-faint);
+  background: var(--control-bg);
+}
+.foot-text { flex: 1; min-width: 0; }
+.foot-title { display: block; font-size: 12.5px; font-weight: 600; }
+.foot-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.foot-cue {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+}
+
+/* ── toast ───────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 70;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--glass-strong);
+  border: 1px solid var(--outline);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .48);
+  color: var(--ink);
+  font-size: 11.5px;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.toast.is-open { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 820px) {
+  .editor { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; }
+  .spinner { animation-duration: 2.4s !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="wall" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- Desktop content behind the glass: an editor, not a scrim. -->
+<section class="editor" aria-hidden="true">
+  <div class="editor-title">
+    <span class="traffic r"></span><span class="traffic y"></span><span class="traffic g"></span>
+    <span class="editor-file">bluetooth-panel.tsx</span>
+  </div>
+  <div class="editor-body">
+    <div class="editor-side">
+      <div>components</div>
+      <div class="active">bluetooth</div>
+      <div>&nbsp;&nbsp;BluetoothPopup.tsx</div>
+      <div>&nbsp;&nbsp;BluetoothContent.tsx</div>
+      <div>&nbsp;&nbsp;state.ts</div>
+      <div>services</div>
+      <div>&nbsp;&nbsp;bluetooth-service.ts</div>
+      <div>settings</div>
+      <div>&nbsp;&nbsp;BluetoothView.tsx</div>
+      <div>kit</div>
+      <div>&nbsp;&nbsp;popup-host.tsx</div>
+    </div>
+    <div class="editor-code">
+      <div class="code-line"><span class="ln">1</span><span><span class="cm">// BlueZ is the source of truth; the popover is a view.</span></span></div>
+      <div class="code-line"><span class="ln">2</span><span><span class="kw">const</span> connected = devices.<span class="fn">filter</span>(d =&gt; d.connected)</span></div>
+      <div class="code-line"><span class="ln">3</span><span><span class="kw">const</span> paired = devices.<span class="fn">filter</span>(d =&gt; d.paired &amp;&amp; !d.connected)</span></div>
+      <div class="code-line"><span class="ln">4</span><span><span class="kw">const</span> nearby = devices.<span class="fn">filter</span>(d =&gt; !d.paired)</span></div>
+      <div class="code-line"><span class="ln">5</span><span></span></div>
+      <div class="code-line"><span class="ln">6</span><span><span class="cm">// Paired devices are already paired: connect runs without a prompt.</span></span></div>
+      <div class="code-line"><span class="ln">7</span><span><span class="cm">// Nearby devices pair with the NoInputNoOutput agent (Just Works).</span></span></div>
+      <div class="code-line"><span class="ln">8</span><span><span class="kw">const</span> surface = { width: <span class="str">352</span>, keyboard: <span class="str">"none"</span> }</span></div>
+      <div class="code-line"><span class="ln">9</span><span></span></div>
+      <div class="code-line"><span class="ln">10</span><span><span class="cm">// Failures are notification cards, never in-panel rows.</span></span></div>
+      <div class="code-line"><span class="ln">11</span><span><span class="fn">postBluetoothNotification</span>(name, message)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- The normal AGS bar. The Bluetooth indicator is the popover's anchor. -->
+<header class="desktopbar">
+  <div class="db-left">
+    <span class="db-ws active">1</span>
+    <span class="db-ws">2</span>
+    <span class="db-ws">3</span>
+    <span class="db-ws">4</span>
+    <span class="db-ws">5</span>
+  </div>
+  <div class="db-center">Mon 9 Nov · 11:20</div>
+  <div class="db-right">
+    <button class="db-btn" aria-label="Microphone">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="10.5" rx="3"></rect>
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn is-active" id="barBluetooth" aria-label="Bluetooth"
+            aria-haspopup="dialog" aria-expanded="true" aria-controls="panel">
+      <svg width="15" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 7l10 10-5 5V2l5 5L7 17"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Wi-Fi">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 8.5a15 15 0 0 1 19 0"></path>
+        <path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>
+        <path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>
+        <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"></circle>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Sound">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
+        <path d="M17 9.5a4 4 0 0 1 0 5"></path>
+        <path d="M19.5 7a7.5 7.5 0 0 1 0 10"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Battery">
+      <svg width="23" height="13" viewBox="0 0 28 16" fill="none" stroke="currentColor"
+           stroke-width="1.4" aria-hidden="true">
+        <rect x="1.4" y="2.4" width="22.2" height="11.2" rx="3"></rect>
+        <rect x="4" y="4.85" width="15" height="6.3" rx="1.5" fill="currentColor" stroke="none"></rect>
+        <path d="M25 6v4" stroke-linecap="round" stroke-width="1.6"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- Anchored Bluetooth popover -->
+<main class="bt-pop" id="panel" role="dialog" aria-modal="false"
+      aria-label="Bluetooth" tabindex="-1" data-keyboard="none">
+
+  <header class="pop-head">
+    <span class="head-glyph" id="headGlyph" aria-hidden="true">
+      <svg width="20" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 7l10 10-5 5V2l5 5L7 17"></path>
+      </svg>
+    </span>
+    <div class="head-text">
+      <div class="head-title">Bluetooth</div>
+      <div class="head-sub" id="headSub">Connected to TOZO NC9</div>
+    </div>
+    <button class="switch" id="powerSwitch" role="switch" aria-checked="true"
+            aria-label="Bluetooth power"></button>
+  </header>
+
+  <div class="pop-body" id="popBody">
+
+    <section class="state-block" id="stateBlock" hidden>
+      <div class="state-glyph" id="stateGlyph" aria-hidden="true"></div>
+      <div class="state-title" id="stateTitle">Bluetooth is off</div>
+      <p class="state-copy" id="stateCopy">Turn it on to pair a mouse, keyboard, or headset.</p>
+    </section>
+
+    <div id="deviceArea">
+      <section id="connectedSection" hidden aria-label="Connected devices">
+        <div class="sect-label">Connected</div>
+        <div class="card-list" id="connectedList"></div>
+      </section>
+
+      <section id="pairedSection" hidden aria-label="Paired devices">
+        <div class="sect-label">Paired</div>
+        <div class="row-list" id="pairedList"></div>
+      </section>
+
+      <section id="nearbySection" aria-label="Nearby devices">
+        <div class="nearby-head">
+          <button class="nearby-toggle" id="nearbyToggle" aria-expanded="true"
+                  aria-controls="nearbyBody" aria-label="Hide nearby devices, 2 found">
+            <span class="expander-chev" aria-hidden="true"></span>
+            <span class="nearby-label">Nearby</span>
+            <span class="nearby-count" id="nearbyCount">(2)</span>
+            <span class="scan-cue" id="scanCue">
+              <span class="spinner" aria-hidden="true"></span>Scanning…
+            </span>
+          </button>
+        </div>
+        <div class="nearby-body" id="nearbyBody">
+          <div class="row-list" id="nearbyList"></div>
+          <div class="nearby-empty" id="nearbyEmpty" hidden>
+            <div class="placeholder-row" id="scanPlaceholder" hidden>
+              <span class="spinner" aria-hidden="true"></span>Scanning…
+            </div>
+            <div id="idleEmpty" hidden>
+              <div class="empty-title">No devices found</div>
+              <p class="empty-copy">Make sure the device is in pairing mode.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="adapter-line" id="adapterLine">Adapter <span id="adapterAddr">A4:7B:9D:2C:60:1F</span></div>
+
+  <footer class="pop-foot">
+    <button class="foot-row" id="bluetoothSettings"
+            aria-label="Bluetooth Settings, opens Blueman">
+      <span class="foot-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 7l10 10-5 5V2l5 5L7 17"></path>
+        </svg>
+      </span>
+      <span class="foot-text">
+        <span class="foot-title">Bluetooth Settings</span>
+        <span class="foot-sub">opens Blueman</span>
+      </span>
+      <span class="foot-cue" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 4h6v6"></path>
+          <path d="M20 4 11 13"></path>
+          <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"></path>
+        </svg>
+      </span>
+    </button>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ── fixture + deep links ─────────────────────────────────────
+   ?state=connected            default: one connected headset, one
+                               paired keyboard, one out-of-range mouse,
+                               two nearby devices; Nearby auto-expanded
+   ?state=multi&multi=1        two connected devices (headset + keyboard)
+   ?state=scanning             no rows, scanning placeholder
+   ?state=empty                idle, no devices found
+   ?state=off                  Bluetooth off
+   ?state=noadapter            no Adapter1 on the bus
+   ?state=busy&action=pair|connect|disconnect|unpair&device=...
+                               held busy state for review
+   ?state=confirm&device=...   inline unpair confirm open
+   ?nearby=1 / ?nearby=0       expand / force-collapse the Nearby body
+   ?outofrange=1               force the paired keyboard out of range
+   ?long=1                     long device names (ellipsis + tooltip)
+   ?unknown=1                  adapter address unknown (—)
+   ?adapter=<mac>              override the adapter address
+   ?panel=closed               review helper: start with the popover closed
+   ──────────────────────────────────────────────────────────── */
+
+const params = new URLSearchParams(location.search);
+
+const BASE_DEVICES = [
+  { id: "headset",  name: "TOZO NC9",       address: "D8:3A:DD:52:0E:71",
+    paired: true,  connected: true,  rssi: -58, battery: 85 },
+  { id: "keyboard", name: "MX Keys Mini",    address: "F4:73:35:A1:6C:20",
+    paired: true,  connected: false, rssi: -67, battery: 64 },
+  { id: "mouse",    name: "MX Master 3S",    address: "C2:91:44:0B:7E:93",
+    paired: true,  connected: false, rssi: 0,   battery: 51 },
+  { id: "speaker",  name: "JBL Flip 6",      address: "58:FC:DB:3C:11:9A",
+    paired: false, connected: false, rssi: -74, battery: 0 },
+  { id: "tv",       name: "Living Room TV",  address: "AC:5F:3E:77:21:0D",
+    paired: false, connected: false, rssi: -82, battery: 0 },
+];
+
+const LONG_NAMES = {
+  headset: "TOZO NC9 Pro Hybrid ANC Wireless Earbuds",
+  keyboard: "Logitech MX Keys Mini for Mac — Graphite",
+  mouse: "Logitech MX Master 3S Advanced Wireless Mouse",
+  speaker: "JBL Flip 6 Portable Waterproof Speaker",
+  tv: "Living Room OLED TV (Bedroom Mirror)",
+};
+
+const STATE = params.get("state") || "connected";
+const MULTI = STATE === "multi" || params.get("multi") === "1";
+
+let devices = BASE_DEVICES.map((device) => ({ ...device }));
+
+if (params.get("long") === "1") {
+  for (const device of devices) device.name = LONG_NAMES[device.id] || device.name;
+}
+
+if (MULTI) {
+  const keyboard = devices.find((d) => d.id === "keyboard");
+  if (keyboard) keyboard.connected = true;
+}
+
+if (params.get("outofrange") === "1") {
+  const keyboard = devices.find((d) => d.id === "keyboard");
+  if (keyboard) keyboard.rssi = 0;
+}
+
+if (STATE === "scanning" || STATE === "empty") devices = [];
+
+const OFF = STATE === "off";
+const NO_ADAPTER = STATE === "noadapter";
+
+const DEFAULT_ADAPTER = "A4:7B:9D:2C:60:1F";
+let adapterAddress = DEFAULT_ADAPTER;
+if (params.get("unknown") === "1") adapterAddress = "";
+else if (params.get("adapter")) adapterAddress = params.get("adapter");
+
+let manualNearby = null;
+if (params.get("nearby") === "0") manualNearby = false;
+if (params.get("nearby") === "1") manualNearby = true;
+if (STATE === "scanning" || STATE === "empty") manualNearby = true;
+
+const state = {
+  powered: !OFF && !NO_ADAPTER,
+  ready: !NO_ADAPTER,
+  scanning: !OFF && !NO_ADAPTER && STATE !== "empty",
+  manualNearby,
+  busy: null,
+  confirmId: null,
+  panelOpen: params.get("panel") !== "closed",
+};
+
+function findDevice(raw) {
+  if (!raw) return null;
+  const wanted = raw.toLowerCase();
+  return devices.find((device) =>
+    device.id === wanted ||
+    device.address.toLowerCase() === wanted ||
+    device.name.toLowerCase().includes(wanted)
+  ) || null;
+}
+
+function defaultForAction(action) {
+  if (action === "pair") return devices.find((d) => !d.paired) || null;
+  if (action === "connect") return devices.find((d) => d.paired && !d.connected) || null;
+  if (action === "disconnect" || action === "unpair") {
+    return devices.find((d) => d.connected) || devices.find((d) => d.paired) || null;
+  }
+  return null;
+}
+
+if (STATE === "busy") {
+  const action = params.get("action") || "pair";
+  const device = findDevice(params.get("device")) || defaultForAction(action);
+  if (device) state.busy = { id: device.id, action, held: true };
+}
+
+if (STATE === "confirm") {
+  const device = findDevice(params.get("device")) ||
+    devices.find((d) => d.connected) ||
+    devices.find((d) => d.paired);
+  if (device && device.paired) state.confirmId = device.id;
+}
+
+const $ = (id) => document.getElementById(id);
+
+const esc = (value) => String(value)
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;");
+
+const ACTION_WORD = {
+  pair: "Pairing…",
+  connect: "Connecting…",
+  disconnect: "Disconnecting…",
+  unpair: "Unpairing…",
+};
+
+function displayName(device) {
+  return device.name || "Unknown device";
+}
+
+function connectedDevices() {
+  return devices.filter((device) => device.connected);
+}
+
+function pairedDevices() {
+  return devices.filter((device) => device.paired && !device.connected);
+}
+
+function nearbyDevices() {
+  return devices.filter((device) => !device.paired);
+}
+
+function anyBusy() {
+  return state.busy !== null;
+}
+
+function isBusy(device) {
+  return state.busy !== null && state.busy.id === device.id;
+}
+
+function inRange(device) {
+  return device.connected || device.rssi < 0;
+}
+
+/* ── glyphs ──────────────────────────────────────────────────── */
+
+function bluetoothSVG(size, extraClass) {
+  return `<svg class="${extraClass || ""}" width="${size}" height="${size}" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M7 7l10 10-5 5V2l5 5L7 17"></path>
+  </svg>`;
+}
+
+function signalLevel(rssi) {
+  if (rssi >= -60) return 4;
+  if (rssi >= -70) return 3;
+  if (rssi >= -80) return 2;
+  return 1;
+}
+
+/* No glyph when RSSI >= 0: BlueZ reports 0 for "not seen", so there is
+   no honest level to draw. The row's word layer carries the state. */
+function signalGlyph(device) {
+  const seen = Number.isFinite(device.rssi) && device.rssi < 0;
+  if (!seen) return '<span class="sig sig-empty" aria-hidden="true"></span>';
+  const level = signalLevel(device.rssi);
+  const bars = [0, 1, 2, 3].map((index) => {
+    const opacity = level > index ? 1 : 0.22;
+    return `<rect x="${2 + index * 5.5}" y="${15 - index * 4}" width="3.6" height="${6 + index * 4}"
+      rx="1.2" opacity="${opacity}"></rect>`;
+  }).join("");
+  const label = `Signal: −${Math.abs(device.rssi)} dBm`;
+  return `<span class="sig" title="${label}" aria-label="${label}">
+    <svg class="sig-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"
+         aria-hidden="true">${bars}</svg>
+  </span>`;
+}
+
+function batteryGlyph(level) {
+  const fraction = Math.max(0, Math.min(100, level)) / 100;
+  const fill = (17 * fraction).toFixed(2);
+  return `<svg class="meta-icon" width="18" height="10" viewBox="0 0 28 16"
+    fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+    <rect x="1.4" y="2.4" width="22.2" height="11.2" rx="3"></rect>
+    <rect x="4" y="4.85" width="${fill}" height="6.3" rx="1.5"
+          fill="currentColor" stroke="none"></rect>
+    <path d="M25 6v4" stroke-linecap="round" stroke-width="1.5"></path>
+  </svg>`;
+}
+
+/* ── header ──────────────────────────────────────────────────── */
+
+function headSubtitle() {
+  if (!state.ready) return "No adapter";
+  if (!state.powered) return "Bluetooth off";
+  const connected = connectedDevices();
+  if (connected.length === 1) return `Connected to ${displayName(connected[0])}`;
+  if (connected.length > 1) return `${connected.length} devices connected`;
+  if (state.scanning) return "Scanning…";
+  return "On";
+}
+
+function renderHeader() {
+  const off = !state.ready || !state.powered;
+  $("headGlyph").classList.toggle("is-off", off);
+  $("headSub").textContent = headSubtitle();
+  $("headSub").title = headSubtitle();
+  const power = $("powerSwitch");
+  power.setAttribute("aria-checked", String(state.powered && state.ready));
+  power.disabled = !state.ready;
+  power.setAttribute("aria-label", state.ready ? "Bluetooth power" : "Bluetooth power, no adapter");
+}
+
+/* ── connected cards ─────────────────────────────────────────── */
+
+function busyMeta(device, action) {
+  return `<div class="busy-line"><span class="spinner" aria-hidden="true"></span>
+      ${ACTION_WORD[action] || "Working…"}</div>
+    <div class="dev-note">Can take up to 30 s</div>`;
+}
+
+function connectedMeta(device) {
+  if (device.battery > 0) {
+    return `<div class="meta-stat">${batteryGlyph(device.battery)}<span>${device.battery}%</span></div>`;
+  }
+  return "";
+}
+
+function connectedCard(device) {
+  const busy = isBusy(device);
+  const action = busy ? state.busy.action : null;
+  const confirming = state.confirmId === device.id;
+  const name = displayName(device);
+
+  const meta = busy
+    ? busyMeta(device, action)
+    : confirming
+      ? `<div class="confirm-q" title="Remove ${esc(name)} from paired devices?">Remove ${esc(name)} from paired devices?</div>`
+      : connectedMeta(device);
+
+  const actions = confirming
+    ? `<button class="pill" data-act="keep" data-id="${device.id}">Keep</button>
+       <button class="pill danger${anyBusy() ? " is-disabled" : ""}" data-act="unpair-device" data-id="${device.id}"
+         ${anyBusy() ? "disabled" : ""}>Unpair device</button>`
+    : busy
+      ? ""
+      : `<button class="pill accent${anyBusy() ? " is-disabled" : ""}" data-act="disconnect" data-id="${device.id}"
+           ${anyBusy() ? "disabled" : ""}>Disconnect</button>
+         <button class="pill quiet${anyBusy() ? " is-disabled" : ""}" data-act="unpair" data-id="${device.id}"
+           ${anyBusy() ? "disabled" : ""}>Unpair</button>`;
+
+  return `<div class="dev-card${confirming ? " is-confirming" : ""}${busy ? " is-busy" : ""}"
+    data-id="${device.id}" role="button" tabindex="0"
+    aria-label="${esc(name)}, connected">
+    <div class="card-top">
+      ${signalGlyph(device)}
+      <div class="dev-text">
+        <div class="dev-name" title="${esc(name)}">${esc(name)}</div>
+      </div>
+      <span class="badge ok">Connected</span>
+    </div>
+    <div class="card-foot">
+      <div class="card-meta">${meta}</div>
+      <div class="card-actions">${actions}</div>
+    </div>
+  </div>`;
+}
+
+function renderConnected() {
+  const list = connectedDevices();
+  const section = $("connectedSection");
+  section.hidden = !state.powered || list.length === 0;
+  $("connectedList").innerHTML = list.map(connectedCard).join("");
+}
+
+/* ── paired rows ─────────────────────────────────────────────── */
+
+function pairedRow(device) {
+  const busy = isBusy(device);
+  const action = busy ? state.busy.action : null;
+  const confirming = state.confirmId === device.id;
+  const reachable = inRange(device);
+  const out = !reachable;
+  const name = displayName(device);
+
+  const subtitle = busy
+    ? `<span class="busy-line"><span class="spinner" aria-hidden="true"></span>${ACTION_WORD[action] || "Working…"}</span>`
+    : confirming
+      ? "Remove from paired devices"
+      : out
+        ? "Not in range"
+        : "Paired";
+
+  const note = busy ? '<div class="dev-note">Can take up to 30 s</div>' : "";
+
+  const actions = confirming
+    ? `<button class="pill" data-act="keep" data-id="${device.id}">Keep</button>
+       <button class="pill danger${anyBusy() ? " is-disabled" : ""}" data-act="unpair-device" data-id="${device.id}"
+         ${anyBusy() ? "disabled" : ""}>Unpair device</button>`
+    : busy
+      ? ""
+      : `<button class="pill${out || anyBusy() ? " is-disabled" : ""}" data-act="connect" data-id="${device.id}"
+            ${out || anyBusy() ? "disabled" : ""}>Connect</button>
+         <button class="pill quiet${anyBusy() ? " is-disabled" : ""}" data-act="unpair" data-id="${device.id}"
+            ${anyBusy() ? "disabled" : ""}>Unpair</button>`;
+
+  return `<div class="dev-row${out ? " out-of-range" : ""}${confirming ? " is-confirming" : ""}${busy ? " is-busy" : ""}"
+    data-id="${device.id}" role="button" tabindex="0"
+    aria-label="${esc(name)}, ${out ? "not in range" : "paired"}">
+    ${signalGlyph(device)}
+    <div class="dev-text">
+      <div class="dev-name" title="${esc(name)}">${esc(name)}</div>
+      <div class="dev-sub">${subtitle}</div>
+      ${note}
+    </div>
+    <div class="row-actions">${actions}</div>
+  </div>`;
+}
+
+function renderPaired() {
+  const list = pairedDevices();
+  const section = $("pairedSection");
+  section.hidden = !state.powered || list.length === 0;
+  $("pairedList").innerHTML = list.map(pairedRow).join("");
+}
+
+/* ── nearby ──────────────────────────────────────────────────── */
+
+function nearbyRow(device) {
+  const busy = isBusy(device);
+  const action = busy ? state.busy.action : null;
+  const name = displayName(device);
+  const subtitle = busy
+    ? `<span class="busy-line"><span class="spinner" aria-hidden="true"></span>${ACTION_WORD[action] || "Working…"}</span>`
+    : "Ready to pair";
+  const note = busy ? '<div class="dev-note">Can take up to 30 s</div>' : "";
+  const actions = busy
+    ? ""
+    : `<button class="pill" data-act="pair" data-id="${device.id}"
+         ${anyBusy() ? "disabled" : ""}>Pair</button>`;
+
+  return `<div class="dev-row nearby-row${busy ? " is-busy" : ""}"
+    data-id="${device.id}" role="button" tabindex="0"
+    aria-label="${esc(name)}, ready to pair">
+    ${signalGlyph(device)}
+    <div class="dev-text">
+      <div class="dev-name" title="${esc(name)}">${esc(name)}</div>
+      <div class="dev-sub">${subtitle}</div>
+      ${note}
+    </div>
+    <div class="row-actions">${actions}</div>
+  </div>`;
+}
+
+function nearbyExpanded() {
+  if (state.manualNearby !== null) return state.manualNearby;
+  return nearbyDevices().length > 0;
+}
+
+function renderNearby() {
+  const list = nearbyDevices();
+  const expanded = nearbyExpanded();
+  const scanning = state.powered && state.scanning;
+  const toggle = $("nearbyToggle");
+
+  $("nearbyCount").textContent = `(${list.length})`;
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label",
+    `${expanded ? "Hide" : "Show"} nearby devices, ${list.length} found`);
+  // One indicator, two positions (the current rule): while the list is
+  // expanded and empty, the centred placeholder is the only visible cue;
+  // otherwise the header carries the spinner — including when collapsed.
+  $("scanCue").hidden = !scanning || (expanded && list.length === 0);
+  $("nearbyBody").hidden = !expanded;
+  $("nearbyList").innerHTML = list.map(nearbyRow).join("");
+
+  const empty = expanded && list.length === 0;
+  $("nearbyEmpty").hidden = !empty;
+  $("scanPlaceholder").hidden = !(empty && scanning);
+  $("idleEmpty").hidden = !(empty && !scanning);
+
+  $("nearbySection").hidden = !state.powered;
+}
+
+/* ── adapter / state / footer ────────────────────────────────── */
+
+function renderAdapter() {
+  const line = $("adapterLine");
+  const visible = state.powered && state.ready;
+  line.hidden = !visible;
+  if (visible) $("adapterAddr").textContent = adapterAddress || "—";
+}
+
+function renderStateBlock() {
+  const block = $("stateBlock");
+  const off = !state.powered || !state.ready;
+  block.hidden = !off;
+  if (!off) return;
+
+  if (!state.ready) {
+    $("stateGlyph").innerHTML = bluetoothSVG(26, "state-glyph-svg");
+    $("stateTitle").textContent = "No Bluetooth adapter found on this system.";
+    $("stateCopy").textContent = "Pairing and discovery are unavailable without a Bluetooth radio.";
+  } else {
+    $("stateGlyph").innerHTML = bluetoothSVG(26, "state-glyph-svg");
+    $("stateTitle").textContent = "Bluetooth is off";
+    $("stateCopy").textContent = "Turn it on to pair a mouse, keyboard, or headset.";
+  }
+}
+
+/* ── render ──────────────────────────────────────────────────── */
+
+function render() {
+  document.body.classList.toggle("is-closed", !state.panelOpen);
+  $("barBluetooth").classList.toggle("is-active", state.panelOpen);
+  $("barBluetooth").setAttribute("aria-expanded", String(state.panelOpen));
+
+  renderHeader();
+  renderStateBlock();
+
+  const off = !state.powered || !state.ready;
+  $("deviceArea").hidden = off;
+  if (off) {
+    $("connectedSection").hidden = true;
+    $("pairedSection").hidden = true;
+    $("nearbySection").hidden = true;
+  } else {
+    renderConnected();
+    renderPaired();
+    renderNearby();
+  }
+
+  renderAdapter();
+  positionPanel();
+}
+
+function positionPanel() {
+  const panel = $("panel");
+  const icon = $("barBluetooth");
+  const width = panel.offsetWidth;
+  const rect = icon.getBoundingClientRect();
+  const preferred = rect.left + rect.width / 2 - width / 2;
+  const left = Math.min(
+    window.innerWidth - width - 12,
+    Math.max(12, preferred),
+  );
+  panel.style.left = `${left}px`;
+}
+
+/* ── action simulation ───────────────────────────────────────── */
+
+function startAction(device, action) {
+  if (!state.powered || !state.ready) return;
+  if (anyBusy()) return;
+  state.busy = { id: device.id, action, held: false };
+  render();
+  setTimeout(() => resolveAction(device.id, action), 1300);
+}
+
+function resolveAction(id, action) {
+  if (!state.busy || state.busy.id !== id) return;
+  if (state.busy.held) return;
+  const device = devices.find((entry) => entry.id === id);
+  if (!device) {
+    state.busy = null;
+    render();
+    return;
+  }
+
+  if (action === "pair") {
+    device.paired = true;
+    device.connected = true;
+    if (!device.battery) device.battery = 72;
+  } else if (action === "connect") {
+    device.connected = true;
+  } else if (action === "disconnect") {
+    device.connected = false;
+  } else if (action === "unpair") {
+    devices = devices.filter((entry) => entry.id !== id);
+  }
+
+  state.busy = null;
+  render();
+}
+
+function openConfirm(device) {
+  if (anyBusy()) return;
+  state.confirmId = device.id;
+  render();
+}
+
+function closeConfirm() {
+  if (state.confirmId === null) return;
+  state.confirmId = null;
+  render();
+}
+
+function handleAct(act, id) {
+  const device = devices.find((entry) => entry.id === id);
+  if (!device) return;
+
+  if (act === "keep") {
+    closeConfirm();
+    return;
+  }
+  if (act === "unpair") {
+    if (anyBusy()) return;
+    openConfirm(device);
+    return;
+  }
+  if (act === "unpair-device") {
+    if (anyBusy()) return;
+    // The confirm is the action's own dialog: close it before the busy state,
+    // exactly as the real `confirmUnpair` clears the slot before `unpairDevice`.
+    state.confirmId = null;
+    startAction(device, "unpair");
+    return;
+  }
+  if (anyBusy()) return;
+
+  if (act === "disconnect") startAction(device, "disconnect");
+  else if (act === "connect") {
+    if (!inRange(device)) return;
+    startAction(device, "connect");
+  } else if (act === "pair") {
+    if (device.paired) return;
+    startAction(device, "pair");
+  }
+}
+
+function handleRowClick(id) {
+  const device = devices.find((entry) => entry.id === id);
+  if (!device) return;
+  if (anyBusy()) return;
+
+  if (state.confirmId !== null) {
+    closeConfirm();
+    return;
+  }
+
+  if (!device.paired) {
+    startAction(device, "pair");
+    return;
+  }
+  if (!device.connected) {
+    if (!inRange(device)) return;
+    startAction(device, "connect");
+    return;
+  }
+  startAction(device, "disconnect");
+}
+
+function handleCardClick(id) {
+  const device = devices.find((entry) => entry.id === id);
+  if (!device) return;
+  if (anyBusy()) return;
+
+  if (state.confirmId !== null) {
+    closeConfirm();
+    return;
+  }
+  startAction(device, "disconnect");
+}
+
+/* ── toast / panel ───────────────────────────────────────────── */
+
+let toastTimer = null;
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("is-open");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("is-open"), 2200);
+}
+
+function setPanelOpen(open) {
+  state.panelOpen = open;
+  render();
+}
+
+function setNearbyOpen(open) {
+  if (!state.powered) return;
+  state.manualNearby = open;
+  renderNearby();
+}
+
+/* ── events ──────────────────────────────────────────────────── */
+
+$("panel").addEventListener("click", (event) => {
+  const control = event.target.closest("[data-act]");
+  if (control) {
+    event.stopPropagation();
+    if (control.disabled) return;
+    handleAct(control.dataset.act, control.dataset.id);
+    return;
+  }
+
+  if (event.target.closest("#nearbyToggle")) return;
+
+  const card = event.target.closest(".dev-card");
+  if (card) {
+    handleCardClick(card.dataset.id);
+    return;
+  }
+  const row = event.target.closest(".dev-row");
+  if (row) handleRowClick(row.dataset.id);
+});
+
+$("panel").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  if (event.target.closest("button")) return;
+  const target = event.target.closest(".dev-card, .dev-row");
+  if (!target) return;
+  event.preventDefault();
+  target.click();
+});
+
+$("nearbyToggle").addEventListener("click", () => {
+  setNearbyOpen(!nearbyExpanded());
+});
+
+$("powerSwitch").addEventListener("click", () => {
+  if (!state.ready) return;
+  state.powered = !state.powered;
+  state.busy = null;
+  state.confirmId = null;
+  state.scanning = state.powered;
+  if (!state.powered) {
+    state.manualNearby = null;
+  }
+  render();
+});
+
+$("bluetoothSettings").addEventListener("click", () => {
+  toast("Bluetooth Settings would open blueman-manager");
+});
+
+$("barBluetooth").addEventListener("click", () => {
+  setPanelOpen(!state.panelOpen);
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.isConnected) return;
+  if (!state.panelOpen) return;
+  if (event.target.closest("#panel") || event.target.closest("#barBluetooth")) return;
+  setPanelOpen(false);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!state.panelOpen) return;
+  event.preventDefault();
+  if (state.confirmId !== null) {
+    closeConfirm();
+    return;
+  }
+  setPanelOpen(false);
+  $("barBluetooth").focus();
+});
+
+window.addEventListener("resize", positionPanel);
+
+/* ── boot ────────────────────────────────────────────────────── */
+
+render();
+requestAnimationFrame(positionPanel);
+</script>
+</body>
+</html>
