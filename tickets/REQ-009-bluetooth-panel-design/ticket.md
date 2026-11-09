@@ -24,7 +24,7 @@ rhythm and 40–44 px primary targets.
 
 ## Design status
 
-- Design commit: `DESIGN_COMMIT` (recorded in the freeze commit).
+- Design commit: `2651c58` (recorded in the freeze commit).
 - Mock sha256: `0df4939a4c02b1df38f8f966d0539b9569ad27c17aa1c55532fb8807d3d57eed`
   (recorded in `mock.sha256`).
 - The mock is the normative look/interaction source until owner review; this
