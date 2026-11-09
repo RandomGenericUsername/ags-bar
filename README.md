@@ -210,6 +210,33 @@ Deep links exercise the review states: `?off=1`, `?scanning=1`, `?empty=1`,
 (expand / force-collapse), `?known=0`, `?connecting=<ssid>` and
 `?panel=closed`.
 
+### Battery panel design (REQ-008)
+
+The battery panel follows the same control-centre language:
+[`tickets/REQ-008-battery-panel-design/ticket.md`](tickets/REQ-008-battery-panel-design/ticket.md),
+with the normative mock at
+[`tickets/REQ-008-battery-panel-design/mock.html`](tickets/REQ-008-battery-panel-design/mock.html).
+
+It is a 352 px glass popover anchored 8 px under the bar's battery icon. A
+compact header (glyph, `Battery`, percentage right; no switch or gear) sits over
+an **always-full hero**: a fill bar with a charging bolt, a primary time or
+state word, a sub line and a detail line. The power mode is a compact
+three-option segmented control (a fourth `Unlisted` segment appears only when
+the daemon reports an undeclared tier), variants render only when the selected
+mode has more than one, and the quiet `Power Options` footer keeps the
+`power-options-gtk` handoff. The key fix is the no-estimate branch: it reads
+`Charging` / `Estimating full time…` / `72% · 18.4 W` and keeps the same hero
+height instead of reserving a blank 30 px line for a time that never arrives.
+The rate detail is a design proposal; until the panel binds `energyRate` it
+falls back to `% · estimating`, never blank. Design only: bar source is
+unchanged.
+
+Deep links exercise the review states: `?charge=eta|noeta`,
+`?discharge=eta|noeta`, `?full=1`, `?unknown=1`,
+`?mode=powersave|balanced|performance`,
+`?variant=superpowersave|powersave`, `?unlisted=1`, `?loading=1`,
+`?rate=0` (no-rate fallback) and `?panel=closed`.
+
 ## Cutover state migration (wifi-speedtest)
 
 AD-37: installed tags are immutable; writable state lives under XDG.

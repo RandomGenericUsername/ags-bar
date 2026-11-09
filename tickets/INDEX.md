@@ -17,6 +17,7 @@
 - [REQ-005-sound-panel-design/ticket.md](./REQ-005-sound-panel-design/ticket.md) — Redesign the sound panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-005/`, branch `ticket/REQ-005-sound-panel-design`
 - [REQ-006-generations-v3/ticket.md](./REQ-006-generations-v3/ticket.md) — Consume Generations v3 from the current state pointer | `done` | links: worktree `.worktrees/REQ-006/`, branch `ticket/REQ-006-generations-v3`
 - [REQ-007-wifi-panel-design/ticket.md](./REQ-007-wifi-panel-design/ticket.md) — Redesign the Wi-Fi panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-007/`, branch `ticket/REQ-007-wifi-panel-design`
+- [REQ-008-battery-panel-design/ticket.md](./REQ-008-battery-panel-design/ticket.md) — Redesign the battery panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-008/`, branch `ticket/REQ-008-battery-panel-design`
 
 ## Bugs
 

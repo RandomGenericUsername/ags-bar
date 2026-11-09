@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Battery — anchored popover prototype</title>
+<style>
+/* ============================================================
+   BATTERY — the AGS bar's battery popover, redesigned onto the
+   control-centre language approved for sound (REQ-005) and Wi-Fi
+   (REQ-007):
+
+     · one glass chrome layer: surface + 1px hairline + soft shadow
+     · no accent frame; accent is for the selected power mode only
+     · ink / dim / faint ink, sentence case, no uppercase micro-labels
+     · 8px rhythm, 18px panel radius, 10.5/11.5/13/15/30 type
+     · 40-44px primary targets; every pointer action has a key
+     · the desktop/editor stays visible behind the glass
+
+   ANCHORED, NOT FULL-SCREEN. A 352px popover hangs 8px under the
+   bar's battery indicator. Clicking the wallpaper or pressing Esc
+   closes it; the bar icon toggles it back.
+
+   SKIN / APPEARANCE MAPPING (for the parallel skin work):
+   the chrome colour roles and radii are custom properties on
+   :root. The appearance layer can remap:
+     ink / ink-dim / ink-faint   -> palette on-surface ramp
+     glass / glass-strong        -> palette surface at two opacities
+     hairline / hairline-soft    -> palette outline at two alphas
+     accent / on-accent          -> palette primary / on-primary
+     ok                          -> semantic green, not a palette role
+     r-panel                     -> surface.panel.radius
+     r-card                      -> surface.card.radius
+     r-control                   -> surface.control.radius
+     r-pill                      -> surface.pill.radius
+   panel-w is an app literal (352px), not a skin layout token.
+   Some translucent hover/fill overlays and all content art (the
+   wallpaper, the editor window, the battery glyphs) stay literal.
+   ============================================================ */
+
+:root {
+  /* ink */
+  --ink: #f6f5f8;
+  --ink-dim: rgba(246, 245, 248, .62);
+  --ink-faint: rgba(246, 245, 248, .40);
+
+  /* chrome */
+  --hairline: rgba(255, 255, 255, .13);
+  --hairline-soft: rgba(255, 255, 255, .07);
+  --glass: rgba(9, 9, 13, .70);
+  --glass-strong: rgba(12, 12, 17, .94);
+  --control-bg: rgba(255, 255, 255, .055);
+  --control-hover: rgba(255, 255, 255, .10);
+
+  /* state + action */
+  --accent: #ff8a6a;
+  --on-accent: #1a0b06;
+  --ok: #4ade80;
+
+  /* geometry — panel-w is an app literal; the radii are skin roles */
+  --panel-w: 352px;
+  --bar-h: 40px;
+  --gap: 8px;
+  --r-panel: 18px;   /* surface.panel.radius */
+  --r-card: 12px;    /* surface.card.radius */
+  --r-control: 9px;  /* surface.control.radius */
+  --r-pill: 999px;   /* surface.pill.radius */
+
+  /* shared aliases used by the panel chrome */
+  --surface: var(--glass);
+  --outline: var(--hairline);
+  --focus-ring: var(--accent);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #050407;
+  color: var(--ink);
+  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled { cursor: default; }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+kbd {
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 5px;
+  padding: 3px 5px;
+}
+
+/* ── the desktop ─────────────────────────────────────────────── */
+
+/* Dragon wallpaper, shared with the sound and Wi-Fi mocks so the
+   glass reads against the same content. */
+#wall {
+  position: fixed;
+  inset: -2%;
+  z-index: 0;
+  background-image:
+    radial-gradient(90% 80% at 22% 12%, #5b2f8a 0%, transparent 58%),
+    radial-gradient(70% 70% at 78% 28%, #c23a72 0%, transparent 55%),
+    radial-gradient(60% 50% at 52% 92%, #ff7a59 0%, transparent 60%),
+    linear-gradient(155deg, #0d0716 0%, #241033 45%, #090510 100%);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+}
+
+/* Edges only. The wallpaper stays the wallpaper. */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(125% 100% at 58% 40%, transparent 52%, rgba(0, 0, 0, .40) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, .18), transparent 22%);
+}
+
+/* A quiet editor window behind the popover. It is content, not
+   chrome: it exists to prove the glass layer is translucent. */
+.editor {
+  position: fixed;
+  z-index: 2;
+  left: 7vw;
+  top: 15vh;
+  width: min(700px, 47vw);
+  height: 62vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(12, 12, 18, .60);
+  border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, .46);
+  backdrop-filter: blur(10px);
+  opacity: .92;
+}
+.editor-title {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  font-size: 11px;
+  color: rgba(255, 255, 255, .58);
+}
+.traffic { width: 8px; height: 8px; border-radius: 50%; }
+.traffic.r { background: #ff605c; }
+.traffic.y { background: #ffbd44; }
+.traffic.g { background: #00ca4e; }
+.editor-file { margin-left: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.editor-body {
+  display: grid;
+  grid-template-columns: 142px 1fr;
+  height: calc(100% - 34px);
+}
+.editor-side {
+  padding: 12px 9px;
+  border-right: 1px solid rgba(255, 255, 255, .06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  line-height: 2.05;
+  color: rgba(255, 255, 255, .34);
+}
+.editor-side .active {
+  margin: 0 -3px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, .07);
+  color: rgba(255, 255, 255, .82);
+}
+.editor-code {
+  padding: 13px 16px;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, .46);
+}
+.code-line { display: flex; gap: 14px; white-space: pre; }
+.ln { flex: 0 0 16px; text-align: right; color: rgba(255, 255, 255, .18); }
+.kw { color: #ff9d7e; }
+.str { color: #9be7b0; }
+.fn { color: #8fc7ff; }
+.cm { color: rgba(255, 255, 255, .24); }
+
+/* ── faux AGS bar ────────────────────────────────────────────── */
+
+.desktopbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: var(--bar-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(8, 8, 12, .52);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  backdrop-filter: blur(22px) saturate(1.2);
+  font-size: 11px;
+  color: rgba(255, 255, 255, .62);
+}
+
+.db-left { display: flex; align-items: center; gap: 3px; }
+.db-ws {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.db-ws.active { background: rgba(255, 255, 255, .14); color: var(--ink); }
+
+.db-center {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .84);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.db-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-btn {
+  width: 30px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, .72);
+  transition: background .16s, color .16s;
+}
+.db-btn:hover { background: rgba(255, 255, 255, .08); color: var(--ink); }
+.db-btn.is-active { background: rgba(255, 255, 255, .13); color: var(--ink); }
+
+.db-btn .batt-svg { width: 23px; height: 13px; }
+
+/* ── battery glyphs ──────────────────────────────────────────── */
+
+.batt-svg { display: block; width: 100%; height: 100%; }
+.batt-svg.is-charging { color: var(--ok); }
+
+/* ── the popover ─────────────────────────────────────────────── */
+
+.battery-pop {
+  position: fixed;
+  top: calc(var(--bar-h) + var(--gap));
+  left: 12px;
+  z-index: 30;
+  width: min(var(--panel-w), calc(100vw - 24px));
+  max-height: calc(100vh - var(--bar-h) - var(--gap) - 12px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  backdrop-filter: blur(30px) saturate(1.3);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, .50),
+    0 3px 10px rgba(0, 0, 0, .26);
+  transform-origin: top right;
+  transition: opacity .22s ease, transform .22s ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .18) transparent;
+}
+.battery-pop::-webkit-scrollbar { width: 8px; }
+.battery-pop::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+body.is-closed .battery-pop {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(.985);
+  pointer-events: none;
+}
+
+/* ── compact header ──────────────────────────────────────────── */
+
+.pop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.head-glyph {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 16px;
+  color: var(--ink-dim);
+}
+.head-glyph.is-charging { color: var(--ok); }
+
+.head-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+}
+
+.head-pct {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+
+/* ── hero: always full ───────────────────────────────────────── */
+
+.hero {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.hero-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-main { min-width: 0; }
+
+.hero-primary {
+  min-height: 31px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.hero-sub {
+  margin-top: 3px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  color: var(--ink-dim);
+}
+
+.hero-detail {
+  flex: 0 0 auto;
+  padding-bottom: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The fill is the thing the no-estimate state keeps: a quiet bar
+   and a percentage, never a reserved blank where a duration would
+   have gone. */
+.fill-row { margin-top: 11px; }
+
+.fill-track {
+  position: relative;
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .10);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+.fill-level {
+  height: 100%;
+  width: 0;
+  border-radius: var(--r-pill);
+  background: rgba(246, 245, 248, .64);
+  transition: width .35s ease, background .2s;
+}
+
+.hero[data-tone="charge"] .fill-level,
+.hero[data-tone="full"] .fill-level {
+  background: var(--ok);
+}
+
+.hero[data-tone="unknown"] .fill-level {
+  background: transparent;
+}
+
+.fill-bolt {
+  position: absolute;
+  top: 50%;
+  left: clamp(9px, var(--fill, 0%), calc(100% - 9px));
+  width: 17px;
+  height: 17px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ok);
+  background: var(--glass-strong);
+  border: 1px solid rgba(74, 222, 128, .38);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  transition: left .35s ease, opacity .2s;
+}
+.fill-bolt svg { display: block; }
+
+/* ── power mode ──────────────────────────────────────────────── */
+
+.power { padding: 12px 16px 10px; }
+
+.section-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--control-bg);
+  border: 1px solid var(--hairline-soft);
+}
+
+.seg {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 8px;
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: background .16s, color .16s;
+}
+
+.seg svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  opacity: .8;
+}
+
+.seg:hover:not(:disabled) {
+  background: var(--control-hover);
+  color: var(--ink);
+}
+
+.seg[aria-pressed="true"] {
+  background: rgba(255, 138, 106, .16);
+  color: var(--ink);
+}
+.seg[aria-pressed="true"] svg {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.seg:disabled { opacity: .42; }
+
+.segmented.is-four .seg {
+  gap: 3px;
+  font-size: 9.5px;
+}
+.segmented.is-four .seg svg { width: 13px; height: 13px; }
+
+.seg-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── variants (only when the mode offers a choice) ───────────── */
+
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, .26);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  transition: background .16s, border-color .16s;
+}
+
+.chip:hover { border-color: var(--accent); }
+
+.chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: rgba(255, 138, 106, .18);
+}
+
+.power-meta {
+  margin-top: 7px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.power-meta.is-quiet { color: var(--ink-faint); }
+
+.power.is-loading .segmented { opacity: .55; }
+
+/* ── quiet footer handoff ────────────────────────────────────── */
+
+.foot-row {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  border-top: 1px solid var(--hairline-soft);
+  text-align: left;
+  transition: background .16s;
+}
+
+.foot-row:hover { background: rgba(255, 255, 255, .05); }
+
+.foot-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.foot-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ── toast ───────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 70;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--glass-strong);
+  border: 1px solid var(--outline);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .48);
+  color: var(--ink);
+  font-size: 11.5px;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.toast.is-open { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 820px) {
+  .editor { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="wall" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- Desktop content behind the glass: an editor, not a scrim. -->
+<section class="editor" aria-hidden="true">
+  <div class="editor-title">
+    <span class="traffic r"></span><span class="traffic y"></span><span class="traffic g"></span>
+    <span class="editor-file">battery-panel.tsx</span>
+  </div>
+  <div class="editor-body">
+    <div class="editor-side">
+      <div>components</div>
+      <div class="active">battery</div>
+      <div>&nbsp;&nbsp;BatteryPopup.tsx</div>
+      <div>&nbsp;&nbsp;BatteryContent.tsx</div>
+      <div>&nbsp;&nbsp;presentation.ts</div>
+      <div>&nbsp;&nbsp;battery-icon.ts</div>
+      <div>&nbsp;&nbsp;state.ts</div>
+      <div>services</div>
+      <div>&nbsp;&nbsp;power-service.ts</div>
+      <div>kit</div>
+      <div>&nbsp;&nbsp;popup-host.tsx</div>
+    </div>
+    <div class="editor-code">
+      <div class="code-line"><span class="ln">1</span><span><span class="kw">const</span> time = <span class="fn">formatBatteryTime</span>(seconds, charging)</span></div>
+      <div class="code-line"><span class="ln">2</span><span><span class="cm">// no estimate: the state word is the primary line,</span></span></div>
+      <div class="code-line"><span class="ln">3</span><span><span class="cm">// never a reserved blank under it.</span></span></div>
+      <div class="code-line"><span class="ln">4</span><span></span></div>
+      <div class="code-line"><span class="ln">5</span><span>&lt;<span class="fn">box</span> class=<span class="str">"hero"</span> data-tone={tone}&gt;</span></div>
+      <div class="code-line"><span class="ln">6</span><span>  &lt;<span class="fn">label</span> class=<span class="str">"hero-primary"</span> label={time.primary} /&gt;</span></div>
+      <div class="code-line"><span class="ln">7</span><span>  &lt;<span class="fn">label</span> class=<span class="str">"hero-sub"</span> label={time.sub} /&gt;</span></div>
+      <div class="code-line"><span class="ln">8</span><span>  &lt;<span class="fn">BatteryFill</span> percent={percent} charging={charging} /&gt;</span></div>
+      <div class="code-line"><span class="ln">9</span><span>  &lt;<span class="fn">label</span> class=<span class="str">"hero-detail"</span> label={detail} /&gt;</span></div>
+      <div class="code-line"><span class="ln">10</span><span>&lt;/<span class="fn">box</span>&gt;</span></div>
+      <div class="code-line"><span class="ln">11</span><span></span></div>
+      <div class="code-line"><span class="ln">12</span><span><span class="kw">const</span> surface = { width: <span class="str">352</span>, keyboard: <span class="str">"none"</span> }</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- The normal AGS bar. The battery indicator is the popover's anchor. -->
+<header class="desktopbar">
+  <div class="db-left">
+    <span class="db-ws active">1</span>
+    <span class="db-ws">2</span>
+    <span class="db-ws">3</span>
+    <span class="db-ws">4</span>
+    <span class="db-ws">5</span>
+  </div>
+  <div class="db-center">Mon 9 Nov · 10:42</div>
+  <div class="db-right">
+    <button class="db-btn" aria-label="Microphone">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="10.5" rx="3"></rect>
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Wi-Fi">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <path d="M2.5 8.5a15 15 0 0 1 19 0"></path>
+        <path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>
+        <path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>
+        <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"></circle>
+      </svg>
+    </button>
+
+    <button class="db-btn" aria-label="Sound">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4Z"></path>
+        <path d="M17 9.5a4 4 0 0 1 0 5"></path>
+        <path d="M19.5 7a7.5 7.5 0 0 1 0 10"></path>
+      </svg>
+    </button>
+
+    <button class="db-btn is-active" id="barBattery" aria-label="Battery"
+            aria-haspopup="dialog" aria-expanded="true" aria-controls="panel">
+      <span id="barBatteryIcon"></span>
+    </button>
+  </div>
+</header>
+
+<!-- Anchored battery popover -->
+<main class="battery-pop" id="panel" role="dialog" aria-modal="false"
+      aria-label="Battery" tabindex="-1">
+
+  <header class="pop-head">
+    <span class="head-glyph" id="headGlyph" aria-hidden="true"></span>
+    <div class="head-title">Battery</div>
+    <div class="head-pct" id="headPct">72%</div>
+  </header>
+
+  <section class="hero" id="hero" data-tone="charge" aria-label="Battery status">
+    <div class="hero-top">
+      <div class="hero-main">
+        <div class="hero-primary" id="heroPrimary">1h 12m</div>
+        <div class="hero-sub" id="heroSub">full in</div>
+      </div>
+      <div class="hero-detail" id="heroDetail">72% · 18.4 W</div>
+    </div>
+    <div class="fill-row">
+      <div class="fill-track" id="fillTrack" role="meter"
+           aria-label="Battery charge" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="72" aria-valuetext="72%">
+        <div class="fill-level" id="fillLevel"></div>
+        <span class="fill-bolt" id="fillBolt" hidden>
+          <svg width="9" height="11" viewBox="0 0 12 14" aria-hidden="true">
+            <path d="M7.4 0 1 8h3.6L3.9 14 11 5.8H7.2L7.4 0Z" fill="currentColor"></path>
+          </svg>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="power" id="power" aria-labelledby="powerLabel">
+    <div class="section-label" id="powerLabel">Power mode</div>
+
+    <div class="segmented" id="modeSeg" role="group" aria-label="Power mode"></div>
+
+    <div class="variants" id="variantRow" hidden></div>
+
+    <div class="power-meta" id="powerMeta">Powersave++ · Superpowersave tier</div>
+  </section>
+
+  <button class="foot-row" id="powerOptions"
+          aria-label="Power Options, opens power-options-gtk">
+    <span class="foot-label">Power Options</span>
+    <span class="foot-hint">
+      opens power-options-gtk
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 4h6v6"></path>
+        <path d="M20 4 11 13"></path>
+        <path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"></path>
+      </svg>
+    </span>
+  </button>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ── fixture + deep links ─────────────────────────────────────
+   ?charge=eta|noeta        charging, with / without a full-time estimate
+   ?discharge=eta|noeta     discharging, with / without a remaining estimate
+   ?full=1                  full and plugged in
+   ?unknown=1               no capacity reading
+   ?mode=powersave|balanced|performance
+   ?variant=superpowersave|powersave
+   ?unlisted=1              add an undeclared tier and select it
+   ?loading=1               the power daemon has not answered
+   ?panel=closed            review helper: start with the popover closed
+   ?rate=0                  review helper: no charge-rate binding
+   Precedence: loading > unlisted > variant > mode > battery.
+   ──────────────────────────────────────────────────────────── */
+
+const params = new URLSearchParams(location.search);
+
+const CHARGE_RATE = 18.4;
+const DISCHARGE_RATE = 9.6;
+
+const BASE_PROFILES = [
+  { name: "Powersave++", tier: "Superpowersave", mode: "Powersave" },
+  { name: "Powersave", tier: "Powersave", mode: "Powersave" },
+  { name: "Balanced", tier: "Balanced", mode: "Balanced" },
+  { name: "Performance", tier: "Performance", mode: "Performance" },
+  { name: "Ultraperformance", tier: "Ultraperformance", mode: "Performance" },
+];
+
+const MODES = [
+  {
+    mode: "Powersave",
+    glyph: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-7 4-13 14-14-1 10-7 14-14 14Z"></path><path d="M5 19c3-3 6-5 10-7"></path></svg>`,
+  },
+  {
+    mode: "Balanced",
+    glyph: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M6 21h12"></path><path d="M5 8h14"></path><path d="M8 8 5 14a3 3 0 0 0 6 0L8 8Z"></path><path d="m16 8-3 6a3 3 0 0 0 6 0l-3-6Z"></path></svg>`,
+  },
+  {
+    mode: "Performance",
+    glyph: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15a8 8 0 1 1 16 0"></path><path d="m12 15 4-5"></path><circle cx="12" cy="15" r="1.5" fill="currentColor" stroke="none"></circle></svg>`,
+  },
+  {
+    mode: "Unlisted",
+    glyph: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M9.5 9a2.6 2.6 0 1 1 3.7 2.4c-.8.4-1.2 1-1.2 1.9"></path><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"></circle></svg>`,
+  },
+];
+
+function buildBattery() {
+  const noRate = params.get("rate") === "0";
+
+  if (params.get("full") === "1") {
+    return {
+      pct: 100,
+      tone: "full",
+      charging: false,
+      primary: "Full",
+      sub: "Plugged in",
+      detail: "100% · plugged in",
+    };
+  }
+
+  if (params.get("unknown") === "1") {
+    return {
+      pct: null,
+      tone: "unknown",
+      charging: false,
+      primary: "—",
+      sub: "No estimate",
+      detail: "Capacity unavailable",
+    };
+  }
+
+  const discharge = params.get("discharge");
+  if (discharge === "eta" || discharge === "noeta") {
+    if (discharge === "eta") {
+      return {
+        pct: 68,
+        tone: "discharge",
+        charging: false,
+        primary: "1h 47m",
+        sub: "remaining",
+        detail: `68% · ${noRate ? "estimating" : `${DISCHARGE_RATE} W`}`,
+      };
+    }
+    return {
+      pct: 68,
+      tone: "discharge",
+      charging: false,
+      primary: "Discharging",
+      sub: "No estimate",
+      detail: "68% · estimating",
+    };
+  }
+
+  const charge = params.get("charge");
+  if (charge === "noeta") {
+    return {
+      pct: 72,
+      tone: "charge",
+      charging: true,
+      primary: "Charging",
+      sub: "Estimating full time…",
+      detail: `72% · ${noRate ? "estimating" : `${CHARGE_RATE} W`}`,
+    };
+  }
+
+  return {
+    pct: 72,
+    tone: "charge",
+    charging: true,
+    primary: "1h 12m",
+    sub: "full in",
+    detail: `72% · ${noRate ? "estimating" : `${CHARGE_RATE} W`}`,
+  };
+}
+
+const state = {
+  panelOpen: params.get("panel") !== "closed",
+  loading: params.get("loading") === "1",
+  unlisted: params.get("unlisted") === "1",
+  battery: buildBattery(),
+  profiles: [],
+  activeIndex: -1,
+};
+
+state.profiles = state.unlisted
+  ? [...BASE_PROFILES, { name: "Quiet", tier: "Lowpower", mode: "Unlisted" }]
+  : [...BASE_PROFILES];
+
+if (!state.loading) {
+  const wantedVariant = (params.get("variant") || "").toLowerCase();
+  const wantedMode = (params.get("mode") || "").toLowerCase();
+
+  if (state.unlisted) {
+    state.activeIndex = state.profiles.length - 1;
+  } else if (wantedVariant === "superpowersave") {
+    state.activeIndex = state.profiles.findIndex((p) => p.tier === "Superpowersave");
+  } else if (wantedVariant === "powersave") {
+    state.activeIndex = state.profiles.findIndex((p) => p.name === "Powersave");
+  } else if (MODES.some((m) => m.mode.toLowerCase() === wantedMode)) {
+    const wanted = MODES.find((m) => m.mode.toLowerCase() === wantedMode).mode;
+    state.activeIndex = state.profiles.findIndex((p) => p.mode === wanted);
+  } else {
+    state.activeIndex = 0;
+  }
+
+  if (state.activeIndex < 0) state.activeIndex = 0;
+}
+
+const $ = (id) => document.getElementById(id);
+
+function activeProfile() {
+  return state.loading ? null : state.profiles[state.activeIndex] ?? null;
+}
+
+function profilesForMode(mode) {
+  return state.profiles
+    .map((profile, index) => ({ profile, index }))
+    .filter((entry) => entry.profile.mode === mode);
+}
+
+function batterySVG(pct, tone) {
+  const fraction = pct == null ? 0 : Math.max(0, Math.min(100, pct)) / 100;
+  const fillWidth = (17 * fraction).toFixed(2);
+  const charging = tone === "charge" || tone === "full" ? " is-charging" : "";
+  return `<svg class="batt-svg${charging}" viewBox="0 0 28 16" aria-hidden="true">
+    <rect x="1.4" y="2.4" width="22.2" height="11.2" rx="3"
+          fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+    <rect x="4" y="4.85" width="${fillWidth}" height="6.3" rx="1.5"
+          fill="currentColor"></rect>
+    <path d="M25 6v4" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round"></path>
+  </svg>`;
+}
+
+function renderBattery() {
+  const b = state.battery;
+
+  $("headGlyph").innerHTML = batterySVG(b.pct, b.tone);
+  $("headGlyph").classList.toggle("is-charging", b.tone === "charge" || b.tone === "full");
+  $("barBatteryIcon").innerHTML = batterySVG(b.pct, b.tone);
+
+  $("headPct").textContent = b.pct == null ? "—" : `${b.pct}%`;
+  $("heroPrimary").textContent = b.primary;
+  $("heroSub").textContent = b.sub;
+  $("heroDetail").textContent = b.detail;
+  $("hero").dataset.tone = b.tone;
+
+  const fill = b.pct == null ? 0 : Math.max(0, Math.min(100, b.pct));
+  $("fillLevel").style.width = `${fill}%`;
+  $("fillTrack").style.setProperty("--fill", `${fill}%`);
+  $("fillBolt").hidden = !b.charging;
+
+  const track = $("fillTrack");
+  if (b.pct == null) {
+    track.removeAttribute("aria-valuenow");
+    track.setAttribute("aria-valuetext", "Capacity unavailable");
+  } else {
+    track.setAttribute("aria-valuenow", String(fill));
+    track.setAttribute("aria-valuetext", `${fill}%${b.charging ? ", charging" : ""}`);
+  }
+}
+
+function powerMetaText(profile) {
+  if (state.loading) return "Loading power profiles…";
+  if (profile === null) return "No active power profile";
+  if (profile.mode === "Unlisted") return `${profile.name} · unlisted mode · unmapped tier`;
+  return `${profile.name} · ${profile.tier} tier`;
+}
+
+function renderPower() {
+  const modeSeg = $("modeSeg");
+  const profile = activeProfile();
+  const selectedMode = profile === null ? null : profile.mode;
+  const modes = state.unlisted ? MODES : MODES.filter((m) => m.mode !== "Unlisted");
+
+  modeSeg.classList.toggle("is-four", modes.length > 3);
+  modeSeg.innerHTML = modes.map((m) => `
+    <button class="seg" type="button" data-mode="${m.mode}"
+            aria-pressed="${selectedMode === m.mode}"
+            ${state.loading ? "disabled" : ""}
+            aria-label="${m.mode} power mode">
+      ${m.glyph}<span class="seg-label">${m.mode}</span>
+    </button>`).join("");
+
+  const entries = profile === null ? [] : profilesForMode(profile.mode);
+  const showVariant = !state.loading && entries.length > 1;
+
+  $("variantRow").hidden = !showVariant;
+  $("variantRow").innerHTML = showVariant
+    ? entries.map((entry) => `
+        <button class="chip" type="button" data-index="${entry.index}"
+                aria-pressed="${entry.index === state.activeIndex}"
+                aria-label="${entry.profile.name} profile">
+          ${entry.profile.name}
+        </button>`).join("")
+    : "";
+
+  const meta = $("powerMeta");
+  meta.textContent = powerMetaText(profile);
+  meta.classList.toggle("is-quiet", state.loading || profile === null);
+  $("power").classList.toggle("is-loading", state.loading);
+  $("power").setAttribute("aria-busy", String(state.loading));
+}
+
+function selectMode(mode) {
+  if (state.loading) return;
+
+  const entries = profilesForMode(mode);
+  if (entries.length === 0) return;
+
+  const current = activeProfile();
+  if (current !== null && current.mode === mode) return;
+
+  state.activeIndex = entries[0].index;
+  renderPower();
+}
+
+function selectVariant(index) {
+  if (state.loading) return;
+  if (!Number.isInteger(index) || index < 0 || index >= state.profiles.length) return;
+  state.activeIndex = index;
+  renderPower();
+}
+
+function render() {
+  document.body.classList.toggle("is-closed", !state.panelOpen);
+  $("barBattery").classList.toggle("is-active", state.panelOpen);
+  $("barBattery").setAttribute("aria-expanded", String(state.panelOpen));
+
+  renderBattery();
+  renderPower();
+}
+
+function positionPanel() {
+  const panel = $("panel");
+  const icon = $("barBattery");
+  const width = panel.offsetWidth;
+  const rect = icon.getBoundingClientRect();
+  const anchorRight = rect.right + 6;
+  const left = Math.min(window.innerWidth - width - 12, Math.max(12, anchorRight - width));
+  panel.style.left = `${left}px`;
+}
+
+let toastTimer = null;
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("is-open");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("is-open"), 2200);
+}
+
+function setPanelOpen(open) {
+  state.panelOpen = open;
+  render();
+  positionPanel();
+}
+
+/* ── events ─────────────────────────────────────────────────── */
+
+$("barBattery").addEventListener("click", () => setPanelOpen(!state.panelOpen));
+
+$("modeSeg").addEventListener("click", (event) => {
+  const button = event.target.closest(".seg");
+  if (!button || button.disabled) return;
+  selectMode(button.dataset.mode);
+});
+
+$("variantRow").addEventListener("click", (event) => {
+  const button = event.target.closest(".chip");
+  if (!button) return;
+  selectVariant(Number(button.dataset.index));
+});
+
+$("powerOptions").addEventListener("click", () => {
+  toast("Power Options would open power-options-gtk");
+});
+
+document.addEventListener("click", (event) => {
+  if (!event.target.isConnected) return;
+  if (!state.panelOpen) return;
+  if (event.target.closest("#panel") || event.target.closest("#barBattery")) return;
+  setPanelOpen(false);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!state.panelOpen) return;
+  event.preventDefault();
+  setPanelOpen(false);
+  $("barBattery").focus();
+});
+
+window.addEventListener("resize", positionPanel);
+
+/* ── boot ───────────────────────────────────────────────────── */
+
+render();
+positionPanel();
+</script>
+</body>
+</html>
