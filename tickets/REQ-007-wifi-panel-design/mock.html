@@ -723,6 +723,42 @@ body.is-closed .wifi-pop {
   font-variant-numeric: tabular-nums;
 }
 .list-end { margin-left: auto; display: flex; align-items: center; }
+
+/* Nearby is the only disclosure in the surface. The header stays visible
+   with its count; the body owns the rows and Scan stays available in both
+   states. */
+.nearby-head { padding: 0 8px 0 10px; gap: 4px; }
+
+.expander-toggle {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background .16s;
+}
+.expander-toggle:hover { background: rgba(255, 255, 255, .04); }
+
+.expander-chev {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-left: 5px solid var(--ink-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform .16s ease, border-color .16s;
+}
+.expander-toggle:hover .expander-chev { border-left-color: var(--ink-dim); }
+.expander-toggle[aria-expanded="true"] .expander-chev {
+  transform: rotate(90deg);
+  border-left-color: var(--ink-dim);
+}
+
 .scan-btn {
   min-height: 30px;
   padding: 0 9px;
@@ -739,6 +775,8 @@ body.is-closed .wifi-pop {
   font-size: 10.5px;
   color: var(--ink-faint);
 }
+
+.nearby-body { padding-bottom: 2px; }
 
 .net-list { padding: 0 8px; }
 
@@ -1434,9 +1472,13 @@ body.is-closed .wifi-pop {
           </div>
           <div class="net-list" id="knownList"></div>
 
-          <div class="list-head">
-            <span class="list-title">Nearby</span>
-            <span class="list-count" id="nearbyCount"></span>
+          <div class="list-head nearby-head" id="nearbyHead">
+            <button class="expander-toggle" id="nearbyToggle" aria-expanded="false"
+                    aria-controls="nearbyBody" aria-label="Show nearby networks">
+              <span class="expander-chev" aria-hidden="true"></span>
+              <span class="list-title">Nearby</span>
+              <span class="list-count" id="nearbyCount">(0)</span>
+            </button>
             <span class="list-end">
               <button class="scan-btn" id="scanBtn">Scan</button>
               <span class="scan-note" id="scanNote" hidden>
@@ -1444,7 +1486,9 @@ body.is-closed .wifi-pop {
               </span>
             </span>
           </div>
-          <div class="net-list" id="nearbyList"></div>
+          <div class="nearby-body" id="nearbyBody" hidden>
+            <div class="net-list" id="nearbyList"></div>
+          </div>
         </div>
 
         <div class="empty-state" id="emptyState" hidden>
@@ -1652,7 +1696,7 @@ const state = {
   networks: clone(BASE_NETWORKS),
   connectedSsid: "Jupiter 5G",
   hideKnown: false,
-  hideNearby: false,
+  nearbyOpen: false,
   scanning: false,
   forcedScan: false,
   connectingSsid: null,
@@ -1794,7 +1838,8 @@ if (params.get("empty") === "1") {
   state.connectedSsid = null;
 }
 
-if (params.get("nearby") === "0") state.hideNearby = true;
+if (params.get("nearby") === "1") state.nearbyOpen = true;
+if (params.get("nearby") === "0") state.nearbyOpen = false;
 if (params.get("known") === "0" || params.get("saved") === "0") state.hideKnown = true;
 
 const wantedConnected = params.get("connected");
@@ -1987,7 +2032,6 @@ function knownNetworks() {
 }
 
 function nearbyNetworks() {
-  if (state.hideNearby) return [];
   return state.networks
     .filter((network) => !network.connected && !network.saved)
     .sort((a, b) => b.strength - a.strength);
@@ -2026,7 +2070,7 @@ function renderNetworks() {
   $("emptyState").hidden = total !== 0;
 
   $("knownCount").textContent = known.length ? String(known.length) : "";
-  $("nearbyCount").textContent = nearby.length ? String(nearby.length) : "";
+  $("nearbyCount").textContent = `(${nearby.length})`;
 
   $("knownList").innerHTML = known.length
     ? known.map(rowHTML).join("")
@@ -2034,6 +2078,13 @@ function renderNetworks() {
   $("nearbyList").innerHTML = nearby.length
     ? nearby.map(rowHTML).join("")
     : `<div class="list-empty">No other networks nearby.</div>`;
+
+  $("nearbyBody").hidden = !state.nearbyOpen;
+  $("nearbyToggle").setAttribute("aria-expanded", String(state.nearbyOpen));
+  $("nearbyToggle").setAttribute(
+    "aria-label",
+    `${state.nearbyOpen ? "Hide" : "Show"} nearby networks, ${nearby.length} found`
+  );
 
   const scanning = state.scanning || state.forcedScan;
   $("scanBtn").hidden = scanning;
@@ -2370,6 +2421,17 @@ function scanNow() {
 }
 $("scanBtn").addEventListener("click", scanNow);
 $("rescanBtn").addEventListener("click", scanNow);
+
+function setNearbyOpen(open) {
+  state.nearbyOpen = open;
+  renderNetworks();
+}
+$("nearbyToggle").addEventListener("click", () => setNearbyOpen(!state.nearbyOpen));
+$("nearbyHead").addEventListener("click", (event) => {
+  if (event.target.closest(".list-end")) return;
+  if (event.target.closest("#nearbyToggle")) return;
+  setNearbyOpen(!state.nearbyOpen);
+});
 
 function handleNetworkClick(event) {
   const row = event.target.closest(".net-row");

@@ -194,18 +194,21 @@ It is a 352 px glass popover anchored 8 px under the bar's Wi-Fi icon. One
 surface carries a persistent header (glyph, `Wi-Fi`, live status, on/off switch,
 settings gear), a current-connection hero (SSID, signal, security, `Connected`,
 weak-security warning, `IP / iface`, `MAC`, and the latest
-`Download / Upload / Ping / Ran` speed-test result with `Run test`), and a flat
-`Known` then `Nearby` list. The old `Other Networks` chevron is gone. Secured
-unsaved rows open a password prompt; saved and open networks connect directly.
-The gear opens a sibling speed-test settings popover over the existing
-`wifi-speedtest.json` shape (interval chips plus custom milliseconds, auto-run,
-notify, `Run now`), and the `Network settings` footer row still opens
-`nm-connection-editor`. Design only: bar source is unchanged.
+`Download / Upload / Ping / Ran` speed-test result with `Run test`), and the
+`Known` list with a collapsible `Nearby (n)` disclosure. Nearby is collapsed by
+default, keeps its count and `Scan` action visible, and expands on click; the
+old `Other Networks` chevron is gone. Secured unsaved rows open a password
+prompt; saved and open networks connect directly. The gear opens a sibling
+speed-test settings popover over the existing `wifi-speedtest.json` shape
+(interval chips plus custom milliseconds, auto-run, notify, `Run now`), and the
+`Network settings` footer row still opens `nm-connection-editor`. Design only:
+bar source is unchanged.
 
 Deep links exercise the review states: `?off=1`, `?scanning=1`, `?empty=1`,
 `?password=<ssid>` (plus `&fail=1`), `?weak=0|1`, `?error=1`, `?settings=1`,
-`?test=running|done|error|none`, `?connected=<ssid>|none`, `?nearby=0`,
-`?known=0`, `?connecting=<ssid>` and `?panel=closed`.
+`?test=running|done|error|none`, `?connected=<ssid>|none`, `?nearby=1|0`
+(expand / force-collapse), `?known=0`, `?connecting=<ssid>` and
+`?panel=closed`.
 
 ## Cutover state migration (wifi-speedtest)
 

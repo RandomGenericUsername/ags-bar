@@ -45,13 +45,18 @@ The surface has four parts.
    shows a spinner, keeps the previous numbers while running, and surfaces a
    typed error without blanking the last result.
 3. **Networks list.** `Known` first (connected network, then saved networks),
-   then `Nearby`. There is no `Other Networks` chevron and no expand/collapse.
-   Each row has a signal glyph, SSID, a sub-line (`Saved`, `Secured`,
-   `Open network`), a green `Connected` badge when applicable, and a `Connect`
-   action or an in-row spinner. Clicking the row connects. A secured network
-   that is not saved opens the password prompt instead of connecting; saved
-   and open networks connect without a password. Scanning stays automatic while
-   the surface is visible and there is a quiet `Scan` affordance.
+   always visible. `Nearby (n)` follows as the surface's only disclosure:
+   a collapsible header with a chevron, the live count and the `Scan` action.
+   It is **collapsed by default** so known networks stay visible and the panel
+   stays compact; clicking the header expands the current nearby rows and
+   clicking again collapses them. The old `Other Networks` chevron is gone and
+   no other section expands. Each row has a signal glyph, SSID, a sub-line
+   (`Saved`, `Secured`, `Open network`), a green `Connected` badge when
+   applicable, and a `Connect` action or an in-row spinner. Clicking the row
+   connects. A secured network that is not saved opens the password prompt
+   instead of connecting; saved and open networks connect without a password.
+   Scanning stays automatic while the surface is visible and `Scan` remains
+   usable in both the collapsed and expanded states.
 4. **Password prompt.** Replaces the list while active: network name, password
    field with reveal, inline error, `Cancel` and `Join`. Failure keeps the
    prompt open for retry; a cancelled prompt returns to the list.
@@ -72,6 +77,12 @@ The surface has four parts.
 - **Rows.** Row click and the `Connect` action are the same intent. The row is
   a keyboard target (`Enter` / `Space`). The action shows `Connecting…` with a
   spinner and is not clickable twice.
+- **Nearby disclosure.** The header is a button with `aria-expanded` and
+  `aria-controls`; its label names the section and count (`Nearby (n)`). Clicking
+  the header (or its chevron) toggles the nearby body; `Scan` is a separate
+  action and never toggles it. The count stays visible while collapsed. Opening
+  the disclosure grows the panel to fit the rows; collapsing shrinks it. The
+  scroll area still owns overflow and the footer stays pinned.
 - **Password.** The field receives focus on open (ON_DEMAND). `Enter` joins.
   Reveal toggles the visible password and reports `aria-pressed`. Empty input
   produces an inline error. A failed join stays on the prompt and allows a
@@ -96,7 +107,7 @@ The surface has four parts.
 | --- | --- |
 | Off | `Wi-Fi off`; honest copy; footer remains. |
 | Scanning | `Scanning…`; list remains usable; `Scan` becomes a spinner note. |
-| Connected | Hero + green `Connected` badge; known and nearby lists. |
+| Connected | Hero + green `Connected` badge; known list + nearby disclosure. |
 | Disconnected | `Not connected`; no hero; list still available. |
 | No networks | `No networks found` + `Scan again`; no fake rows. |
 | Empty known / nearby | Honest `No saved networks yet.` / `No other networks nearby.` |
@@ -125,8 +136,17 @@ Design deliverable:
       `Download / Upload / Ping / Ran` result.
 - [x] `Run test` has a spinner state and a typed error state; the previous
       result is retained on failure.
-- [x] `Known` (connected + saved) is followed by `Nearby`; the old
-      `Other Networks` chevron/expand is gone.
+- [x] `Known` (connected + saved) is always visible and is followed by a
+      collapsible `Nearby (n)` header with a disclosure chevron and the `Scan`
+      action. The old `Other Networks` chevron is gone; no other section
+      expands.
+- [x] `Nearby` is collapsed by default, keeps its count visible when collapsed,
+      and toggles open/closed from the header. The toggle exposes
+      `aria-expanded` and an accessible label; expanding shows the current
+      nearby rows.
+- [x] The panel grows/shrinks with the disclosure, stays inside the viewport,
+      the scroll region still works, and the footer stays pinned. `Scan` remains
+      usable in both states.
 - [x] Rows carry signal, SSID, sub-line, connected badge and `Connect`/spinner;
       row click and the action connect.
 - [x] Secured + unsaved opens the password prompt; saved and open networks
@@ -144,8 +164,12 @@ Design deliverable:
       settings controls, Run test and footer are reachable. ON_DEMAND is
       represented by `data-keyboard="on-demand"` only while a text field is
       visible.
-- [x] No uppercase micro-labels and no chevrons; sentence case throughout.
+- [x] No uppercase micro-labels and no decorative chevrons; the only disclosure
+      chevron is `Nearby`. Sentence case throughout.
 - [x] Deep links cover the review states listed below.
+- [x] Harness covers the collapsed default, visible count, toggle open/close,
+      Scan availability in both states, `aria-expanded`, `?nearby=1|0`, and no
+      layout/overflow regression at 1600×1000 and 1280×800.
 - [x] No bar source was changed and no app→app import was added.
 
 Implementation acceptance is out of scope here; see Follow-up.
@@ -162,7 +186,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `64cce26ad4b5ef70dc4b851ee6896874acd03341d427826d3832f3355cbeb8aa`
+  `0f32f515a2081a9fa94baf9ae7d8f80ad80c19dc99f092a61d7477bcbcfba715`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -186,7 +210,8 @@ google-chrome-stable --new-window \
 | `?settings=1` | Open the speed-test settings popover. |
 | `?test=running` / `done` / `error` / `none` | Speed-test spinner / last result / typed error / no result. |
 | `?connected=<ssid>` / `?connected=none` | Choose the connected sample network, or disconnect. |
-| `?nearby=0` / `?known=0` | Empty nearby / empty known list. `known=0` disconnects unless `connected` is explicit. |
+| `?nearby=1` / `?nearby=0` | Expand / force-collapse the `Nearby` disclosure. The default is collapsed; `nearby=0` does not hide the rows permanently. |
+| `?known=0` | Empty known list. Disconnects unless `connected` is explicit. |
 | `?connecting=<ssid>` | Show the row spinner and `Connecting to…` without completing. |
 | `?panel=closed` | Start closed; the bar icon reopens it. |
 
@@ -196,7 +221,7 @@ google-chrome-stable --new-window \
 | --- | --- |
 | `setWifiEnabled` / `WifiSwitch` | Header switch; off state; bar icon changes. |
 | `WifiRow` click → `activate` | Known/nearby row or `Connect`, with spinner. |
-| `wifiNetworks` grouping | `Known` (connected + saved) then `Nearby`; no chevron. |
+| `wifiNetworks` grouping | `Known` (connected + saved) always visible; `Nearby (n)` disclosure collapsed by default. |
 | `WifiPasswordPrompt` | Password view replacing the list, reveal, error, retry. |
 | `deviceInfo` + `lastResult`/`lastRunAt`/`lastError` | Hero details and speed-test cells. |
 | `runSpeedTest` (currently settings-only) | Hero `Run test` and settings `Run now`. |
@@ -220,16 +245,19 @@ google-chrome-stable --new-window \
    strong branch.
 5. **Empty-known coherence.** `?known=0` disconnects unless `connected` is
    explicit, so a connected hero never contradicts an empty known list.
-6. **Icons.** Wi-Fi and gear glyphs are inline SVG; row signal strength is CSS
+6. **Nearby default.** `Nearby` starts collapsed; `?nearby=1` opens it and
+   `?nearby=0` forces it closed while keeping the rows available. `Known` stays
+   visible and no second expander is introduced.
+7. **Icons.** Wi-Fi and gear glyphs are inline SVG; row signal strength is CSS
    bars. There are no external assets, fonts or images.
-7. **ON_DEMAND.** The mock exposes the real rule as
+8. **ON_DEMAND.** The mock exposes the real rule as
    `#panel[data-keyboard="on-demand"]`; the app keeps the existing
    `PopupHost` computed condition (password prompt or the interval entry only).
-8. **Scan cadence.** The mock's 7 s cue is decorative; the service scans every
+9. **Scan cadence.** The mock's 7 s cue is decorative; the service scans every
    6 s while a surface is visible and stops when it closes.
-9. **Network settings.** The footer click is a toast in the mock; the real row
-   still spawns `nm-connection-editor`.
-10. **Panel width.** `--panel-w: 352px` is an app literal until a
+10. **Network settings.** The footer click is a toast in the mock; the real row
+    still spawns `nm-connection-editor`.
+11. **Panel width.** `--panel-w: 352px` is an app literal until a
     `layout.ags` width token exists; no layout token is invented here.
 
 ## Follow-up
@@ -240,11 +268,13 @@ Implementation maps onto the current Wi-Fi service and `WifiContent`:
   `lastRunAt`, `lastError`, `running`, `runSpeedTest`.
 - Known/nearby → partition `wifiNetworks` into
   `connected || saved` and `!connected && !saved`; the service already sorts
-  connected, saved, strength.
+  connected, saved, strength. Keep a UI-local `nearbyOpen` defaulting to false,
+  expose `aria-expanded`/`aria-controls`, and keep `Scan` outside the toggle.
 - Row intent → `activate(ssid)` for saved/open, password prompt for
   `secured && !saved`, `submitPassword` for `needAuth`, `cancel` for Cancel.
-- Password prompt → keep the existing `WifiPasswordPrompt` behaviour; drop the
-  `Other Networks` chevron and `stcExpanded` from the popup into the sibling
+- Password prompt → keep the existing `WifiPasswordPrompt` behaviour; the old
+  `Other Networks` chevron and `stcExpanded` leave the popup. The single Nearby
+  disclosure replaces them; the speed-test settings move to the sibling
   settings surface.
 - Settings → reuse `IntervalMsControl`, `STC_CHIPS`, `setConfigValue`,
   `runSpeedTest("manual")`; keep `wifi-speedtest.json` under XDG state.
