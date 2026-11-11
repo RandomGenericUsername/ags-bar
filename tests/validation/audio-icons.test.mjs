@@ -94,18 +94,18 @@ assert.deepEqual(
   `media-transport-panel must define play and pause; available: ${[...panelNames].sort().join(", ")}`
 );
 
-const popupSrc = readFileSync(join(AGS, "audio/AudioPopup.tsx"), "utf8");
-const panelUses = [...popupSrc.matchAll(/icon\("media-transport-panel"/g)].length;
+const transportSrc = readFileSync(join(AGS, "audio/ui/controls.tsx"), "utf8");
+const panelUses = [...transportSrc.matchAll(/icon\("media-transport-panel"/g)].length;
 assert.equal(
   panelUses,
   1,
-  `the panel group must be requested at exactly one call site (the main transport button); found ${panelUses}`
+  `the panel group must be requested at exactly one call site (the shared play/pause button); found ${panelUses}`
 );
-const originalUses = [...popupSrc.matchAll(/icon\("media-transport",/g)].length;
+const originalUses = [...transportSrc.matchAll(/icon\("media-transport",/g)].length;
 assert.equal(
   originalUses,
   2,
-  `media-transport must still serve exactly previous and next; found ${originalUses} use(s)`
+  `media-transport must serve exactly previous and next; found ${originalUses} use(s)`
 );
 
 // The microphone selector's resting glyph (add-system-icon-variants). The
@@ -120,6 +120,7 @@ assert.deepEqual(
   [],
   `microphone must define system-mic-on/off; available: ${[...micNames].sort().join(", ")}`
 );
+const popupSrc = readFileSync(join(AGS, "audio/AudioPopup.tsx"), "utf8");
 assert.ok(
   popupSrc.includes('fallbackVariant="system-mic-on"'),
   "the Input DeviceSelector must pass fallbackVariant=\"system-mic-on\" (not system-low)"

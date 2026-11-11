@@ -1,6 +1,6 @@
 import {
-  clampLevel, currentStreamsForApp, playerSupportsSeek, volumeState,
-  type AppId, type AudioPlayer, type AudioSession, type EndpointId, type PlayerId,
+  clampLevel, currentStreamsForApp, nextLoopStatus, playerSupportsSeek, volumeState,
+  type AppId, type AudioPlayer, type AudioSession, type EndpointId, type LoopStatus, type PlayerId,
 } from "../domain/audio-model.ts"
 import type { ActionResult, AudioPorts } from "./ports.ts"
 
@@ -151,4 +151,32 @@ export async function seekPlayer(ports: AudioPorts, id: PlayerId, positionUs: nu
     return rejected("unsupported")
   await ports.mpris.seek(id, Math.min(positionUs, player.media.lengthUs as number))
   return { ok: true, applied: 1, failed: 0 }
+}
+
+/**
+ * MPRIS Shuffle/Loop. Both are OPTIONAL MPRIS properties, so a player that does
+ * not publish them reports `canShuffle`/`canLoop` false and these actions reject
+ * with `unsupported` instead of writing a command the player will ignore or
+ * error on. The UI hides the controls from the same flags.
+ */
+export async function setPlayerShuffle(ports: AudioPorts, id: PlayerId, on: boolean): Promise<ActionResult> {
+  const player = currentPlayer(ports.session.current(), id)
+  if (!player) return rejected("missing-player")
+  if (!player.capabilities.canShuffle) return rejected("unsupported")
+  await ports.mpris.setShuffle(id, on)
+  return { ok: true, applied: 1, failed: 0 }
+}
+
+export async function cyclePlayerLoop(ports: AudioPorts, id: PlayerId): Promise<ActionResult> {
+  const player = currentPlayer(ports.session.current(), id)
+  if (!player) return rejected("missing-player")
+  if (!player.capabilities.canLoop) return rejected("unsupported")
+  await ports.mpris.setLoop(id, nextLoopStatus(player.loop))
+  return { ok: true, applied: 1, failed: 0 }
+}
+
+export function loopLabel(loop: LoopStatus): string {
+  if (loop === "track") return "Repeat one"
+  if (loop === "playlist") return "Repeat all"
+  return "Repeat off"
 }

@@ -1,4 +1,4 @@
-import type { AppId, AudioSession, EndpointId, PlayerId, RouteIntent, StreamId, VolumeState } from "../domain/audio-model.ts"
+import type { AppId, AudioSession, EndpointId, LoopStatus, PlayerId, RouteIntent, StreamId, VolumeState } from "../domain/audio-model.ts"
 
 /** Event-fed read model. Implementations must not poll for authoritative state. */
 export interface AudioSessionReader { current(): AudioSession }
@@ -57,6 +57,10 @@ export interface MprisPort {
   next(playerId: PlayerId): Promise<void>
   previous(playerId: PlayerId): Promise<void>
   seek(playerId: PlayerId, positionUs: number): Promise<void>
+  /** MPRIS `Shuffle`; rejected by the action layer when unsupported. */
+  setShuffle(playerId: PlayerId, on: boolean): Promise<void>
+  /** MPRIS `LoopStatus`; rejected by the action layer when unsupported. */
+  setLoop(playerId: PlayerId, status: LoopStatus): Promise<void>
 }
 
 export interface ArtworkPort {

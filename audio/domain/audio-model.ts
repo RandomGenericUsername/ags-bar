@@ -46,6 +46,26 @@ export interface PlayerCapabilities {
   canGoNext: boolean
   canGoPrevious: boolean
   canSeek: boolean
+  /** MPRIS `Shuffle` is optional; absent means the player does not expose it. */
+  canShuffle: boolean
+  /** MPRIS `LoopStatus` is optional; absent means the player does not expose it. */
+  canLoop: boolean
+}
+
+/**
+ * MPRIS `LoopStatus`, normalised to the lowercase UI vocabulary.
+ *
+ * The three values are the wire contract (`None` / `Track` / `Playlist`); the
+ * lowercase form is what the domain and UI speak so a display string is never
+ * also a state value.
+ */
+export type LoopStatus = "none" | "track" | "playlist"
+
+/** Off → Playlist → Track → Off, matching the frozen sound mock's cycle. */
+export function nextLoopStatus(loop: LoopStatus): LoopStatus {
+  if (loop === "none") return "playlist"
+  if (loop === "playlist") return "track"
+  return "none"
 }
 
 export interface PlayerMedia {
@@ -66,6 +86,10 @@ export interface AudioPlayer {
   current: boolean
   playback: PlaybackState
   capabilities: PlayerCapabilities
+  /** MPRIS Shuffle, false when unsupported (see `capabilities.canShuffle`). */
+  shuffle: boolean
+  /** MPRIS LoopStatus, "none" when unsupported (see `capabilities.canLoop`). */
+  loop: LoopStatus
   media: PlayerMedia
 }
 

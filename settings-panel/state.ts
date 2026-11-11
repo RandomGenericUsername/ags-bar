@@ -2,6 +2,8 @@ import { createState } from "ags"
 import { closeWifiPopup } from "../components/wifi/state"
 import { closeBluetoothPopup } from "../components/bluetooth/state"
 import { closeBatteryPopup } from "../components/battery/state"
+import { close as closeAudio } from "../audio/ui-state"
+import { closeTray } from "../audio/panel-state"
 
 /**
  * Shared settings-panel state.
@@ -36,6 +38,8 @@ export function open() {
   closeWifiPopup()
   closeBluetoothPopup()
   closeBatteryPopup()
+  closeAudio()
+  closeTray()
 }
 
 export function close() {

@@ -10,8 +10,13 @@ import type { BarLayout, LayoutProvider } from "../kit/layout"
  *
  *   start  : workspaces
  *   center : clock
- *   end    : tray, recording, audio-output, audio-mic, battery, bluetooth,
- *            network, btop, thunderbird, settings, power-menu
+ *   end    : media-strip, tray, recording, audio-output, audio-mic, battery,
+ *            bluetooth, network, btop, thunderbird, settings, power-menu
+ *
+ * The now-playing strip (REQ-005) is first in the end cluster so it sits
+ * before the tray/microphone/network/volume/battery icons; the SNI tray keeps
+ * its own slot and renders real tray icons instead of the mock's two
+ * placeholder dots.
  *
  * The recording indicator is placed here rather than inside the tray (its old
  * home), so placement is data (AD-9). The four launchers (btop, thunderbird,
@@ -25,6 +30,7 @@ export const DEFAULT_LAYOUT: BarLayout = {
     start: [{ id: "workspaces" }],
     center: [{ id: "clock" }],
     end: [
+      { id: "media-strip" },
       { id: "tray" },
       { id: "recording" },
       { id: "audio-output" },

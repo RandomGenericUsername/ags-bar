@@ -11,6 +11,7 @@ import {
   createAudioMicWidget,
   createAudioOutputWidget,
 } from "./widgets/audio"
+import { createMediaStripWidget } from "./widgets/media"
 import { createBatteryWidget } from "./widgets/battery"
 import { createBluetoothWidget } from "./widgets/bluetooth"
 import { networkWidget } from "./widgets/network-descriptor"
@@ -45,6 +46,7 @@ export function createWidgetRegistry(
   widgets.set("workspaces", workspacesWidget)
   widgets.set("clock", clockWidget)
   widgets.set("tray", createTrayWidget())
+  widgets.set("media-strip", createMediaStripWidget(deps.audio))
   widgets.set("recording", createRecordingWidget(deps.monitor))
   widgets.set("audio-output", createAudioOutputWidget(deps.audio))
   widgets.set("audio-mic", createAudioMicWidget(deps.audio, deps.backdrop !== "dark"))

@@ -1,5 +1,55 @@
 # Changelog
 
+## Unreleased — REQ-005 sound panel
+
+### Added
+
+- Replace the tall sound drawer with the frozen 352 px anchored popover: a
+  persistent Output header, a `Playing | Mixer` deck (one page per current
+  player; every app with audio in Mixer), a collapsed Input section and the
+  footer. The read-only Playing level opens Mixer focused on that app.
+- Add MPRIS `Shuffle` and `LoopStatus` to `PlayerCapabilities`/`AudioPlayer`,
+  the MPRIS adapter, the action layer and the panel; each control is hidden
+  when the player does not publish the optional property.
+- Add the always-visible now-playing strip to the bar's end cluster
+  (`media-strip` layout id, before the tray and the status icons): artwork,
+  title/artist, capability-gated transport, wheel-to-cycle players and an
+  inline `n/N · App` cue.
+- Add the 300 px tray dropdown (`TrayPopup`/catcher) with the active track,
+  transport/seek, a `Players` list when more than one player exists and an
+  `Open sound panel` footer. It shares the overlay budget with the panel.
+- Add the Output-gear settings popover with the live `Bar media widget`
+  switch, persisted in the app-owned `$XDG_CONFIG_HOME/ags-bar/config.json`
+  (`settings/`: pure domain, port, GLib adapter, save-on-change state) —
+  never the AGS config link, never `bar.json`, never the clipboard config.
+- Tests: `audio-controls.test.mjs` (MPRIS shuffle/loop, page projection),
+  `settings-domain.test.ts` (merge/defaults/write shape/path), and expanded
+  `audio-panel-render.test.mjs` checks for the surface roles, the tray/strip
+  wiring, the app-owned settings path and the no-literal-colour rule.
+
+### Changed
+
+- Rewrite `audio/audio-panel.css` on the palette roles and the surface-role
+  vocabulary: `surface.panel` for the popover/dropdown/menus, `surface.card`
+  for a Playing page, `surface.cell` for list rows, `surface.control` for
+  buttons/fields and `surface.pill` for badges. No `surface.window` (doc 113
+  W-10: AGS overlays stay `surface.panel`).
+- Delete the retired drawer's dead `.audio-*` rules from `style.css`, keeping
+  only the bar microphone wrapper and the live dot.
+- The bar's default layout gains `media-strip` as the first end-cluster item;
+  the SNI tray keeps its slot (the mock's two placeholder dots stand in for
+  the real tray icons).
+
+### Notes
+
+- Tuple unchanged on purpose: the composition program tuple is still
+  `ags-platform` v1.0.1 / `contracts` v0.11.0 / `dotfiles-assets` v0.18.1.
+  The v1.1.0/v0.12.0/v0.19.0 layer (required `surface.window`) is a
+  program-wide cutover; this app uses only the five live roles and is
+  forward-compatible.
+- `dotfiles-assets/skins/templates/ags.gtk.css.j2` needs the follow-up class
+  mapping recorded in the ticket; no assets edit is part of this change.
+
 ## v0.6.2 — 2026-11-11
 
 ### Added

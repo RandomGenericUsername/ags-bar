@@ -29,6 +29,11 @@ import {
   popupVisible as audioPopupVisible,
   setAudioIconX,
 } from "./audio/ui-state"
+import {
+  closeTray,
+  openTray,
+  trayOpen,
+} from "./audio/panel-state"
 
 /**
  * Register every bar overlay with the coordinator, once.
@@ -90,4 +95,16 @@ overlays.register({
     openAudio()
   },
   close: closeAudio,
+})
+
+/**
+ * The now-playing dropdown. It shares the one overlay budget with the panel:
+ * opening the strip closes the panel and opening the panel (volume icon or the
+ * dropdown footer) closes the dropdown.
+ */
+overlays.register({
+  id: "tray",
+  isOpen: () => trayOpen(),
+  open: (anchorX) => openTray(anchorX),
+  close: closeTray,
 })

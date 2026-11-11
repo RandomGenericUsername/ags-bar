@@ -125,7 +125,7 @@ check("audio-panel.css is imported by the AGS stylesheet", () => {
     grep("audio-panel.css", popupSrc);
   assert.ok(
     referenced,
-    "audio-panel.css is imported by nothing, so the 345-line approved theme " +
+    "audio-panel.css is imported by nothing, so the approved sound stylesheet " +
       "is dead and the popup falls back to pre-existing .audio-* rules."
   );
   assert.ok(styleSrc.length > 0, "style.css could not be read");
@@ -191,6 +191,93 @@ check("the new boundary is reachable from app.tsx", () => {
       "nothing imports them, so the panel has no data source -- orphaned " +
       "architecture that compiles and renders nothing."
   );
+});
+
+check("the sound surfaces stay on surface.panel (doc 113 W-10)", () => {
+  // The popover, tray dropdown and settings popover are AGS layer-shell
+  // overlays. `surface.window` is the rofi/wlogout/GTK toplevel role and must
+  // not appear in this app's sound surface or its stylesheet.
+  const files = [
+    join(AUDIO, "AudioPopup.tsx"),
+    join(AUDIO, "TrayPopup.tsx"),
+    join(AUDIO, "audio-panel.css"),
+    join(AUDIO, "ui/controls.tsx"),
+    join(AGS, "bar/widgets/media.tsx"),
+    join(AGS, "settings/glib-store.ts"),
+  ];
+  const offenders = files.filter((p) => stripComments(read(p)).includes("surface.window"));
+  assert.deepEqual(offenders, [], `surface.window is used in: ${offenders.join(", ")}`);
+});
+
+check("the tray dropdown is a registered overlay with catcher + panel windows", () => {
+  const app = read(join(AGS, "app.tsx"));
+  assert.match(app, /TrayPopupCatcher\(primary\)/, "no tray catcher window in app.tsx");
+  assert.match(app, /TrayPopup\(primary,\s*\w+\)/, "no tray dropdown window in app.tsx");
+  const reg = read(join(AGS, "overlays.ts"));
+  assert.match(reg, /id:\s*"tray"/, "the tray dropdown is not registered with the overlay coordinator");
+  const stateSrc = read(join(AUDIO, "panel-state.ts"));
+  assert.match(stateSrc, /trayPopupVisible/, "the shared tray visibility accessor is missing");
+  assert.match(stateSrc, /mediaWidgetEnabled/, "the tray ignores the Bar media widget setting");
+});
+
+check("the media strip is declared, placed and rendered", () => {
+  const manifest = read(join(AGS, "bar/bar-manifest.ts"));
+  assert.match(manifest, /id:\s*"media-strip"/, "bar-manifest has no media-strip capability");
+  const layout = read(join(AGS, "bar/layout.default.ts"));
+  const end = layout.slice(layout.indexOf("end: ["));
+  const stripAt = end.indexOf('{ id: "media-strip" }');
+  const trayAt = end.indexOf('{ id: "tray" }');
+  assert.ok(stripAt >= 0, "the default layout does not place media-strip");
+  assert.ok(trayAt > stripAt, "media-strip must sit before the tray slot");
+  const registry = read(join(AGS, "bar/registry.ts"));
+  assert.match(registry, /widgets\.set\("media-strip"/, "the registry does not render media-strip");
+  const widget = read(join(AGS, "bar/widgets/media.tsx"));
+  assert.match(widget, /mediaWidgetEnabled\(\)\s*&&\s*playingRows\(model\)\.length > 0/,
+    "the strip is not gated on the setting plus a current player");
+});
+
+check("the settings file is app-owned and never the AGS link", () => {
+  const store = read(join(AGS, "settings/glib-store.ts"));
+  assert.match(store, /get_user_config_dir\(\)/, "the store does not resolve $XDG_CONFIG_HOME");
+  assert.match(store, /SETTINGS_RELATIVE_PATH/, "the store bypasses the domain path constant");
+  const domain = read(join(AGS, "settings/domain.ts"));
+  assert.match(domain, /"ags-bar\/config\.json"/, "the app-owned path is not ags-bar/config.json");
+  assert.ok(!domain.includes('"ags/config.json"'), "the AGS install link is not writable state");
+  assert.ok(!store.includes("clipboard"), "the bar must not write the clipboard config");
+});
+
+check("audio-panel.css introduces no new literal chrome colour", () => {
+  const css = read(join(AUDIO, "audio-panel.css"));
+  const literals = [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase());
+  // The live/playing dot is the one sanctioned semantic-signal green (the
+  // paper: green is a state signal, not a palette role). Everything else must
+  // be a palette role or alpha(@role, n).
+  const offenders = literals.filter((value) => value !== "#4ade80");
+  assert.deepEqual(offenders, [], `literal colours in the sound stylesheet: ${offenders.join(", ")}`);
+  assert.ok(!/\brgba?\(/.test(css), "the sound stylesheet uses an rgb()/rgba() literal");
+});
+
+check("the persistent hero is outside the scroll area and the deck is complete", () => {
+  const src = popupSrc;
+  const hero = src.indexOf('class="audio-hero"');
+  const scroll = src.indexOf("<scrolledwindow");
+  assert.ok(hero >= 0 && scroll > hero, "the Output hero must precede (and live outside) the scroller");
+  for (const marker of ['label="Playing"', 'label="Mixer"', 'audio-input-section', 'class="audio-foot"']) {
+    assert.ok(src.includes(marker), `the sound surface is missing ${marker}`);
+  }
+  assert.ok(src.includes("audio-playing-level"), "the read-only Playing level -> Mixer bridge is missing");
+  assert.ok(src.includes("openMixerFor"), "the Playing level does not open Mixer on its app");
+});
+
+check("shuffle/loop controls are capability-gated and dispatched", () => {
+  const controls = read(join(AUDIO, "ui/controls.tsx"));
+  assert.match(controls, /capabilities\(\)\.canShuffle/, "the shuffle control is not capability-gated");
+  assert.match(controls, /capabilities\(\)\.canLoop/, "the loop control is not capability-gated");
+  assert.match(controls, /actions\.toggleShuffle/, "shuffle is not dispatched");
+  assert.match(controls, /actions\.cycleLoop/, "loop is not dispatched");
+  const model = read(join(AUDIO, "domain/audio-model.ts"));
+  assert.match(model, /canShuffle:\s*boolean/, "PlayerCapabilities has no canShuffle");
+  assert.match(model, /canLoop:\s*boolean/, "PlayerCapabilities has no canLoop");
 });
 
 let failed = 0;

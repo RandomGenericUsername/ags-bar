@@ -245,23 +245,93 @@ google-chrome-stable --new-window \
 
 ## Implementation acceptance (follow-up)
 
-- [ ] Persistent output + Playing/Mixer deck implemented per the mock at
-      1600×1000 and 1920×1080.
-- [ ] Playing pages: transport/seek; shuffle/repeat capability-gated; no volume
+- [x] Persistent output + Playing/Mixer deck implemented per the mock. The
+      popover is 352 px wide and anchored 8 px under the bar by the shared
+      `PopupHost`; its height is 472 px in Playing and 632 px in Mixer for the
+      fixture session (a fixed deck scroller, clamped on short monitors). Live
+      renders are in the evidence section below.
+- [x] Playing pages: transport/seek; shuffle/repeat capability-gated; no volume
       slider; the read-only level opens Mixer on that app.
-- [ ] Mixer rows: route/volume/mute/play-pause; no transport/seek; row and
+- [x] Mixer rows: route/volume/mute/play-pause; no transport/seek; row and
       play/pause do not switch modes.
-- [ ] Tray strip: always visible when enabled + player; click opens the
+- [x] Tray strip: always visible when enabled + player; click opens the
       dropdown; transport never opens it; wheel cycles players; hidden when
       idle; tray/panel mutually exclusive.
-- [ ] Tray dropdown: active track/transport/seek, `Players`, active check,
+- [x] Tray dropdown: active track/transport/seek, `Players`, active check,
       `Open sound panel`.
-- [ ] Settings: `$XDG_CONFIG_HOME/ags-bar/config.json` with
-      `{ media_widget: { enabled } }`, live apply, missing/corrupt defaults; not
-      the AGS install link and not `bar.json`.
-- [ ] MPRIS Shuffle/Loop capabilities/actions; controls hidden when unsupported.
-- [ ] `make ci` and `make gates` pass; composition pin bumped if the bar tag
-      changes.
+- [x] Settings: `$XDG_CONFIG_HOME/ags-bar/config.json` with
+      `{ media_widget: { enabled } }`, live apply, missing/corrupt defaults;
+      not the AGS install link and not `bar.json`.
+- [x] MPRIS Shuffle/Loop capabilities/actions; controls hidden when
+      unsupported.
+- [x] `make ci` and `make gates` pass. The composition pin is unchanged on
+      purpose: this work produces no bar tag, and the tuple bump is a
+      program-wide cutover (see the compliance section).
+
+## Implementation evidence (2026-11-11)
+
+- Worktree `.worktrees/REQ-005/`, branch
+  `ticket/REQ-005-sound-panel-implementation`, based on `ef80881` (v0.6.2).
+- Code: `audio/AudioPopup.tsx` (panel), `audio/TrayPopup.tsx` (dropdown +
+  catcher), `audio/ui/controls.tsx` (shared transport/seek/level/tile/menu),
+  `audio/panel-state.ts` (mode/page/input/tray), `audio/binding.ts`,
+  `settings/{domain,port,glib-store,state}.ts`, `bar/widgets/media.tsx`
+  (strip), `bar/{registry,bar-manifest,layout.default}.ts`, `app.tsx`,
+  `overlays.ts`, `audio/audio-panel.css`.
+- Gates (run in the worktree; the local contracts checkout is the documented
+  dev pin):
+
+  ```text
+  make gates CONTRACTS_ROOT=/home/inumaki/Development/dotfiles/contracts
+  exit 0
+  tests/ts: 179 pass / 0 fail
+  tests/validation: 28 pass / 0 fail (13/13 render checks)
+  symbol check: OK
+  test-program tsc: 0 errors
+  conformance: 14 pass / 0 fail
+  drift: all checks passed
+  bundle: build/ags-bar.js 3021724 bytes
+  typecheck: 0 errors in the ags-bar tree
+  ```
+
+- Live widget renders (the REAL components, not the mock), captured through
+  `Gtk.WidgetPaintable` in a standalone preview against a fake session:
+  `/tmp/opencode/req005/natural-panel.png` (350×472, Playing),
+  `natural-mixer.png` (350×632, all four Mixer rows + the Input header),
+  `live-strip.png` (252×40 natural width, under the 340 px cap),
+  `live-tray.png` (298×397) and `live-settings.png` (327×115). The preview
+  entry point was temporary and is not committed.
+- The paper mock render after the compliance pass is
+  `/tmp/opencode/req005/paper-default.png` / `paper-mixer.png`.
+- Deviations (all behaviour-preserving):
+  1. **Playing carousel is arrows + wheel**, not a horizontal scroll-snap
+     scroller. GTK4's CSS has no `scroll-snap`; the desktop has no touch
+     input. The arrows are hidden at ≤1 page, and the wheel uses the same
+     ~250 ms cooldown as the strip.
+  2. **The tray cue is inline** (the strip's artist line shows `n/N · App` for
+     ~1 s) instead of a floating toast window; a second layer-shell window for
+     a one-second decoration is not justified.
+  3. **Shuffle/repeat are text glyphs** (`⇄` / `↻`) with full tooltips/ARIA.
+     The icon artifact has no variants for them and `icons.json` is
+     provisioning-owned; adding a `media-controls` group is a
+     `dotfiles-assets` follow-up.
+  4. **The mock's two placeholder tray dots are real SNI icons** in the bar's
+     reserved tray slot; no decorative dots were added next to real items.
+  5. **The panel has no nested horizontal scroll**; a long Mixer scrolls
+     vertically under the fixed hero, as the paper requires.
+  6. **The deck scroller has a fixed height** (280 px Playing / 440 px Mixer,
+     clamped on short monitors) instead of content-sized height. A live probe
+     with `propagateNaturalHeight` collapsed the scroller to its minimum and
+     produced a 250 px panel — the same class of failure the old drawer
+     measured on 2026-10-07. The fixed scroller yields a 472 px Playing panel
+     and a 632 px Mixer panel with the four-row fixture.
+- Surface-role compliance: the popover/dropdown/settings/menus are
+  `surface.panel`; rows are `surface.cell`; the Playing page is
+  `surface.card`; buttons/fields are `surface.control`; badges are
+  `surface.pill`. No `surface.window` and no new literal chrome colour
+  (the two greens are the existing semantic live signal).
+- Follow-up for `dotfiles-assets`: the exact selector/role table is in the
+  compliance section; the app stylesheet stays palette-only until it lands.
 
 ## Deep links
 

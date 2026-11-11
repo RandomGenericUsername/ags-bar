@@ -25,6 +25,8 @@ function baseModel(overrides: Partial<AudioPanelViewModel> = {}): AudioPanelView
     inputs: [],
     inputConsumers: [],
     rows: [],
+    playingRows: [],
+    anyPlaying: false,
     appIntents: {},
     appVolumes: {},
     appLastIntents: {},

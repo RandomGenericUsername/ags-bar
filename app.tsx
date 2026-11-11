@@ -9,8 +9,10 @@ import { BluetoothPopup, BluetoothPopupCatcher } from "./components/bluetooth/Bl
 import { registerBluetoothAgent } from "./settings-panel/bluetooth-agent"
 import { close as closeSettings } from "./settings-panel/state"
 import { AudioCatcher, AudioPopup } from "./audio/AudioPopup"
+import { TrayPopup, TrayPopupCatcher } from "./audio/TrayPopup"
 import { audioPanelBinding, audioPanelTraceLines } from "./audio/composition"
 import { close as closeAudio, open as openAudio } from "./audio/ui-state"
+import { closeTray } from "./audio/panel-state"
 import { closeBluetoothPopup } from "./components/bluetooth/state"
 import { BatteryPopup, BatteryPopupCatcher } from "./components/battery/BatteryPopup"
 import { closeBatteryPopup } from "./components/battery/state"
@@ -56,6 +58,7 @@ app.start({
       closeSettings()
       closeBluetoothPopup()
       closeAudio()
+      closeTray()
       closeWifiPopup()
       closeBatteryPopup()
       // The recording popover belongs to the capture process now (SPIKE-003
@@ -80,6 +83,8 @@ app.start({
     // "the window is capped" from "the content is long" -- the layer geometry
     // can. Debug-only; the bar icon remains the real entry point.
     if (argv[0] === "audio-panel-open") {
+      closeSettings()
+      closeTray()
       openAudio()
       res("ok")
       return
@@ -125,6 +130,10 @@ app.start({
             hasCurrentPlayer: r.hasCurrentPlayer,
             hasCurrentStream: r.hasCurrentStream,
             playback: r.playback,
+            shuffle: r.shuffle,
+            loop: r.loop,
+            canShuffle: r.canShuffle,
+            canLoop: r.canLoop,
             artworkUri: r.artworkUri,
             artworkPath: r.artworkPath,
             iconName: r.iconName,
@@ -191,6 +200,10 @@ app.start({
       // indicators above.
       addWindow(AudioCatcher(primary))
       addWindow(AudioPopup(primary, audio))
+      // The tray dropdown is the same overlay family (catcher first, dropdown
+      // above it) and shares the panel's binding.
+      addWindow(TrayPopupCatcher(primary))
+      addWindow(TrayPopup(primary, audio))
     }
   },
 })

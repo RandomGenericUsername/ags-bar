@@ -83,6 +83,13 @@ AD-37: installed tags are immutable and writable state lives under XDG.
   the tag. The migration never writes the tag, never overwrites existing state,
   and never deletes the legacy source. Do not add writable state files to this
   repo, and do not reintroduce a config-dir read/write target.
+- `$XDG_CONFIG_HOME/ags-bar/config.json` is the bar's **app-owned UI settings**
+  file (REQ-005): `{ "media_widget": { "enabled": true } }`. It is NOT the AGS
+  install link `$XDG_CONFIG_HOME/ags` (read-only) and NOT the layout
+  `bar.json`. Writes go through the capture-tool pattern in `settings/`
+  (pure `domain.ts`, `port.ts`, GLib `glib-store.ts`, save-on-change
+  `state.ts`); the setting applies live even though appearance is
+  restart-mode. Never write `clipboard/config.json` from the bar.
 
 ## 4. Ticket flow
 

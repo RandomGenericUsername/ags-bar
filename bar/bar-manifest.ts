@@ -65,6 +65,7 @@ const CAPABILITIES: readonly CapabilityDecl[] = [
   { id: "workspaces", params: [], multi: false },
   { id: "clock", params: [], multi: false },
   { id: "tray", params: [], multi: false, iconGroup: "tray" },
+  { id: "media-strip", params: [], multi: false },
   { id: "recording", params: [], multi: false, iconGroup: "capture-tool" },
   { id: "audio-output", params: [], multi: false, iconGroup: "volume" },
   { id: "audio-mic", params: [], multi: false, iconGroup: "microphone" },

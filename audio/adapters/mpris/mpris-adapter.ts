@@ -5,7 +5,7 @@ import {
   canonicalIdentity, carryDuration, MPRIS_EXCLUDED, MPRIS_PREFIX, normalisePosition, parseBusName, parseMetadata,
   type TrackMeta,
 } from "../../../services/mpris-core"
-import type { AudioPlayer, PlayerId, PlayerMedia } from "../../domain/audio-model.ts"
+import type { AudioPlayer, LoopStatus, PlayerId, PlayerMedia } from "../../domain/audio-model.ts"
 import type { MprisObservation, MprisObservationPort, MprisPort, Unsubscribe } from "../../application/ports.ts"
 
 const DBUS = "org.freedesktop.DBus"
@@ -25,9 +25,27 @@ interface PlayerRecord {
   appId: string
   playback: AudioPlayer["playback"]
   capabilities: AudioPlayer["capabilities"]
+  shuffle: boolean
+  loop: LoopStatus
   trackMeta: TrackMeta
   media: PlayerMedia
   positionSyncedAtMs: number
+}
+
+/** MPRIS wire values for the optional `LoopStatus` property. */
+const LOOP_FROM_WIRE: Readonly<Record<string, LoopStatus>> = {
+  None: "none",
+  Track: "track",
+  Playlist: "playlist",
+}
+const LOOP_TO_WIRE: Readonly<Record<LoopStatus, string>> = {
+  none: "None",
+  track: "Track",
+  playlist: "Playlist",
+}
+function loopValue(value: unknown): LoopStatus {
+  const raw = unpack(value)
+  return typeof raw === "string" ? LOOP_FROM_WIRE[raw] ?? "none" : "none"
 }
 
 function unpack(value: unknown): unknown {
@@ -72,7 +90,8 @@ function metadata(props: RawProps, previous?: PlayerRecord): { track: TrackMeta;
 }
 function toPlayer(record: PlayerRecord): AudioPlayer {
   return { id: record.id, appId: record.appId, current: true, playback: record.playback,
-    capabilities: { ...record.capabilities }, media: { ...record.media } }
+    capabilities: { ...record.capabilities }, shuffle: record.shuffle, loop: record.loop,
+    media: { ...record.media } }
 }
 
 /** Signal-driven MPRIS adapter. PlayerId includes the bus name and owner generation. */
@@ -199,6 +218,11 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     if (reportedPosition !== null) media.positionUs = reportedPosition
     const canPlay = booleanValue(props.CanPlay)
     const canPause = booleanValue(props.CanPause)
+    // Shuffle/LoopStatus are OPTIONAL. `GetAll` omits a property the player does
+    // not implement, so presence is the capability signal; absent is "no
+    // control", never "off".
+    const canShuffle = "Shuffle" in props
+    const canLoop = "LoopStatus" in props
     return {
       id: `${busName}#${this.generations.get(busName) ?? 0}`,
       busName,
@@ -206,7 +230,9 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       playback: statusValue(props.PlaybackStatus),
       capabilities: { canPlay, canPause, canPlayPause: canPlay || canPause,
         canGoNext: booleanValue(props.CanGoNext), canGoPrevious: booleanValue(props.CanGoPrevious),
-        canSeek: booleanValue(props.CanSeek) },
+        canSeek: booleanValue(props.CanSeek), canShuffle, canLoop },
+      shuffle: booleanValue(props.Shuffle),
+      loop: loopValue(props.LoopStatus),
       trackMeta,
       media,
       positionSyncedAtMs: GLib.get_monotonic_time() / 1000,
@@ -233,6 +259,14 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       ["CanGoPrevious", "canGoPrevious"], ["CanSeek", "canSeek"],
     ] as const) if (key in changed) next.capabilities[field] = booleanValue(changed[key])
     next.capabilities.canPlayPause = next.capabilities.canPlay || next.capabilities.canPause
+    if ("Shuffle" in changed) {
+      next.shuffle = booleanValue(changed.Shuffle)
+      next.capabilities.canShuffle = true
+    }
+    if ("LoopStatus" in changed) {
+      next.loop = loopValue(changed.LoopStatus)
+      next.capabilities.canLoop = true
+    }
     if (invalidated.length > 0) {
       // Invalidated values have no payload; do a bounded property read, never poll.
       void this.refreshPlayer(busName)
@@ -289,7 +323,7 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     if (this.records.delete(busName) && previous) this.emit({ kind: "player-removed", playerId: previous.id })
   }
 
-  private async action(id: PlayerId, verb: string, seconds?: number): Promise<void> {
+  private async action(id: PlayerId, verb: string, argument?: string): Promise<void> {
     const requestedId = String(id)
     const record = [...this.records.values()].find((candidate) => candidate.id === requestedId)
     if (record === undefined || this.records.get(record.busName)?.id !== requestedId)
@@ -298,7 +332,7 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       ? record.busName.slice(MPRIS_PREFIX.length)
       : record.busName
     const args = ["playerctl", "-p", suffix, verb]
-    if (seconds !== undefined) args.push(String(seconds))
+    if (argument !== undefined) args.push(argument)
     await execAsync(args)
   }
   play(id: PlayerId): Promise<void> { return this.action(id, "play") }
@@ -308,7 +342,13 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
   previous(id: PlayerId): Promise<void> { return this.action(id, "previous") }
   seek(id: PlayerId, positionUs: number): Promise<void> {
     if (!Number.isFinite(positionUs) || positionUs < 0) return Promise.reject(new Error("invalid MPRIS position"))
-    return this.action(id, "position", positionUs / 1_000_000)
+    return this.action(id, "position", String(positionUs / 1_000_000))
+  }
+  setShuffle(id: PlayerId, on: boolean): Promise<void> {
+    return this.action(id, "shuffle", on ? "on" : "off")
+  }
+  setLoop(id: PlayerId, status: LoopStatus): Promise<void> {
+    return this.action(id, "loop", LOOP_TO_WIRE[status] ?? "None")
   }
 }
 

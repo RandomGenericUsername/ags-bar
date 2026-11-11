@@ -2,7 +2,7 @@ import {
   type EndpointId,
   canonicalAppKey, playerSupportsSeek, routeLabel,
   type AppIdentity, type AudioPlayer, type AudioSession, type AudioStream,
-  type EndpointState, type PlayerCapabilities, type RouteIntent, type VolumeState,
+  type EndpointState, type LoopStatus, type PlayerCapabilities, type RouteIntent, type VolumeState,
 } from "../domain/audio-model.ts"
 
 export interface AudioPanelStreamView {
@@ -28,6 +28,11 @@ export interface AudioAppRowView {
   playback: AudioPlayer["playback"] | null
   playerId: AudioPlayer["id"] | null
   playerIds: readonly AudioPlayer["id"][]
+  /** MPRIS Shuffle/Loop for the row's displayed player; unsupported flags hide both controls. */
+  shuffle: boolean
+  loop: LoopStatus
+  canShuffle: boolean
+  canLoop: boolean
   positionUs: number | null
   durationUs: number | null
   capabilities: PlayerCapabilities
@@ -62,6 +67,10 @@ export interface AudioPanelViewModel {
   inputs: readonly EndpointState[]
   inputConsumers: readonly AudioInputConsumerView[]
   rows: readonly AudioAppRowView[]
+  /** Rows with a current MPRIS player, in the same stable row order (Playing pages). */
+  playingRows: readonly AudioAppRowView[]
+  /** True when any current player reports `playing` (the Mixer tab's accent dot). */
+  anyPlaying: boolean
   /** App-scoped route intent, keyed by app id. Exposed for inspection. */
   appIntents: Readonly<Record<string, RouteIntent>>
   appVolumes: Readonly<Record<string, VolumeState>>
@@ -177,11 +186,16 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       playback: player?.playback ?? null,
       playerId: player?.id ?? null,
       playerIds: players.map((item) => item.id),
+      shuffle: player?.shuffle ?? false,
+      loop: player?.loop ?? "none",
+      canShuffle: player?.capabilities.canShuffle ?? false,
+      canLoop: player?.capabilities.canLoop ?? false,
       positionUs: canSeek ? media?.positionUs ?? null : null,
       durationUs: canSeek ? media?.lengthUs ?? null : null,
       capabilities: player ? { ...player.capabilities } : {
         canPlay: false, canPause: false, canPlayPause: false,
         canGoNext: false, canGoPrevious: false, canSeek: false,
+        canShuffle: false, canLoop: false,
       },
       canSeek,
       hasCurrentPlayer: player !== null,
@@ -221,5 +235,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     appEndpoints: session.appEndpoints ?? {},
     inputConsumers: consumers,
     rows,
+    playingRows: rows.filter((row) => row.hasCurrentPlayer),
+    anyPlaying: rows.some((row) => row.hasCurrentPlayer && row.playback === "playing"),
   }
 }

@@ -6,11 +6,12 @@ import { AudioSessionRuntime } from "./application/runtime/audio-session-runtime
 import {
   playPausePlayer, nextPlayer, previousPlayer, seekPlayer, selectPreferredInput,
   selectPreferredOutput, setAppRoute, setAppVolume, setInputVolume, setPreferredOutputVolume,
+  setPlayerShuffle, cyclePlayerLoop,
   toggleAppMute, toggleInputMute, togglePreferredOutputMute,
 } from "./application/audio-actions"
 import type { ActionResult, AudioPorts } from "./application/ports"
 import { projectAudioPanel } from "./presentation/audio-panel-view-model"
-import type { AudioPanelActions, AudioPanelBinding, RouteChoice, TransportAction } from "./AudioPopup"
+import type { AudioPanelActions, AudioPanelBinding, RouteChoice, TransportAction } from "./binding"
 import type { EndpointId } from "./domain/audio-model"
 
 /**
@@ -114,6 +115,15 @@ export function audioPanelBinding(): AudioPanelBinding {
       return previousPlayer(ports, playerId)
     }),
     seek: (playerId, positionUs) => run("seek", () => seekPlayer(ports, playerId, positionUs)),
+    // Shuffle/Loop are optional MPRIS properties: the read model's capability
+    // flags hide the controls, and the actions reject `unsupported` if one is
+    // dispatched anyway. The toggle reads the current player here so the port
+    // receives the intended target state, not a blind flip.
+    toggleShuffle: (playerId) => run("toggleShuffle", () => {
+      const player = runtime.current().players.find((item) => item.id === playerId && item.current)
+      return setPlayerShuffle(ports, playerId, !(player?.shuffle ?? false))
+    }),
+    cycleLoop: (playerId) => run("cycleLoop", () => cyclePlayerLoop(ports, playerId)),
 selectInput: (endpointId) => run("selectInput", () =>
       selectPreferredInput(ports, endpointId as EndpointId)
         .then((result) => {
