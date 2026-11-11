@@ -1,7 +1,7 @@
 import { Gtk } from "ags/gtk4"
 import { createComputed, createEffect } from "ags"
-import { execAsync } from "ags/process"
 import { iconByStateKey, resolveIcon } from "ags-platform/adapters/icon"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import { applyIconSource } from "../../kit/widget"
 import type { DescriptorSpec, RichWidgetSpec } from "../../kit/widget"
 import { overlays } from "../../kit/overlay"
@@ -69,7 +69,7 @@ export function createAudioOutputWidget(
     // other overlays first and stores the pointer x.
     primary: (_s, anchorX) => overlays.toggle("audio", anchorX),
     secondary: () => {
-      execAsync(["pavucontrol"]).catch((e) => console.error("pavucontrol:", e))
+      void launchScopedApp("pavucontrol")
     },
     scroll: (_s, dy) => {
       // Dispatch the SAME selected-output action the panel and Settings use.

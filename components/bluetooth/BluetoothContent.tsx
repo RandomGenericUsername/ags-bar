@@ -2,9 +2,9 @@ import { Accessor, createComputed, createEffect, createState, For } from "ags"
 import { Gtk } from "ags/gtk4"
 import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
-import { execAsync } from "ags/process"
 import { registry } from "ags-platform/adapters/icon-registry"
 import { appearance } from "../../lib/appearance"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import {
   ageOutStaleReadings,
   bluetoothAdapterAddress,
@@ -15,7 +15,6 @@ import {
   connectDevice,
   disconnectDevice,
   pairDevice,
-  postBluetoothNotification,
   refreshBluetoothDevices,
   routeAudioToDevice,
   startBluetoothDiscovery,
@@ -45,8 +44,8 @@ const btListSpacing = appearance.value("layout.ags.bt-list-spacing", 4)
  * State is owned by BlueZ D-Bus and exposed through the service's accessors;
  * this component only reads them and forwards user intent (`pairDevice`,
  * `connectDevice`, `disconnectDevice`, `unpairDevice`). There is no subprocess
- * and no bus call here — the ONE subprocess is the footer row's
- * `execAsync(["blueman-manager"])`, the same single escape hatch
+ * and no bus call here — the ONE subprocess is the footer row's scoped
+ * `blueman-manager` launch, the same single escape hatch
  * `WifiContent`'s `nm-connection-editor` row uses.
  *
  * The one timer is the reachability tick, and it exists because BlueZ emits
@@ -480,15 +479,9 @@ function BluetoothSettingsFooter({
       $={(self) => {
         const click = new Gtk.GestureClick({ button: 1 })
         click.connect("released", () => {
-          execAsync(["blueman-manager"]).catch((error) => {
-            console.error(
-              `BluetoothContent: could not launch blueman-manager: ${error}`,
-            )
-            postBluetoothNotification(
-              "Bluetooth",
-              "blueman-manager is unavailable — run provisioning to install it.",
-            )
-          })
+          // Long-lived GUI: scoped so an AGS restart does not SIGKILL it. The
+          // shared launcher logs and toasts a missing blueman-manager.
+          void launchScopedApp("bluetooth-manager")
         })
         self.add_controller(click)
       }}

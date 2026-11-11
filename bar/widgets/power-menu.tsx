@@ -15,6 +15,9 @@ export const powerMenuWidget: BarWidgetSpec<undefined> = {
   class: "power-menu-widget",
   icon: iconByStateKey("power-menu", () => "default"),
   primary: () => {
+    // Deliberately NOT routed through the scoped launcher: wlogout is a
+    // transient logout overlay whose lifetime is the logout action itself, not
+    // a long-lived GUI app that should survive an AGS restart.
     execAsync(["wlogout"]).catch(console.error)
   },
 }

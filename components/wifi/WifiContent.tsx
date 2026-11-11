@@ -2,8 +2,8 @@ import { Fragment, Accessor, createComputed, createEffect, createState, For } fr
 import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
 import { Gtk } from "ags/gtk4"
-import { execAsync } from "ags/process"
 import { registry } from "ags-platform/adapters/icon-registry"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import { wifiSignalIconKey } from "../../lib/wifi-signal"
 import { WifiSwitch } from "../primitives/WifiSwitch"
 import {
@@ -604,9 +604,13 @@ export function WifiContent({ visible }: { visible: Accessor<boolean> }) {
         const click = new Gtk.GestureClick({ button: 1 })
         click.connect("released", () => {
           setSettingsMessage("")
-          execAsync(["nm-connection-editor"]).catch((error) => {
-            console.error(`WifiContent: could not launch nm-connection-editor: ${error}`)
-            setSettingsMessage("nm-connection-editor is unavailable — run provisioning to install it.")
+          // Long-lived GUI: scoped so an AGS restart does not SIGKILL it. The
+          // shared launcher logs and toasts the failure; keep the inline row
+          // message too, because this surface already explains the remediation.
+          void launchScopedApp("network-connections").then((ok) => {
+            if (!ok) {
+              setSettingsMessage("nm-connection-editor is unavailable — run provisioning to install it.")
+            }
           })
         })
         self.add_controller(click)

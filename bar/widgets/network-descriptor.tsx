@@ -1,7 +1,7 @@
 import type { BarWidgetSpec } from "../../kit/widget"
 import { iconByStateKey } from "ags-platform/adapters/icon"
 import { overlays } from "../../kit/overlay"
-import { execAsync } from "ags/process"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import { isRunning as speedTestRunning } from "../../services/speedtest-service"
 import { createNetworkReadModel } from "../../domains/network/astal"
 import {
@@ -46,6 +46,6 @@ export const networkWidget: BarWidgetSpec<NetworkWidgetState> = {
   label: networkLabel,
   primary: (_state, anchorX) => overlays.toggle("wifi", anchorX),
   secondary: () => {
-    execAsync(["kitty", "--", "wifitui", "tui"]).catch(console.error)
+    void launchScopedApp("wifi-tui")
   },
 }

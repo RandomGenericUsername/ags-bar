@@ -2,8 +2,8 @@ import Gtk from "gi://Gtk?version=4.0"
 import Pango from "gi://Pango?version=1.0"
 import Battery from "gi://AstalBattery"
 import { createBinding, createComputed, createEffect, For } from "ags"
-import { execAsync } from "ags/process"
 import { iconByStateKey, resolveIcon } from "ags-platform/adapters/icon"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import type { IconSource } from "ags-platform/ports/icon-source"
 import { applyIconSource } from "../../kit/widget"
 import {
@@ -159,9 +159,7 @@ const railMetaLine = createComputed(() => railMeta(selectedProfile()).line)
  * hands off to the real one — so the panel is a fast path, not a dead end.
  */
 function openPowerOptionsGtk(): void {
-  execAsync(["power-options-gtk"]).catch((e) => {
-    console.error("battery panel: power-options-gtk launch failed:", e)
-  })
+  void launchScopedApp("power-options-gtk")
 }
 
 /** One mode cell: the mode's glyph over its label. The whole cell is the target. */

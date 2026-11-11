@@ -1,6 +1,6 @@
-import { execAsync } from "ags/process"
 import type { BarWidgetSpec } from "../../kit/widget"
 import { iconByVariant } from "ags-platform/adapters/icon"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 
 /**
  * Status-bar btop launcher, expressed as a widget DESCRIPTOR (kit/widget).
@@ -17,6 +17,6 @@ export const btopWidget: BarWidgetSpec<undefined> = {
   icon: iconByVariant("btop", () => "btop"),
   tooltip: () => "System monitor (btop)",
   primary: () => {
-    execAsync(["kitty", "--", "btop"]).catch(console.error)
+    void launchScopedApp("system-monitor")
   },
 }

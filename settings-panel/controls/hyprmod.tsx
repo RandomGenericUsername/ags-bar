@@ -1,10 +1,13 @@
-import { execAsync } from "ags/process"
 import { registry } from "ags-platform/adapters/icon-registry"
 import { close } from "../state"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 
 /**
  * Hyprmod action tile — no toggle state. Closing the panel first keeps focus
  * behavior predictable when the launcher opens.
+ *
+ * Hyprmod is long-lived, so it is launched in its own transient systemd scope:
+ * otherwise `KillMode=mixed` would SIGKILL it on the next AGS restart.
  */
 export function HyprmodTile() {
   return (
@@ -12,9 +15,7 @@ export function HyprmodTile() {
       class="settings-mini"
       onClicked={() => {
         close()
-        execAsync(["hyprmod"]).catch(() => {
-          /* hyprmod is provisioned; a launch failure is non-fatal here */
-        })
+        void launchScopedApp("hyprmod")
       }}
       canFocus={false}
       tooltipText="Open Hyprmod"

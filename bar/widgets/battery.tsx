@@ -1,5 +1,5 @@
-import { execAsync } from "ags/process"
 import { iconByStateKey } from "ags-platform/adapters/icon"
+import { launchScopedApp } from "../../lib/scopedLauncher"
 import { overlays } from "../../kit/overlay"
 import type { DescriptorSpec } from "../../kit/widget"
 import { batteryStateKey } from "../../components/battery/battery-icon"
@@ -76,9 +76,7 @@ export function createBatteryWidget(): DescriptorSpec<BatteryReading> {
     // offers. Left/right rather than a popover keeps the two behaviours
     // reachable without a third surface.
     secondary: () => {
-      execAsync(["power-options-gtk"]).catch((e) => {
-        console.error("power-options-gtk launch failed:", e)
-      })
+      void launchScopedApp("power-options-gtk")
     },
   }
 }
