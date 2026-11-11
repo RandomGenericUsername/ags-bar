@@ -246,10 +246,10 @@ google-chrome-stable --new-window \
 ## Implementation acceptance (follow-up)
 
 - [x] Persistent output + Playing/Mixer deck implemented per the mock. The
-      popover is 352 px wide and anchored 8 px under the bar by the shared
-      `PopupHost`; its height is 472 px in Playing and 632 px in Mixer for the
-      fixture session (a fixed deck scroller, clamped on short monitors). Live
-      renders are in the evidence section below.
+      popover is 352 px wide and anchored under the bar by the shared
+      `PopupHost`; with the skin padding it is 515 px in Playing and 675 px in
+      Mixer for the fixture session (a fixed deck scroller, clamped on short
+      monitors). All five skin renders are in the evidence below.
 - [x] Playing pages: transport/seek; shuffle/repeat capability-gated; no volume
       slider; the read-only level opens Mixer on that app.
 - [x] Mixer rows: route/volume/mute/play-pause; no transport/seek; row and
@@ -290,17 +290,37 @@ google-chrome-stable --new-window \
   test-program tsc: 0 errors
   conformance: 14 pass / 0 fail
   drift: all checks passed
-  bundle: build/ags-bar.js 3021724 bytes
+  bundle: build/ags-bar.js 3022760 bytes
   typecheck: 0 errors in the ags-bar tree
+
+  dotfiles-assets (worktree .worktrees/req-028):
+  make validate-skins  PASS
+  make test-skins      181 passed, 3 skipped
+  make lint            FAIL: shellcheck is not installed (environment gap)
+  make gates-ci        FAIL at validate-desktop for the same missing shellcheck;
+                       every Python validator before it passed
   ```
 
-- Live widget renders (the REAL components, not the mock), captured through
-  `Gtk.WidgetPaintable` in a standalone preview against a fake session:
-  `/tmp/opencode/req005/natural-panel.png` (350×472, Playing),
-  `natural-mixer.png` (350×632, all four Mixer rows + the Input header),
-  `live-strip.png` (252×40 natural width, under the 340 px cap),
-  `live-tray.png` (298×397) and `live-settings.png` (327×115). The preview
-  entry point was temporary and is not committed.
+- All-skins widget renders (the REAL components, not the mock), captured
+  through `Gtk.WidgetPaintable` over the live wallpaper, with the composed
+  appearance (live palette + the expanded `ags.gtk.css.j2`) applied before
+  the worktree `audio-panel.css`, exactly as `app.tsx` orders them:
+  - `skin-glass-{panel,mixer,tray,strip,settings}.png`
+  - `skin-flat-{...}.png`
+  - `skin-paper-{...}.png`
+  - `skin-terminal-{...}.png`
+  - `skin-terminal-host-{...}.png`
+  all under `/tmp/opencode/req005/`. The preview entry point is temporary and
+  not committed.
+- Actual widths read from the rendered widgets and PNG edges: **panel 352 px**
+  (content 328 glass / 330 flat / 332 terminal + skin padding/border), **tray
+  300 px** (content 276/278/280), **settings 280 px** (content 256/258/260).
+  Heights: panel 515 (Playing) / 675 (Mixer); tray 446; settings 160. The
+  settings content is 280 px border-box, not the previous 327 px — that was
+  the unconstrained content's natural width, now fixed by the app's
+  `widthRequest` with the skin padding inside.
+- The paper mock render after the compliance pass is
+  `/tmp/opencode/req005/paper-default.png` / `paper-mixer.png`.
 - The paper mock render after the compliance pass is
   `/tmp/opencode/req005/paper-default.png` / `paper-mixer.png`.
 - Deviations (all behaviour-preserving):
@@ -319,19 +339,34 @@ google-chrome-stable --new-window \
      reserved tray slot; no decorative dots were added next to real items.
   5. **The panel has no nested horizontal scroll**; a long Mixer scrolls
      vertically under the fixed hero, as the paper requires.
-  6. **The deck scroller has a fixed height** (280 px Playing / 440 px Mixer,
+  6. **The deck scroller has a fixed height** (340 px Playing / 500 px Mixer,
      clamped on short monitors) instead of content-sized height. A live probe
      with `propagateNaturalHeight` collapsed the scroller to its minimum and
      produced a 250 px panel — the same class of failure the old drawer
-     measured on 2026-10-07. The fixed scroller yields a 472 px Playing panel
-     and a 632 px Mixer panel with the four-row fixture.
+     measured on 2026-10-07. With the skin's panel/card/cell padding the fixed
+     scroller yields a 515 px Playing panel and a 675 px Mixer panel.
+  7. **The Playing page carries the `surface.card` paint.** The mock leaves the
+     page transparent; the role audit maps pages to cards, so the shipped page
+     is a card (glass: `alpha(@surface_container_high, .18)` + hairline). This
+     is the role-driven visual the paper's mapping asks for; a skin with a
+     transparent card (flat) shows no fill.
+  8. **The glass render follows the glass skin role, not the mock's numbers**
+     (12 px, 1.5 px `@primary`, 0.94 paint, no shadow/blur vs the preview's
+     18 px, 1 px hairline, 0.70, soft shadow). Retuning glass would change the
+     settings/Bluetooth/clipboard/wallpaper paints and break the assets
+     glass-parity contract; it is a separate skin-design decision.
 - Surface-role compliance: the popover/dropdown/settings/menus are
   `surface.panel`; rows are `surface.cell`; the Playing page is
   `surface.card`; buttons/fields are `surface.control`; badges are
   `surface.pill`. No `surface.window` and no new literal chrome colour
   (the two greens are the existing semantic live signal).
-- Follow-up for `dotfiles-assets`: the exact selector/role table is in the
-  compliance section; the app stylesheet stays palette-only until it lands.
+- `dotfiles-assets` now ships the paint (`req-028`, branch
+  `ticket/req-028-sound-panel-skin`): the exact selector/role table above is in
+  `skins/templates/ags.gtk.css.j2`; the app stylesheet is structural only.
+- The bar's appearance contract note: missing appearance artifacts previously
+  fell back to the bundled `style.css`; the sound surface now has no bundled
+  paint, so a missing composed appearance leaves it unpainted. The composed
+  program always installs one; this is recorded in `AGENTS.md`.
 
 ## Deep links
 
@@ -356,7 +391,9 @@ google-chrome-stable --new-window \
 ## Token / skin mapping
 
 Chrome colour roles and radii are custom properties in `:root`
-(`mock.html:43-79`). The appearance layer can remap:
+(`mock.html:43-79`). The mock is the **glass preview**: its literals illustrate
+the design, while the shipped chrome is the selected skin's role values. The
+appearance layer remaps:
 
 | Mock token | Appearance mapping |
 | --- | --- |
@@ -448,37 +485,68 @@ literals per role could not be satisfied by `surface.*.radius`.
   `dotfiles-assets` v0.18.1**
   (`dotfiles-v3/dotfiles/provisioning/program-tuple.yaml`). It exposes the five
   roles this surface uses: `panel`, `card`, `cell`, `control`, `pill`.
+- This slice's assets release: **`dotfiles-assets` v0.19.1** (the sound paint
+  on top of v0.19.0) and **`ags-bar` v0.6.3**. The live tuple's
+  `dotfiles-assets` entry is v0.18.1, so the sound paint is not in the tuple
+  until a program-wide cutover.
 - Target layer: **`contracts` v0.12.0 / `ags-platform` v1.1.0 /
-  `dotfiles-assets` v0.19.0**, which adds the required sixth role
-  `surface.window`. That move is a **program-wide cutover** (doc 113 §10), never
-  a single-app cutover; the bar's `AGS_PLATFORM_VERSION`/`CONTRACTS_VERSION`
-  pins and the program tuple move together, with a runtime that emits v3.
+  `dotfiles-assets` v0.19.1**, which adds the required sixth role
+  `surface.window` (v0.19.0) plus this sound paint. That move is a
+  **program-wide cutover** (doc 113 §10), never a single-app cutover; the
+  bar's `AGS_PLATFORM_VERSION`/`CONTRACTS_VERSION` pins and the program tuple
+  move together, with a runtime that emits v3.
 - This paper therefore targets the five-role surface and is forward-compatible:
   when the tuple moves, no selector in this surface changes — only the skin's
   radius/paint values behind those roles change, and the new `window` role has
   no consumer here. The implementation must not bump the tuple or the platform
   pin for this app alone.
 
-### Follow-up mapping owned by `dotfiles-assets`
+### All-skins shipping (implemented in `dotfiles-assets`)
 
-`audio/audio-panel.css` is the bar's runtime-applied stylesheet, not a skin
-template. The skin does not yet carry rules for the sound classes, so the app
-uses palette roles plus the geometry above. The exact follow-up mapping needed
-in `dotfiles-assets/skins/templates/ags.gtk.css.j2` (do not patch it from this
-repo) is:
+The sound surface is now skin-agnostic. The paint/geometry lives in the
+app-owned target `dotfiles-assets/skins/templates/ags.gtk.css.j2` (worktree
+`.worktrees/req-028/`, branch `ticket/req-028-sound-panel-skin`), which the
+runtime expands for **every** built-in skin and installs with the palette as
+the composed `appearance/ags.css` at USER priority. The bar's
+`audio/audio-panel.css` is structural only: dimensions, spacing, layout,
+content art and the semantic live green. It is applied after the appearance,
+so any paint there would override the skin — there is none.
 
 | Selector | Role tokens |
 | --- | --- |
-| `.audio-surface` (`window.audio-popup`), `.tray-surface` (`window.tray-popup`), `.audio-settings-popover > contents`, `.audio-menu > contents` | `surface.panel` bg/border/border-width/radius/padding/shadow/blur |
-| `.audio-playing-page` | `surface.card` radius |
+| `.audio-surface` (`window.audio-popup`), `.tray-surface` (`window.tray-popup`), `.audio-settings`, `.audio-menu > contents` | `surface.panel` bg/border/border-width/radius/padding/shadow/blur |
+| `.audio-playing-page` | `surface.card` bg/border/border-width/radius/padding |
 | `.audio-mixer-row`, `.audio-tray-player`, `.audio-menu-option`, `.audio-consumer`, `.audio-settings-row` | `surface.cell` bg/radius/padding/hover-bg |
 | `.audio-device`, `.audio-route`, `.audio-icon-button`, `.audio-transport-button`, `.audio-carousel-button`, `.audio-playing-level` | `surface.control` bg/border/border-width/radius/padding/font-size/font-weight |
-| `.audio-muted-pill`, `.audio-live-badge`, `.audio-mode-tab`, `.audio-switch` | `surface.pill` bg/border/border-width/radius/padding/font-size/letter-spacing |
+| `.audio-muted-pill`, `.audio-live-badge`, `.audio-switch` | `surface.pill` bg/border/border-width/radius/padding/font-size/letter-spacing |
+| tabs, rows, buttons, menus | `state.hover`/`state.selected`/`state.focus`/`state.disabled` |
+| captions, titles, track lines, footer, menus | `ink.ink`/`ink.ink-dim`/`ink.accent` + `type.size-*` |
 
-Until that lands, no new literal chrome colour is introduced in the bar: the
-stylesheet stays on the palette roles (`@on_surface`, `@surface`,
-`@surface_container_high`, `@primary`, `@on_primary`,
-`@primary_container`, `@on_primary_container`).
+Widths are app layout and stay border-box: **popover 352 px, tray dropdown
+300 px, settings 280 px**. The skin's `surface.panel.padding` is inside those
+boxes, so every skin keeps the approved width; the glass padding 11 gives a
+328 px content box, terminal 9 gives 332 px, flat 11 gives 330 px.
+
+The `dotfiles-assets` fixture gate names the sound classes in the `ags`
+selector/token coverage and proves the panel paint/radius reaches
+`.audio-surface`/`.tray-surface`/`.audio-settings` in glass, paper, flat,
+terminal and terminal-host, and that no sound selector uses
+`surface.window`. `make validate-skins` PASS; `make test-skins` 181 passed,
+3 skipped; `make lint`/`make gates-ci` stop at the environment's missing
+`shellcheck` (validate-desktop), an unrelated tool gap.
+
+### Glass preview vs the shipped glass skin
+
+The mock's glass is the **design preview** (18 px, 1 px hairline, 0.70 paint,
+soft shadow). The shipped `glass` manifest's `surface.panel` role is the
+parity skin: `alpha(@surface, 0.94)`, a 1.5 px `@primary` frame, 12 px,
+`shadow = none`, `blur = none`. The glass render therefore uses those role
+values, not the mock's numbers. Retuning the glass panel role to the preview
+would also change the settings panel, Bluetooth, clipboard, wallpaper-selector
+and capture paints and breaks the `test_parity.py` glass-parity contract; that
+is a separate skin-design decision. The other four skins visibly adapt:
+paper (6 px, hairline, authored shadow), flat (0 px, transparent), terminal
+and terminal-host (0 px, `@surface`, hairline, 9 px padding, monospace).
 
 ### Other frozen papers needing the same pass (audit, not edited)
 
