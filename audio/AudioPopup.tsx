@@ -589,12 +589,12 @@ function InputSection({ binding }: { binding: AudioPanelBinding }) {
 
 export function SettingsContent() {
   return (
-    <box class="audio-settings" orientation={VERTICAL} spacing={0}>
+    <box class="audio-settings" orientation={VERTICAL} spacing={0} widthRequest={280}>
       <label class="audio-settings-head" xalign={0} label="Settings" />
       <box class="audio-settings-row" spacing={16}>
         <box class="audio-settings-text" orientation={VERTICAL} spacing={3} hexpand>
           <label class="audio-settings-name" xalign={0} label="Bar media widget" />
-          <label class="audio-settings-help" xalign={0} label="Show the now-playing strip in the top bar." />
+          <label class="audio-settings-help" xalign={0} wrap maxWidthChars={24} label="Show the now-playing strip in the top bar." />
         </box>
         <switch
           class="audio-switch"
@@ -612,19 +612,25 @@ export function SettingsContent() {
   )
 }
 
-function openSettingsPopover(anchor: Gtk.Widget): void {
+/**
+ * Build the settings popover without popping it: the gear pops it, and the
+ * visual-check harness measures its real width (280 px) before capture.
+ */
+export function createSettingsPopover(anchor: Gtk.Widget): Gtk.Popover {
   const popover = new Gtk.Popover({ autohide: true })
   popover.set_has_arrow(false)
   popover.add_css_class("audio-settings-popover")
   popover.set_parent(anchor)
+  popover.set_child((<SettingsContent />) as unknown as Gtk.Widget)
+  popover.connect("closed", () => popover.unparent())
+  return popover
+}
 
-  const content = (<SettingsContent />) as unknown as Gtk.Widget
-
-  popover.set_child(content)
+function openSettingsPopover(anchor: Gtk.Widget): void {
+  const popover = createSettingsPopover(anchor)
   setSettingsOpenState(true)
   popover.connect("closed", () => {
     setSettingsOpenState(false)
-    popover.unparent()
     anchor.grab_focus()
   })
   popover.popup()
@@ -669,7 +675,7 @@ export function AudioPanelContent({
   const model = createComputed(() => binding.model())
   createEffect(() => reconcilePlaying(model()))
   const scrollHeight = createComputed(() =>
-    Math.min(maxScrollHeight, deckMode() === "mixer" ? 440 : 280))
+    Math.min(maxScrollHeight, deckMode() === "mixer" ? 500 : 340))
   return (
     <box class="audio-panel" orientation={VERTICAL} spacing={0}>
       <OutputHero binding={binding} />

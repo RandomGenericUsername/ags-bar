@@ -29,10 +29,13 @@
 
 ### Changed
 
-- Rewrite `audio/audio-panel.css` on the palette roles and the surface-role
-  vocabulary: `surface.panel` for the popover/dropdown/menus, `surface.card`
-  for a Playing page, `surface.cell` for list rows, `surface.control` for
-  buttons/fields and `surface.pill` for badges. No `surface.window` (doc 113
+- Move the sound paint/geometry into the app-owned skin target
+  (`dotfiles-assets` `skins/templates/ags.gtk.css.j2`, req-028): `surface.panel`
+  for the popover/dropdown/settings/menus, `surface.card` for a Playing page,
+  `surface.cell` for list rows, `surface.control` for buttons/fields,
+  `surface.pill` for badges, plus state and ink/type. All five built-in skins
+  paint it; `audio/audio-panel.css` is structural only (dimensions, spacing,
+  layout, content art, the semantic live green). No `surface.window` (doc 113
   W-10: AGS overlays stay `surface.panel`).
 - Delete the retired drawer's dead `.audio-*` rules from `style.css`, keeping
   only the bar microphone wrapper and the live dot.
@@ -47,8 +50,9 @@
   The v1.1.0/v0.12.0/v0.19.0 layer (required `surface.window`) is a
   program-wide cutover; this app uses only the five live roles and is
   forward-compatible.
-- `dotfiles-assets/skins/templates/ags.gtk.css.j2` needs the follow-up class
-  mapping recorded in the ticket; no assets edit is part of this change.
+- `dotfiles-assets` req-028 carries the sound classes in
+  `skins/templates/ags.gtk.css.j2`; its release is a separate assets tag and
+  the program tuple moves in a program-wide cutover.
 
 ## v0.6.2 — 2026-11-11
 

@@ -246,15 +246,36 @@ check("the settings file is app-owned and never the AGS link", () => {
   assert.ok(!store.includes("clipboard"), "the bar must not write the clipboard config");
 });
 
-check("audio-panel.css introduces no new literal chrome colour", () => {
-  const css = read(join(AUDIO, "audio-panel.css"));
+check("audio-panel.css is structure only; the selected skin paints it", () => {
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  // The app stylesheet must not bake a skin: no palette role, no skin radius,
+  // shadow, blur, type scale or ink. Those live in the app-owned skin target
+  // (`dotfiles-assets/skins/templates/ags.gtk.css.j2`) and arrive at USER
+  // priority through the composed appearance.
+  assert.ok(!/@[a-z_]+\b/.test(css), "audio-panel.css references a palette role; paint belongs in the skin template");
   const literals = [...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0].toLowerCase());
-  // The live/playing dot is the one sanctioned semantic-signal green (the
-  // paper: green is a state signal, not a palette role). Everything else must
-  // be a palette role or alpha(@role, n).
-  const offenders = literals.filter((value) => value !== "#4ade80");
-  assert.deepEqual(offenders, [], `literal colours in the sound stylesheet: ${offenders.join(", ")}`);
+  assert.deepEqual(
+    literals.filter((value) => value !== "#4ade80"),
+    [],
+    "the only literal colour may be the semantic live/playing green",
+  );
   assert.ok(!/\brgba?\(/.test(css), "the sound stylesheet uses an rgb()/rgba() literal");
+  assert.ok(!/backdrop-filter\s*:/.test(css), "backdrop-filter belongs in the skin template");
+  assert.ok(!/outline\s*:/.test(css), "focus outline belongs in the skin template");
+  const radii = [...css.matchAll(/border-radius\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+  assert.deepEqual(
+    radii.filter((value) => value !== "0" && value !== "999px"),
+    [],
+    `skin radii leaked into the app stylesheet: ${radii.join(", ")}`,
+  );
+  const shadows = [...css.matchAll(/box-shadow\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+  assert.deepEqual(shadows.filter((value) => value !== "none"), [], "box-shadow belongs in the skin template");
+  const colours = [...css.matchAll(/(?<![\w-])color\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+  assert.deepEqual(colours, [], `ink leaked into the app stylesheet: ${colours.join(", ")}`);
+  const sizes = [...css.matchAll(/font-size\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+  // Only content glyph sizes stay app-owned; all text sizes come from type.*.
+  assert.deepEqual(sizes.filter((value) => !["12px", "14px", "15px", "17px"].includes(value)), [],
+    `type sizes leaked into the app stylesheet: ${sizes.join(", ")}`);
 });
 
 check("the persistent hero is outside the scroll area and the deck is complete", () => {

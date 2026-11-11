@@ -45,7 +45,10 @@ mode=restart  holdsUnsavedState=false
   `$XDG_STATE_HOME/dotfiles/current` and installs the composed provider (palette
   role block plus the runtime-expanded skin) last at USER priority, so it
   overrides the bundled `style.css` glass fallback. Missing appearance artifacts
-  keep today's rendering.
+  keep today's rendering **except the REQ-005 sound surface**: its stylesheet is
+  structural only and the selected skin paints it through the app-owned
+  `dotfiles-assets` target (`ags.gtk.css.j2`, REQ-028); with no composed
+  appearance it has no chrome.
 - **Layout tokens are TSX-owned and app-namespaced.** A skin is palette/ink +
   paint + rhythm and carries no structure or variant. Widgets read
   `layout.ags.*` tokens through `appearance.value(path, fallback)`; the settings

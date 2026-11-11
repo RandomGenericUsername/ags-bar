@@ -1,55 +1,61 @@
 /* ===========================================================================
-   Sound — REQ-005 anchored popover, tray dropdown and bar strip.
+   Sound — REQ-005. STRUCTURE ONLY.
    ===========================================================================
 
-   Applied at runtime from the deployed config dir
-   (`$XDG_CONFIG_HOME/ags/audio/audio-panel.css`), after `style.css`, exactly as
-   before. It carries the approved surface vocabulary of the frozen mock:
+   The runtime-selected SKIN paints this surface through the app-owned target
+   `dotfiles-assets/skins/templates/ags.gtk.css.j2` (installed as the composed
+   `appearance/ags.css`). This file owns dimensions, spacing, layout, content
+   art and the semantic live signal — no skin, no glass, no radius, no shadow.
 
-     one glass chrome layer, hairline, soft shadow, no accent frame
-     ink/dim/faint type, sentence case, 8px rhythm, 40-44px primary targets
-     accent only for state and action
+   Ordering (app.tsx / AGS): `style.css` → appearance provider (palette + skin)
+   → this file. A paint property here would therefore OVERRIDE the skin, which
+   is exactly what this split forbids. If a value below looks like chrome, it
+   belongs in the template instead.
 
-   CUSTOMIZATION LAYER (2026-11-11). This is an AGS layer-shell overlay, so its
-   chrome is `surface.panel` — never `surface.window` (doc 113 W-10). The app
-   CSS can only read palette roles today; the skin template maps these exact
-   classes to surface.* roles in the follow-up recorded in
-   tickets/REQ-005-sound-panel-design/ticket.md. Until then:
+   Widths are app layout (border-box): popover 352, tray dropdown 300,
+   settings 280. The skin's `surface.panel.padding` applies INSIDE those boxes,
+   so every skin keeps the approved width.
 
-     panel paint/frame/radius/shadow   -> palette @surface / @on_surface / @shadow
-     cards / cells / controls / pills  -> geometry literals in the roles' shape
-     accent                            -> @primary (state/action only)
-     live green                        -> the existing semantic-signal exception
+   Roles consumed by the template (doc 113 W-10 — AGS overlays are
+   `surface.panel`, never `surface.window`):
+     panel / card / cell / control / pill, state.hover/selected/focus/disabled,
+     ink and type.
 
-   No new chrome colour literal is introduced here. GTK 4.24 CSS has no
-   transitions, no max-width and no pseudo-elements; those stay in the widget
-   layer or are omitted on purpose.
+   The one literal colour is the existing semantic live green: a recording or
+   playing signal that must survive every wallpaper. Content art (app icons,
+   artwork) is content. GTK 4.24 CSS has no transitions, no max-width and no
+   pseudo-elements; those stay in the widget layer or are omitted on purpose.
    =========================================================================== */
 
 /* ── windows + overlay surfaces ─────────────────────────────────────────── */
 
+/* Layer-shell windows must be transparent; the inner surface box paints. */
 window.audio-popup,
 window.tray-popup {
   background-color: transparent;
-  color: @on_surface;
 }
 
-/* `popup-close` needs a hit-testable fill on the shared catcher; 1% is
-   imperceptible. (PopupCatcher always uses the `settings-catcher` class, so
-   this is the one catcher rule.) */
-.settings-catcher-fill {
-  background-color: alpha(@surface, 0.01);
+/* A Gtk.Popover is a native surface with its own theme chrome. Neutralise it
+   so the skin-painted box is the only chrome. The settings popover paints its
+   child (`.audio-settings`); the menu contents node is painted by the template. */
+popover.audio-settings-popover,
+popover.audio-menu {
+  background-color: transparent;
+  box-shadow: none;
 }
 
-/* The popover: surface.panel paint/frame/radius. The shadow is the palette's
-   @shadow role, not a routed black literal. */
-.audio-surface,
-.tray-surface {
-  background-color: alpha(@surface, 0.72);
-  border: 1px solid alpha(@on_surface, 0.13);
-  border-radius: 18px;
-  box-shadow: 0 24px 64px alpha(@shadow, 0.55), 0 3px 10px alpha(@shadow, 0.35);
-  backdrop-filter: blur(30px) saturate(1.3);
+popover.audio-settings-popover > contents {
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* ── panel layout ───────────────────────────────────────────────────────── */
+
+.audio-panel,
+.audio-scroll-body {
+  min-width: 0;
 }
 
 .audio-scroll,
@@ -61,30 +67,14 @@ window.tray-popup {
   border: none;
 }
 
-.audio-scroll-body,
-.audio-deck,
-.audio-playing,
-.audio-mixer,
-.audio-section {
-  background-color: transparent;
-  background-image: none;
-}
-
 .audio-scroll scrollbar slider {
   min-width: 5px;
-  border-radius: 5px;
-  background-color: alpha(@on_surface, 0.22);
 }
 
-.audio-scroll-body {
-  min-width: 0;
-}
-
-/* ── Output hero (persistent; never scrolls) ────────────────────────────── */
-
+/* The skin's panel padding is the outer inset; the sections add a small
+   horizontal step so the glass content sits at the paper's 16px rhythm. */
 .audio-hero {
-  padding: 10px 16px;
-  border-bottom: 1px solid alpha(@on_surface, 0.07);
+  padding: 10px 5px;
 }
 
 .audio-hero-top {
@@ -96,54 +86,23 @@ window.tray-popup {
   min-width: 0;
 }
 
-.audio-caption {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.62);
-}
-
-/* Badge: surface.pill shape. */
 .audio-muted-pill {
   min-height: 20px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background-color: alpha(@primary, 0.14);
-  color: @on_surface;
-  font-size: 10.5px;
-  font-weight: 650;
 }
 
 .audio-hero-actions {
   min-width: 0;
 }
 
-/* Control: 40px target, surface.control radius. */
 .audio-icon-button {
   min-width: 40px;
   min-height: 40px;
   padding: 0;
+  /* GTK's button chrome is removed here; the skin paints the states. */
   border: 1px solid transparent;
-  border-radius: 9px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: alpha(@on_surface, 0.62);
-}
-
-.audio-icon-button:hover,
-.audio-icon-button:active {
-  background-color: alpha(@on_surface, 0.10);
-  color: @on_surface;
-}
-
-.audio-icon-button.active,
-.audio-icon-button:checked {
-  color: @primary;
-  background-color: alpha(@primary, 0.12);
-}
-
-.audio-icon-button:disabled {
-  opacity: 0.36;
 }
 
 .audio-glyph {
@@ -151,57 +110,18 @@ window.tray-popup {
   font-weight: 600;
 }
 
-.audio-settings-gear image {
-  opacity: 0.9;
-}
-
-.audio-settings-gear.active {
-  color: @primary;
-  background-color: alpha(@on_surface, 0.10);
-}
-
-/* Device field: surface.control. */
 .audio-device {
   min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background-color: alpha(@on_surface, 0.055);
-  background-image: none;
-  box-shadow: none;
-  color: @on_surface;
-}
-
-.audio-device:hover,
-.audio-device:focus {
-  background-color: alpha(@on_surface, 0.10);
-}
-
-.audio-device:disabled {
-  opacity: 0.48;
 }
 
 .audio-device-icon {
-  color: alpha(@on_surface, 0.62);
+  min-width: 17px;
 }
 
 .audio-device-name {
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
 }
 
-.audio-device-note {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
-}
-
-.audio-device-chevron {
-  font-size: 12px;
-  color: alpha(@on_surface, 0.40);
-}
-
-/* Master value + slider. */
 .audio-level-row {
   min-height: 40px;
   margin-top: 6px;
@@ -212,23 +132,15 @@ window.tray-popup {
 }
 
 .audio-big-number {
-  font-size: 28px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .audio-big-unit {
   margin-left: 1px;
-  font-size: 13px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-hero-note {
   margin-top: 6px;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 /* ── sliders (shared level + seek vocabulary) ───────────────────────────── */
@@ -243,16 +155,6 @@ window.tray-popup {
 .audio-hero-slider trough,
 .audio-seek-slider trough {
   min-height: 4px;
-  border-radius: 999px;
-  background-color: alpha(@on_surface, 0.16);
-  border: none;
-}
-
-.settings-level-slider trough highlight,
-.audio-hero-slider trough highlight,
-.audio-seek-slider trough highlight {
-  border-radius: 999px;
-  background-color: @primary;
 }
 
 .settings-level-slider trough slider,
@@ -261,17 +163,12 @@ window.tray-popup {
   min-width: 14px;
   min-height: 14px;
   margin: -5px 0;
-  border: none;
-  border-radius: 999px;
-  background-color: @on_surface;
-  box-shadow: none;
 }
 
 .audio-seek-slider {
   min-width: 30px;
 }
 
-/* The Playing/tray seek line is 2px with an 8px thumb. */
 .audio-seek .audio-seek-slider trough,
 .audio-seek .audio-seek-slider trough highlight {
   min-height: 2px;
@@ -285,6 +182,7 @@ window.tray-popup {
 
 .audio-seek {
   min-width: 0;
+  margin-top: 2px;
 }
 
 .audio-times {
@@ -293,18 +191,8 @@ window.tray-popup {
   padding: 0 1px;
 }
 
-.audio-time {
-  min-width: 0;
-  font-size: 9.5px;
-  color: alpha(@on_surface, 0.40);
-  font-variant-numeric: tabular-nums;
-}
-
 .audio-percent {
   min-width: 34px;
-  font-size: 12px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.82);
   font-variant-numeric: tabular-nums;
 }
 
@@ -312,15 +200,13 @@ window.tray-popup {
 
 .audio-deck {
   min-width: 0;
-  border-bottom: 1px solid alpha(@on_surface, 0.07);
 }
 
 .audio-deck-head {
   min-height: 38px;
-  padding: 0 16px;
+  padding: 0 5px;
 }
 
-/* Tab: text only, selected underline, no box. */
 .audio-mode-tab {
   min-height: 38px;
   padding: 0 1px;
@@ -330,34 +216,16 @@ window.tray-popup {
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: alpha(@on_surface, 0.62);
-}
-
-.audio-mode-tab:hover {
-  color: @on_surface;
-}
-
-.audio-mode-tab.selected {
-  color: @on_surface;
-  border-bottom-color: @primary;
-}
-
-.audio-mode-label {
-  font-size: 13px;
-  font-weight: 650;
 }
 
 .audio-mode-dot {
   min-width: 5px;
   min-height: 5px;
-  border-radius: 999px;
-  background-color: @primary;
 }
 
-/* Playing carousel */
 .audio-playing-carousel {
   min-width: 0;
-  padding: 0 6px 6px;
+  padding: 0 0 6px;
 }
 
 .audio-carousel-button {
@@ -365,16 +233,9 @@ window.tray-popup {
   min-height: 40px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 9px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: alpha(@on_surface, 0.40);
-}
-
-.audio-carousel-button:hover {
-  background-color: alpha(@on_surface, 0.10);
-  color: @on_surface;
 }
 
 .audio-carousel-glyph {
@@ -390,11 +251,8 @@ window.tray-popup {
   min-width: 0;
 }
 
-/* Card: the per-player page. */
 .audio-playing-page {
   min-width: 0;
-  padding: 6px 8px;
-  border-radius: 12px;
 }
 
 .audio-playing-head {
@@ -406,45 +264,23 @@ window.tray-popup {
 }
 
 .audio-app-tile {
-  border-radius: 9px;
-  background-color: alpha(@on_surface, 0.10);
-}
-
-.audio-app-tile-image {
-  border-radius: 9px;
-}
-
-.audio-artwork.audio-app-tile,
-.audio-artwork .audio-app-tile-image {
-  box-shadow: inset 0 0 0 1px alpha(@on_surface, 0.13);
+  min-width: 22px;
 }
 
 .audio-app-tile-fallback {
-  color: @on_surface;
-  font-size: 10.5px;
   font-weight: 700;
 }
 
 .audio-app-name {
   min-width: 0;
-  font-size: 13px;
   font-weight: 650;
-  color: @on_surface;
 }
 
 .audio-live-badge {
   min-height: 19px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background-color: alpha(@secondary, 0.14);
-  color: @on_surface;
-  font-size: 10.5px;
-  font-weight: 650;
 }
 
 .audio-page-index {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
   font-variant-numeric: tabular-nums;
 }
 
@@ -459,19 +295,14 @@ window.tray-popup {
 
 .audio-track-title {
   min-width: 0;
-  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: @on_surface;
 }
 
 .audio-track-artist {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.62);
 }
 
-/* Transport: controls; the filled play art IS the circle (no CSS disc). */
 .audio-transport,
 .audio-tray-transport,
 .audio-strip-controls {
@@ -482,8 +313,6 @@ window.tray-popup {
   min-width: 24px;
   min-height: 40px;
   padding: 0;
-  border-radius: 9px;
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-transport-button.play {
@@ -492,45 +321,23 @@ window.tray-popup {
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @on_primary;
-}
-
-.audio-transport-button.play:hover {
-  background-color: transparent;
-}
-
-.audio-transport-button.active {
-  color: @primary;
 }
 
 .audio-glyph-button .audio-glyph {
   font-size: 14px;
 }
 
-.audio-glyph-button.active .audio-glyph {
-  color: @primary;
-}
-
 /* Read-only app level; clicking opens Mixer focused on that app. */
 .audio-playing-level {
   min-height: 30px;
-  padding: 0 6px;
   border: 1px solid transparent;
-  border-radius: 9px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: alpha(@on_surface, 0.40);
-}
-
-.audio-playing-level:hover {
-  background-color: alpha(@on_surface, 0.10);
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-playing-level-value,
 .audio-playing-level-mixed {
-  font-size: 10.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -549,49 +356,30 @@ window.tray-popup {
 .audio-empty-art {
   min-width: 40px;
   min-height: 40px;
-  border-radius: 9px;
-  background-color: alpha(@on_surface, 0.08);
-  opacity: 0.7;
 }
 
 .audio-empty-title {
-  font-size: 12.5px;
   font-weight: 600;
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-empty-sub {
   margin-top: 2px;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-empty-line {
   padding: 10px 2px 8px;
-  font-size: 11.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 /* ── Mixer ──────────────────────────────────────────────────────────────── */
 
 .audio-mixer {
   min-width: 0;
-  padding: 0 8px 4px;
+  padding: 0 0 4px;
 }
 
-/* Cell: list row. */
 .audio-mixer-row {
   min-width: 0;
-  padding: 4px 8px;
-  border-radius: 8px;
-}
-
-.audio-mixer-row + .audio-mixer-row {
-  border-top: 1px solid alpha(@on_surface, 0.07);
-}
-
-.audio-mixer-row.focused {
-  background-color: alpha(@on_surface, 0.045);
+  margin: 0 5px;
 }
 
 .audio-mixer-head {
@@ -609,50 +397,28 @@ window.tray-popup {
 
 .audio-mixer-sub {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-playing-dot {
   min-width: 5px;
   min-height: 5px;
   border-radius: 999px;
+  /* Semantic playing signal: literal green survives every wallpaper. */
   background-color: #4ade80;
 }
 
-/* Route chip is a control (it opens a menu). */
 .audio-route {
   min-width: 60px;
   min-height: 30px;
-  padding: 0 6px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background-color: alpha(@on_surface, 0.055);
-  background-image: none;
-  box-shadow: none;
-  color: alpha(@on_surface, 0.62);
-}
-
-.audio-route:hover {
-  background-color: alpha(@on_surface, 0.10);
-  color: @on_surface;
 }
 
 .audio-route-label {
   min-width: 0;
-  font-size: 10.5px;
-  font-weight: 550;
 }
 
 .audio-mixer-play {
   min-width: 30px;
   min-height: 30px;
-  border-radius: 9px;
-}
-
-.audio-mixer-play image {
-  min-width: 24px;
-  min-height: 24px;
 }
 
 .audio-mixer-controls {
@@ -664,12 +430,6 @@ window.tray-popup {
 .audio-mixer-mute {
   min-width: 36px;
   min-height: 36px;
-  border-radius: 9px;
-}
-
-.audio-mixer-mute.active {
-  color: @primary;
-  background-color: alpha(@primary, 0.12);
 }
 
 .audio-mixer-value {
@@ -677,63 +437,36 @@ window.tray-popup {
 }
 
 .audio-mixer-pct {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.62);
   font-variant-numeric: tabular-nums;
-}
-
-.audio-mixer-mixed {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 /* ── Input (collapsed by default) ───────────────────────────────────────── */
 
 .audio-section {
   min-width: 0;
-  border-bottom: 1px solid alpha(@on_surface, 0.07);
 }
 
 .audio-section-head {
   min-height: 48px;
-  padding: 0 16px;
+  padding: 0 5px;
   border: none;
   border-radius: 0;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @on_surface;
-}
-
-.audio-section-head:hover {
-  background-color: alpha(@on_surface, 0.03);
 }
 
 .audio-section-head-row {
   min-width: 0;
 }
 
-.audio-section-title {
-  font-size: 13px;
-  font-weight: 650;
-  color: @on_surface;
-}
-
 .audio-section-summary {
   min-width: 0;
-  font-size: 11.5px;
-  color: alpha(@on_surface, 0.40);
-}
-
-.audio-section-chevron {
-  font-size: 12px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-input-body {
   min-width: 0;
-  padding: 0 16px 12px;
+  padding: 0 5px 12px;
 }
 
 .audio-input-controls {
@@ -748,19 +481,12 @@ window.tray-popup {
 
 .audio-input-value {
   min-width: 38px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.62);
   font-variant-numeric: tabular-nums;
 }
 
-/* Cell: microphone consumer row. */
 .audio-consumer {
   min-width: 0;
   margin-top: 8px;
-  padding: 7px 9px;
-  border-radius: 8px;
-  background-color: alpha(@on_surface, 0.045);
 }
 
 .audio-consumer-icon {
@@ -769,19 +495,17 @@ window.tray-popup {
 
 .audio-consumer-name {
   min-width: 0;
-  font-size: 11.5px;
-  color: @on_surface;
 }
 
 .audio-consumer-use {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
+  min-width: 0;
 }
 
 .audio-live-dot {
   min-width: 6px;
   min-height: 6px;
   border-radius: 999px;
+  /* Semantic live signal: literal green, additive only. */
   background-color: #4ade80;
 }
 
@@ -789,93 +513,34 @@ window.tray-popup {
 
 .audio-foot {
   min-width: 0;
-  padding: 10px 16px 12px;
-  border-top: 1px solid alpha(@on_surface, 0.07);
-}
-
-.audio-foot-note,
-.audio-foot-hint {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
+  padding: 10px 5px 4px;
 }
 
 /* ── menus (device / input / route) ─────────────────────────────────────── */
 
-.audio-menu,
-.audio-settings-popover {
-  background-color: transparent;
-}
-
-.audio-menu > contents,
-.audio-settings-popover > contents {
-  padding: 6px;
-  border: 1px solid alpha(@on_surface, 0.13);
-  border-radius: 18px;
-  background-color: alpha(@surface, 0.94);
-  box-shadow: 0 20px 50px alpha(@shadow, 0.56);
-  backdrop-filter: blur(28px) saturate(1.2);
-}
-
-.audio-menu-heading {
-  padding: 5px 8px 7px;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
-}
-
-/* Cell: menu row. */
 .audio-menu-option {
   min-width: 210px;
-  padding: 6px 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   border: 1px solid transparent;
-  border-radius: 8px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @on_surface;
-}
-
-.audio-menu-option:hover,
-.audio-menu-option:focus {
-  background-color: alpha(@on_surface, 0.10);
-}
-
-.audio-menu-option.selected {
-  color: @on_surface;
-}
-
-.audio-menu-option:disabled {
-  opacity: 0.38;
-}
-
-.audio-menu-note {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-option-mark {
   min-width: 16px;
-  color: @primary;
 }
 
 /* ── settings popover ───────────────────────────────────────────────────── */
 
-.audio-settings-popover > contents {
-  padding: 14px;
-}
-
 .audio-settings-head {
   margin-bottom: 10px;
-  font-size: 13px;
   font-weight: 650;
-  color: @on_surface;
 }
 
-/* Cell: the settings row. */
 .audio-settings-row {
   min-width: 0;
-  padding: 9px 0;
-  border-top: 1px solid alpha(@on_surface, 0.07);
-  border-radius: 8px;
 }
 
 .audio-settings-text {
@@ -883,55 +548,25 @@ window.tray-popup {
 }
 
 .audio-settings-name {
-  font-size: 11.5px;
   font-weight: 600;
-  color: @on_surface;
-}
-
-.audio-settings-help {
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-settings-foot {
   margin-top: 10px;
   padding-top: 9px;
-  border-top: 1px solid alpha(@on_surface, 0.07);
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
-/* Switch: a pill. Native Gtk.Switch, palette roles only. */
 .audio-switch {
   min-width: 38px;
   min-height: 22px;
-  border-radius: 999px;
-  background-color: alpha(@on_surface, 0.14);
-  border: 1px solid alpha(@on_surface, 0.14);
-}
-
-.audio-switch:checked {
-  background-color: @primary;
-  border-color: transparent;
 }
 
 .audio-switch > slider {
   min-width: 16px;
   min-height: 16px;
-  border-radius: 999px;
-  background-color: @on_surface;
-  box-shadow: none;
 }
 
-.audio-switch:checked > slider {
-  background-color: @on_primary;
-}
-
-/* ── tray dropdown (surface.panel, 300px menu) ──────────────────────────── */
-
-.tray-surface {
-  padding: 12px;
-}
+/* ── tray dropdown (300px menu) ─────────────────────────────────────────── */
 
 .audio-tray {
   min-width: 0;
@@ -942,20 +577,12 @@ window.tray-popup {
   padding: 0 2px 8px;
 }
 
-.audio-tray-caption {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.40);
-}
-
 .audio-tray-source {
   min-width: 0;
 }
 
 .audio-tray-source-name {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-tray-track-row {
@@ -968,15 +595,11 @@ window.tray-popup {
 
 .audio-tray-title {
   min-width: 0;
-  font-size: 13px;
   font-weight: 600;
-  color: @on_surface;
 }
 
 .audio-tray-artist {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.62);
 }
 
 .audio-tray-transport {
@@ -987,7 +610,6 @@ window.tray-popup {
 .audio-tray-transport .audio-transport-button {
   min-width: 26px;
   min-height: 30px;
-  border-radius: 7px;
 }
 
 .audio-tray-transport .audio-transport-button.play {
@@ -1001,34 +623,18 @@ window.tray-popup {
 .audio-tray-divider {
   min-height: 1px;
   margin: 8px 0 4px;
-  background-color: alpha(@on_surface, 0.07);
 }
 
 .audio-tray-players-head {
   padding: 2px 4px 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: alpha(@on_surface, 0.40);
 }
 
-/* Cell: player row. */
 .audio-tray-player {
   min-height: 38px;
-  padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 8px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: @on_surface;
-}
-
-.audio-tray-player:hover {
-  background-color: alpha(@on_surface, 0.10);
-}
-
-.audio-tray-player.active {
-  background-color: alpha(@on_surface, 0.045);
 }
 
 .audio-tray-player-row {
@@ -1045,46 +651,31 @@ window.tray-popup {
 
 .audio-tray-player-name {
   min-width: 0;
-  font-size: 11.5px;
   font-weight: 600;
-  color: @on_surface;
 }
 
 .audio-tray-player-track {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.40);
 }
 
 .audio-tray-check {
   min-width: 14px;
-  color: @primary;
 }
 
 .audio-tray-foot {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid alpha(@on_surface, 0.07);
 }
 
 .audio-tray-open {
   min-height: 36px;
-  padding: 0 6px;
   border: 1px solid transparent;
-  border-radius: 8px;
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-  color: alpha(@on_surface, 0.62);
-}
-
-.audio-tray-open:hover {
-  background-color: alpha(@on_surface, 0.10);
-  color: @on_surface;
 }
 
 .audio-tray-open-label {
-  font-size: 11.5px;
   font-weight: 600;
 }
 
@@ -1106,15 +697,9 @@ window#bar .media-strip-widget label {
   padding: 0 2px;
 }
 
-/* Cell/control: the clickable main area, subtle hover, no heavy box. */
 .audio-strip-main {
   min-height: 30px;
   padding: 0 4px;
-  border-radius: 8px;
-}
-
-.audio-strip-main:hover {
-  background-color: alpha(@on_surface, 0.06);
 }
 
 .audio-strip-inner {
@@ -1122,12 +707,8 @@ window#bar .media-strip-widget label {
 }
 
 .audio-strip-art.audio-app-tile {
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 1px alpha(@on_surface, 0.20);
-}
-
-.audio-strip-art .audio-app-tile-image {
-  border-radius: 6px;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .audio-strip-text {
@@ -1136,15 +717,11 @@ window#bar .media-strip-widget label {
 
 .audio-strip-title {
   min-width: 0;
-  font-size: 11.5px;
   font-weight: 600;
-  color: alpha(@on_surface, 0.90);
 }
 
 .audio-strip-artist {
   min-width: 0;
-  font-size: 10.5px;
-  color: alpha(@on_surface, 0.58);
 }
 
 .audio-strip-controls {
@@ -1154,7 +731,6 @@ window#bar .media-strip-widget label {
 .audio-strip-controls .audio-transport-button {
   min-width: 22px;
   min-height: 28px;
-  border-radius: 6px;
 }
 
 .audio-strip-controls .audio-transport-button.play {
@@ -1163,27 +739,4 @@ window#bar .media-strip-widget label {
 
 .audio-strip-controls .audio-glyph-button .audio-glyph {
   font-size: 12px;
-}
-
-.audio-strip-controls .audio-glyph-button.active .audio-glyph {
-  color: @primary;
-}
-
-/* ── focus ──────────────────────────────────────────────────────────────── */
-
-.audio-icon-button:focus-visible,
-.audio-device:focus-visible,
-.audio-route:focus-visible,
-.audio-carousel-button:focus-visible,
-.audio-mode-tab:focus-visible,
-.audio-section-head:focus-visible,
-.audio-playing-level:focus-visible,
-.audio-menu-option:focus-visible,
-.audio-tray-player:focus-visible,
-.audio-tray-open:focus-visible,
-.audio-hero-slider:focus-visible,
-.audio-level-slider:focus-visible,
-.audio-seek-slider:focus-visible {
-  outline: 2px solid @primary;
-  outline-offset: 2px;
 }
