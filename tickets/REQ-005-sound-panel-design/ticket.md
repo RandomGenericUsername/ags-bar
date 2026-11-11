@@ -315,7 +315,8 @@ google-chrome-stable --new-window \
 - Actual widths read from the rendered widgets and PNG edges: **panel 352 px**
   (content 328 glass / 330 flat / 332 terminal + skin padding/border), **tray
   300 px** (content 276/278/280), **settings 280 px** (content 256/258/260).
-  Heights: panel 515 (Playing) / 675 (Mixer); tray 446; settings 160. The
+  Heights: panel 515 (Playing) / 675 (Mixer); tray 446; settings 136
+  (glass; 130 terminal, 139 paper). The
   settings content is 280 px border-box, not the previous 327 px — that was
   the unconstrained content's natural width, now fixed by the app's
   `widthRequest` with the skin padding inside.
