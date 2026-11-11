@@ -8,7 +8,7 @@ links:
   openspec: none
   bmad: none
 worktree: .worktrees/REQ-005/
-branch: ticket/REQ-005-sound-panel-design
+branch: ticket/REQ-005-sound-panel-implementation
 ---
 
 # Redesign the sound panel as an anchored popover
@@ -232,7 +232,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `73b8a5e62f9afbadfe4fb2fc8137a022f7a1ae71453c01d3704411ed7cbc98a6`
+  `7a2cc98b3da119eb48313d99bdf375cb7b1661e657a95831dd0587029e5c22bd`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -297,9 +297,21 @@ Chrome colour roles and radii are custom properties in `:root`
 | `--live` | semantic green, not a palette role |
 | `--r-panel` | `surface.panel.radius` |
 | `--r-card` | `surface.card.radius` |
+| `--r-cell` | `surface.cell.radius` |
 | `--r-control` | `surface.control.radius` |
 | `--r-pill` | `surface.pill.radius` |
 | `--panel-w` | **app literal** (352 px), not a layout token |
+
+Role assignment in this surface (the corrected mapping, see the compliance
+section below):
+
+| Role | Mock surfaces |
+| --- | --- |
+| `surface.panel` | The 352 px popover, the 300 px tray dropdown, the 280 px settings popover, and the device/route menu (each is an AGS layer-shell surface, not a toplevel) |
+| `surface.card` | The per-player Playing page |
+| `surface.cell` | Mixer rows, tray `Players` rows, menu rows, the input consumer row, the settings row |
+| `surface.control` | Device fields, route chips, icon/transport/carousel/mute buttons, artwork frames |
+| `surface.pill` | Muted pill, live badge, tab underline, switch, scroll cue, toast, slider tracks/thumbs |
 
 `--panel-w` becomes skin-remappable only if the appearance plane adds a
 `layout.ags.audio-panel-width` token. The `--surface`, `--outline` and
@@ -308,6 +320,105 @@ claim that every value is tokenised: some translucent hover/fill overlays and
 all content art (dragon wallpaper, album covers, app tile gradients) remain
 literals because they are content, not skin. Geometry and structure stay in the
 mock's CSS, mirroring 106's rule that the appearance plane has no structure.
+
+## Customization layer compliance (2026-11-11)
+
+This paper was audited against the v3 customization layer as it exists on
+2026-11-11 and against the frozen composition tuple. The audit found three
+things to record here and nothing that changes the approved layout, type or
+colour intent: the surfaces are **not** `surface.window`, list rows need
+`surface.cell`, and the live tuple still exposes five roles.
+
+### W-10: all three surfaces are `surface.panel`, never `surface.window`
+
+Doc 113 (`dotfiles-v3/docs/113-window-role-kitty-projection.md`) W-10 says:
+"AGS bar/settings and AGS overlay surfaces remain `surface.panel`".
+`surface.window` is the outermost surface **the compositor manages as a
+window** (rofi, wlogout, GTK `window`/`headerbar`); it is a required sixth role
+in the v3 token model, not a synonym for `panel`.
+
+The sound popover, the tray dropdown and the settings popover are AGS
+layer-shell windows inside the bar's single `ags` instance (`PopupHost` uses
+`Astal.Layer.OVERLAY`, `Astal.Exclusivity.IGNORE`, `WindowAnchor.TOP | LEFT`).
+None is a compositor toplevel and none is decorated by the compositor.
+Therefore:
+
+- `--r-panel -> surface.panel.radius` is correct and stays. It must **not** be
+  remapped to `surface.window.radius`.
+- Their paint, frame, shadow and blur consume the panel role (the mock's
+  `--surface`/`--surface-strong`/`--outline` aliases).
+- `surface.window` is not consumed by any part of this surface. Using it would
+  be a false role claim and would break the kitty/rofi/wlogout toplevel
+  mapping's one-consumer-per-slot rule.
+
+### `surface.cell` is required; rows are cells, not cards
+
+The first paper had no cell role: Mixer rows used `--r-card` and the tray /
+menu / consumer rows used bare 8–10 px literals. That mislabels list rows as
+inner cards. The corrected mapping:
+
+- **cells**: Mixer rows, tray `Players` rows, menu rows, the input consumer
+  row, and the settings row (`--r-cell`).
+- **cards**: the Playing page — an inner page, not a row (`--r-card`).
+- **controls**: device fields, route chips, icon/transport/carousel/mute
+  buttons, artwork frames (`--r-control`).
+- **pills**: muted pill, live badge, tab underline, switch, scroll cue, toast,
+  slider tracks/thumbs (`--r-pill`).
+
+The mock adds `--r-cell: 8px` (`mock.html` `:root`); the tray dropdown, the
+settings popover and the device/route menu now take `--r-panel` instead of
+their former 12/14 px menu literals. That is a **corner-rounding normalization
+only**: no layout, type, spacing, colour or interaction moved. The radii are now
+honest single-role values a skin can remap; a design that kept four different
+literals per role could not be satisfied by `surface.*.radius`.
+
+### Current tuple vs target layer
+
+- Live composition tuple: **`ags-platform` v1.0.1 / `contracts` v0.11.0 /
+  `dotfiles-assets` v0.18.1**
+  (`dotfiles-v3/dotfiles/provisioning/program-tuple.yaml`). It exposes the five
+  roles this surface uses: `panel`, `card`, `cell`, `control`, `pill`.
+- Target layer: **`contracts` v0.12.0 / `ags-platform` v1.1.0 /
+  `dotfiles-assets` v0.19.0**, which adds the required sixth role
+  `surface.window`. That move is a **program-wide cutover** (doc 113 §10), never
+  a single-app cutover; the bar's `AGS_PLATFORM_VERSION`/`CONTRACTS_VERSION`
+  pins and the program tuple move together, with a runtime that emits v3.
+- This paper therefore targets the five-role surface and is forward-compatible:
+  when the tuple moves, no selector in this surface changes — only the skin's
+  radius/paint values behind those roles change, and the new `window` role has
+  no consumer here. The implementation must not bump the tuple or the platform
+  pin for this app alone.
+
+### Follow-up mapping owned by `dotfiles-assets`
+
+`audio/audio-panel.css` is the bar's runtime-applied stylesheet, not a skin
+template. The skin does not yet carry rules for the sound classes, so the app
+uses palette roles plus the geometry above. The exact follow-up mapping needed
+in `dotfiles-assets/skins/templates/ags.gtk.css.j2` (do not patch it from this
+repo) is:
+
+| Selector | Role tokens |
+| --- | --- |
+| `.audio-surface` (`window.audio-popup`), `.tray-surface` (`window.tray-popup`), `.audio-settings-popover > contents`, `.audio-menu > contents` | `surface.panel` bg/border/border-width/radius/padding/shadow/blur |
+| `.audio-playing-page` | `surface.card` radius |
+| `.audio-mixer-row`, `.audio-tray-player`, `.audio-menu-option`, `.audio-consumer`, `.audio-settings-row` | `surface.cell` bg/radius/padding/hover-bg |
+| `.audio-device`, `.audio-route`, `.audio-icon-button`, `.audio-transport-button`, `.audio-carousel-button`, `.audio-playing-level` | `surface.control` bg/border/border-width/radius/padding/font-size/font-weight |
+| `.audio-muted-pill`, `.audio-live-badge`, `.audio-mode-tab`, `.audio-switch` | `surface.pill` bg/border/border-width/radius/padding/font-size/letter-spacing |
+
+Until that lands, no new literal chrome colour is introduced in the bar: the
+stylesheet stays on the palette roles (`@on_surface`, `@surface`,
+`@surface_container_high`, `@primary`, `@on_primary`,
+`@primary_container`, `@on_primary_container`).
+
+### Layout and content literals
+
+- `--panel-w` remains the 352 px app literal. The current layout vocabulary has
+  no `layout.ags.audio-panel-width`; inventing one here would make this paper
+  disagree with the tuple. The bar's settings panel still owns
+  `layout.ags.panel-width`, which is unrelated to this popover.
+- Content stays content: album covers, app-tile fallbacks and the mock's dragon
+  wallpaper are not skin. Real artwork comes from MPRIS through the existing
+  bounded cache.
 
 ## Assumptions and deviations
 
@@ -399,6 +510,12 @@ mock's CSS, mirroring 106's rule that the appearance plane has no structure.
 - Settings screenshots: `/tmp/opencode/settings-open2.png` (popover open),
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
+- Customization-layer pass (2026-11-11): `sha256sum mock.html` =
+  `7a2cc98b3da119eb48313d99bdf375cb7b1661e657a95831dd0587029e5c22bd`
+  (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
+  default and Mixer states with the normalized radii
+  (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,
+  type or colour change was observed.
 
 ## Follow-up
 
