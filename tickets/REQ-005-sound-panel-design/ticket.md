@@ -486,12 +486,12 @@ literals per role could not be satisfied by `surface.*.radius`.
   `dotfiles-assets` v0.18.1**
   (`dotfiles-v3/dotfiles/provisioning/program-tuple.yaml`). It exposes the five
   roles this surface uses: `panel`, `card`, `cell`, `control`, `pill`.
-- This slice's assets release: **`dotfiles-assets` v0.19.1** (the sound paint
+- This slice's assets release: **`dotfiles-assets` v0.20.0** (the sound paint
   on top of v0.19.0) and **`ags-bar` v0.6.3**. The live tuple's
   `dotfiles-assets` entry is v0.18.1, so the sound paint is not in the tuple
   until a program-wide cutover.
 - Target layer: **`contracts` v0.12.0 / `ags-platform` v1.1.0 /
-  `dotfiles-assets` v0.19.1**, which adds the required sixth role
+  `dotfiles-assets` v0.20.0**, which adds the required sixth role
   `surface.window` (v0.19.0) plus this sound paint. That move is a
   **program-wide cutover** (doc 113 §10), never a single-app cutover; the
   bar's `AGS_PLATFORM_VERSION`/`CONTRACTS_VERSION` pins and the program tuple
