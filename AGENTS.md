@@ -51,6 +51,14 @@ mode=restart  holdsUnsavedState=false
   `layout.ags.*` tokens through `appearance.value(path, fallback)`; the settings
   surface owns `panel-width` and the Bluetooth lists own `bt-list-spacing`. Do
   not move layout metrics into CSS and do not drop the app namespace.
+- **Long-lived GUI launches are scoped.** Anything the user opens and expects to
+  outlive the bar (`hyprmod`, `power-options-gtk`, `pavucontrol`, Thunderbird,
+  Kitty/btop, Blueman, `nm-connection-editor`) goes through
+  `lib/scopedLauncher.ts` → `lib/scopedApp.ts`, which runs
+  `systemd-run --user --scope`. A plain `execAsync` child sits in
+  `dotfiles-ags-bar.service`'s cgroup and is SIGKILLed by `KillMode=mixed` on
+  the next AGS restart. Short-lived commands and the transient `wlogout`
+  overlay stay direct. Do not add shell string commands; args stay an array.
 
 ## 3. Install-time vs repo state
 

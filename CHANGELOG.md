@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.6.2 — 2026-11-11
+
+### Added
+
+- Add `lib/scopedApp.ts`, a pure scoped-launch core, and
+  `lib/scopedLauncher.ts`, its live AGS/Notifier wiring. Long-lived GUI apps
+  now launch through `systemd-run --user --scope --collect --quiet`, giving
+  them their own transient scope instead of living in
+  `dotfiles-ags-bar.service`'s cgroup. This fixes apps such as `hyprmod` and
+  `power-options-gtk` being SIGKILLed by `KillMode=mixed` when AGS restarts.
+- Forward `WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR` and
+  `DBUS_SESSION_BUS_ADDRESS` with `--setenv` when present, and surface launch
+  failures through the journal and a session notification.
+- Add `tests/ts/scoped-app.test.ts` for argv construction, environment
+  forwarding, allowlist rejection, success and failure/toast handling.
+
+### Changed
+
+- Route `hyprmod`, `power-options-gtk`, `pavucontrol`, `thunderbird`,
+  `kitty -- btop`, `kitty -- wifitui tui`, `blueman-manager` and
+  `nm-connection-editor` through the shared scoped launcher.
+- Short-lived commands (`brightnessctl`, `wpctl`, `pw-dump`, MPRIS/speedtest
+  helpers, capture-cluster requests) and the transient `wlogout` overlay keep
+  their direct launches and still die with AGS.
+
 ## v0.6.1 — 2026-11-07
 
 ### Changed

@@ -50,6 +50,37 @@ app-namespaced: the settings surface reads
 `wallpaper.state` subscription and no `appearance-refresh`/`palette-refresh`
 request are added.
 
+### Long-lived GUI launches
+
+The bar runs as `dotfiles-ags-bar.service` with `KillMode=mixed`. A GUI app
+started with plain `execAsync(["hyprmod"])` is a child in that service's cgroup,
+so restarting the bar (or an AGS crash) sends SIGTERM to AGS and SIGKILL to
+everything left in the cgroup — including the app the user just opened.
+
+Every long-lived GUI launch therefore goes through `lib/scopedApp.ts`, which
+builds an argv array for:
+
+```text
+systemd-run --user --scope --collect --quiet [--setenv=NAME=VALUE …] -- <argv…>
+```
+
+`--scope` gives the app its own transient systemd user scope, outside the bar's
+cgroup, so it survives an AGS restart. `--collect` unloads the scope after the
+app exits. `WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR` and
+`DBUS_SESSION_BUS_ADDRESS` are forwarded with `--setenv` when present, because
+the systemd user manager may not have the compositor/session environment the
+AGS process inherited. The command is never concatenated into a shell string:
+arguments stay separate array entries.
+
+`lib/scopedLauncher.ts` supplies `execAsync`, `GLib.getenv` and the platform
+`Notifier`; a launch failure is logged and posted as a session notification, so
+a missing app is visible rather than a silent no-op. The fixed registry covers
+`hyprmod`, `power-options-gtk`, `pavucontrol`, `thunderbird`,
+`kitty -- btop`, `kitty -- wifitui tui`, `blueman-manager` and
+`nm-connection-editor`. Short-lived commands owned by AGS (`brightnessctl`,
+`wpctl`, `pw-dump`, MPRIS/speedtest helpers, capture-cluster requests) and the
+transient `wlogout` logout overlay deliberately stay on their direct path.
+
 ### Request surface
 
 `app.tsx` keeps the bar's complete `requestHandler` surface:
