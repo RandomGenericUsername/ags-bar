@@ -19,7 +19,7 @@
 - [REQ-007-wifi-panel-design/ticket.md](./REQ-007-wifi-panel-design/ticket.md) — Redesign the Wi-Fi panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-007/`, branch `ticket/REQ-007-wifi-panel-design`
 - [REQ-008-battery-panel-design/ticket.md](./REQ-008-battery-panel-design/ticket.md) — Redesign the battery panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-008/`, branch `ticket/REQ-008-battery-panel-design`
 - [REQ-009-bluetooth-panel-design/ticket.md](./REQ-009-bluetooth-panel-design/ticket.md) — Redesign the Bluetooth panel as an anchored popover | `in-progress` | links: worktree `.worktrees/REQ-009/`, branch `ticket/REQ-009-bluetooth-panel-design`
-- [REQ-010-scoped-app-launch/ticket.md](./REQ-010-scoped-app-launch/ticket.md) — Launch long-lived GUI apps in transient systemd scopes | `in-progress` | links: worktree `.worktrees/REQ-010/`, branch `ticket/REQ-010-scoped-app-launch`
+- [REQ-010-scoped-app-launch/ticket.md](./REQ-010-scoped-app-launch/ticket.md) — Launch long-lived GUI apps in transient systemd scopes | `done` | links: worktree `.worktrees/REQ-010/`, branch `ticket/REQ-010-scoped-app-launch`
 
 ## Bugs
 
