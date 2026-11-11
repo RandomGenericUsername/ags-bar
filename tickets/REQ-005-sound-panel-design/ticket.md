@@ -480,6 +480,34 @@ stylesheet stays on the palette roles (`@on_surface`, `@surface`,
 `@surface_container_high`, `@primary`, `@on_primary`,
 `@primary_container`, `@on_primary_container`).
 
+### Other frozen papers needing the same pass (audit, not edited)
+
+The same W-10 / `surface.cell` decision applies to every AGS overlay paper.
+They were audited read-only here; each is owned by its own repo/ticket and its
+hash is unchanged.
+
+- **REQ-007 Wi-Fi** (`ags-bar/tickets/REQ-007-wifi-panel-design`): its `:root`
+  has the four radii and no `--r-cell`; the ticket has no token/role table
+  (only a "map `:root` chrome roles/radii" note). Its 352 px popover and
+  280 px settings popover are AGS layer-shell overlays, so `surface.panel`
+  (never `window`). Needs `--r-cell`, a role table (network rows and settings
+  rows are cells) and the W-10 note.
+- **REQ-008 Battery**: same shape. The mode rail cells and device/profile rows
+  are cells; the variant selector is a control. Needs `--r-cell`, the role
+  table and the W-10 note.
+- **REQ-009 Bluetooth**: same shape, and `.dev-card` currently uses
+  `--r-card`; decide whether a device card is a card or a cell, then add
+  `--r-cell`, the role table and the W-10 note.
+- **`ags-wallpaper-selector` REQ-005 overlay redesign**: the mock uses
+  `--r-bar`/`--r-pill` only and has no `surface.*` mapping. The overlay is an
+  AGS layer-shell surface → `surface.panel`. Needs the role table (thumbnail
+  cells are cells) and the W-10 note in that repo.
+- **`ags-clipboard` REQ-005 overlay redesign**: `--r-bar`/`--r-card`/
+  `--r-pill`, no `surface.*` mapping; overlay → `surface.panel`. Same pass.
+
+None of these are edited by this ticket; each must update its own mock hash
+when it lands.
+
 ### Layout and content literals
 
 - `--panel-w` remains the 352 px app literal. The current layout vocabulary has
