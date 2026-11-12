@@ -761,7 +761,7 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   `settings-panel.settings` and the platform v1.2.0 `icons.json`; the panel,
   tray and strip resolve registry images; text glyphs are gone.
 - Strip thumbnail is 32 px with no tile fill; tray transport is centered and
-  36/18 px. Mock updated to match; new mock hash `ed9e04fe…`.
+  36/18 px. Mock updated to match; new mock hash `1a0d9a25…`.
 
 ### QA round 4 (2026-11-12)
 
@@ -771,6 +771,6 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   platform `icons.json` v1.2.0; owner shapes, active/inactive roles; text
   glyphs removed. Tidal shows shuffle/repeat; Chrome/video hides them.
 - Strip 32 px transparent thumbnail, no tile fill, title uses width; tray
-  transport centered 36/18. Mock hash `ed9e04fe…`.
+  transport centered 36/18. Mock hash `1a0d9a25…`.
 - Final tags bar v0.6.14, assets v0.21.0, platform v1.2.0, engine v0.1.75,
   composition v0.1.83; live verify 337.
