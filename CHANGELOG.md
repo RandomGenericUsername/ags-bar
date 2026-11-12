@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased — REQ-005 sound panel
+## v0.6.4 — 2026-11-12
+
+### Changed
+
+- Bump the local program tuple from `ags-platform` v1.0.1 / `contracts`
+  v0.8.0 to `ags-platform` v1.1.0 / `contracts` v0.12.0. The v1.1.0 release
+  adds the required `surface.window` outer-toplevel role; this bar's overlays
+  stay on `surface.panel` (doc 113 W-10), so the role is unused here. The
+  Makefile, CI workflow and conformance/validation pin tests name the same
+  tuple.
+
+### Unchanged
+
+- No bar runtime code, `style.css`, layout token, handler/lane policy or
+  behaviour change. The bar remains a `restart` app with no
+  `appearance-refresh`/`palette-refresh` handler.
+
+## v0.6.3 — 2026-11-11 — REQ-005 sound panel
 
 ### Added
 
