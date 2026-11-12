@@ -2,7 +2,7 @@
 id: REQ-011
 title: "Sound panel QA: single surfaces, honest controls, live position"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
@@ -36,3 +36,17 @@ skin target; do not retune the skin (terminal-host stays configured).
 
 Also: update the mock/hash and the REQ-005 ticket, assets `ags.gtk.css.j2`
 mapping/tests, then release bar/assets/engine/composition and install live.
+
+## Release
+
+- Bar `v0.6.5` (QA implementation) and `v0.6.6` (artwork-cache mkdir guard +
+  header alignment); worktree `.worktrees/REQ-011/`, branch
+  `ticket/REQ-011-sound-panel-qa`.
+- Assets `v0.20.1` (bare icon-only mapping, thumbnail styles); engine
+  `v0.1.66`/`v0.1.67`; composition `v0.1.74`/`v0.1.75`.
+- Bar gates: `make gates` PASS (179 + 28 tests, conformance 14, drift, bundle,
+  typecheck 0). Assets: `validate-skins` PASS, `test-skins` 182 passed / 3
+  skipped. Engine: `gates-pin`, `assets-parity`, `build` PASS. Composition:
+  `make gates-ci` PASS.
+- Live: installed from `.worktrees/REQ-117` with bar v0.6.6, assets v0.20.1,
+  engine v0.1.67; terminal-host generation; verify `ok=337 failed=0`.
