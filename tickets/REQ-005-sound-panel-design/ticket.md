@@ -753,3 +753,15 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   restart is required for this UI setting.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.
+
+### Final live QA evidence (v0.6.7)
+
+- Installed bar `v0.6.7`, assets `v0.20.1`, engine `v0.1.68`, composition
+  `v0.1.76`; terminal-host dark generation
+  `27ecb6be1d76eccae525d9552cfc311e14f0cb7da570654f7647acd490f4d349`.
+- `/tmp/opencode/req005/final-normal.png` (thumbnail + Chrome corner badge,
+  right-aligned gear/mute, 62% output, 509px content-sized panel),
+  `final-progress.png` (2:28 → 2:44 while open), `final-muted.png` (small pill,
+  no note), `final-settings.png` (one sibling surface), `final-mixer.png` (no
+  playback controls), `final-tidal.png` (album cover + Tidal badge,
+  shuffle/repeat; the Chrome page hides them).
