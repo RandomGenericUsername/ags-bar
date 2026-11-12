@@ -50,3 +50,23 @@ mapping/tests, then release bar/assets/engine/composition and install live.
   `make gates-ci` PASS.
 - Live: installed from `.worktrees/REQ-117` with bar v0.6.6, assets v0.20.1,
   engine v0.1.67; terminal-host generation; verify `ok=337 failed=0`.
+
+## Final live release (v0.6.7)
+
+The follow-up installs were needed because the first live probe found two
+composition-level bugs: Gio's `make_directory_with_parents()` threw
+`File exists` for the prepared artwork cache (v0.6.6), and the artwork overlay
+mapped only `model.rows`, not the `playingRows` the Playing deck renders
+(v0.6.7).
+
+- Bar `v0.6.7`; assets `v0.20.1`; engine `v0.1.68`; composition `v0.1.76`.
+- Live: terminal-host dark, generation
+  `27ecb6be1d76eccae525d9552cfc311e14f0cb7da570654f7647acd490f4d349`;
+  bar link `apps/bar/v0.6.7`; engine `v0.1.68`; verify `ok=337 failed=0`.
+- Appearance: the bare icon-only group, `.audio-track-art`/badge and
+  `.audio-settings` panel are present; no `surface.window` selector (only the
+  source comment naming the retired role).
+- Screenshots: `/tmp/opencode/req005/final-normal.png`,
+  `final-progress.png`, `final-muted.png`, `final-settings.png`,
+  `final-mixer.png`, `final-tidal.png`.
+- Panel layer: `361x509` at `1346,52` (content-sized; footer at the bottom).
