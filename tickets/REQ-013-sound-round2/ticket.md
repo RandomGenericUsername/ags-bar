@@ -13,7 +13,7 @@ branch: ticket/REQ-013-sound-round2
 
 # Sound panel feedback round 2
 
-1. Input collapse refits the panel after the revealer settles; no dead height.
+1. Input collapse refits the panel after the visibility change settles; no dead height.
 2. Owner icon art integrated through assets/platform: `media-controls`
    (shuffle, shuffle-active, repeat, repeat-once, repeat-off) and the
    `settings`/`settings-panel` gear; text glyphs removed; capability hiding

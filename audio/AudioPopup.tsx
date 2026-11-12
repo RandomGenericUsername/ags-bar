@@ -484,7 +484,7 @@ function MixerDeck({ binding }: { binding: AudioPanelBinding }) {
 // Input — secondary and collapsed by default.
 // ---------------------------------------------------------------------------
 
-function InputSection({ binding, onRevealSettled }: { binding: AudioPanelBinding; onRevealSettled?: () => void }) {
+function InputSection({ binding }: { binding: AudioPanelBinding }) {
   const model = createComputed(() => binding.model())
   const input = createComputed<EndpointState | null>(() => {
     const state = model()
@@ -516,15 +516,7 @@ function InputSection({ binding, onRevealSettled }: { binding: AudioPanelBinding
         </box>
       </button>
 
-      <revealer
-        transitionType={Gtk.RevealerTransitionType.NONE}
-        revealChild={inputOpen}
-        $={(self: Gtk.Revealer) => {
-          self.connect("notify::child-revealed", () => onRevealSettled?.())
-          self.connect("notify::reveal-child", () => onRevealSettled?.())
-        }}
-      >
-        <box class="audio-input-body" orientation={VERTICAL} spacing={6}>
+      <box class="audio-input-body" orientation={VERTICAL} spacing={6} visible={inputOpen}>
         <DeviceSelector
           title="Input device"
           value={name}
@@ -575,8 +567,7 @@ function InputSection({ binding, onRevealSettled }: { binding: AudioPanelBinding
           label={createComputed(() => available() ? "No microphone use right now." : "No microphone detected.")}
           visible={createComputed(() => consumers().length === 0)}
         />
-        </box>
-      </revealer>
+      </box>
     </box>
   )
 }
@@ -733,7 +724,7 @@ export function AudioPanelContent({
             <PlayingDeck binding={binding} />
             <MixerDeck binding={binding} />
           </box>
-          <InputSection binding={binding} onRevealSettled={scheduleFit} />
+          <InputSection binding={binding} />
         </box>
       </scrolledwindow>
       <AudioFoot />

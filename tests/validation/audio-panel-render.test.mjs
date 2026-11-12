@@ -395,11 +395,10 @@ check("the strip uses a 32px transparent thumbnail and the tray centers larger c
   assert.match(css, /\.audio-strip-art\.audio-app-tile\s*\{[^}]*border:\s*none/, "strip artwork keeps a tile border");
 });
 
-check("the Input revealer refits the panel after collapsing", () => {
-  assert.match(popupSrc, /<revealer/, "Input is not a revealer");
-  assert.match(popupSrc, /revealChild=\{inputOpen\}/, "the revealer is not bound to Input state");
-  assert.match(popupSrc, /notify::child-revealed/, "the revealer does not refit after settling");
+check("the Input section refits the panel after collapsing", () => {
+  assert.match(popupSrc, /class="audio-input-body"[^>]*visible=\{inputOpen\}/, "Input is not visibility-bound");
   assert.match(popupSrc, /fitAfterLayout/, "no post-layout height recalculation");
+  assert.match(popupSrc, /GLib\.timeout_add\([^\n]*fit\(\)/, "no delayed fit after the visibility change");
 });
 
 check("the muted output dims the big value without moving layout", () => {

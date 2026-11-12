@@ -1,3 +1,10 @@
+## v0.6.11 — 2026-11-12
+
+- Fix the v0.6.10 Input regression: a `Gtk.Revealer` retained the expanded
+  natural height in the initial/collapsed panel. The Input body is
+  visibility-bound again, with an immediate idle fit and an 80 ms post-layout
+  fit; the collapsed panel returns to its content height.
+
 ## v0.6.10 — 2026-11-12
 
 Owner feedback round 2:
