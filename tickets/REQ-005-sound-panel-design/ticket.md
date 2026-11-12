@@ -36,19 +36,20 @@ The popover has three surfaces:
    surface, only one mode visible. The tabs use a selected accent underline, no
    box and no chevrons.
    - **Playing:** one horizontally snap-scrolling page per app with a current
-     player. Each page carries the app tile/name (the source badge), `n/N`, 40 px
-     artwork, title/artist, inline previous/play-pause/next, shuffle/repeat only
-     when supported, and a 2 px seek line with 9.5 px times. There is **no
-     volume slider**: a small volume glyph + current level is read-only, and
-     clicking it switches to Mixer focused on that app. Arrows flank the pages
-     when there is more than one player; swipe/scroll snap also works. Audio-only
-     apps are not Playing pages.
+     player. Each page carries the app name, `n/N`, the **track thumbnail/album
+     art** in the 40 px frame (the app icon is only a small corner badge, or the
+     fallback when no thumbnail exists), title/artist, inline
+     previous/play-pause/next, shuffle/repeat only when supported, and a 2 px
+     seek line with 9.5 px times. There is **no volume slider**: a small volume
+     glyph + current level is read-only, and clicking it switches to Mixer
+     focused on that app. Arrows flank the pages when there is more than one
+     player; swipe/scroll snap also works. Audio-only apps are not Playing
+     pages.
    - **Mixer:** a vertical list of every app with audio. Each row has the app
      tile/name, current media or `Audio only`, route chip, volume slider, mute,
      percentage and `Mixed` when applicable. Playing apps get a subtle playing
-     dot and a single play/pause button. There is no seek/prev/next, no expand
-     chevron and no nested box. Row and play/pause clicks keep the user in Mixer;
-     they never switch modes.
+     dot. Mixer is levels/routing only: there is no playback control, seek,
+     expand chevron or nested box. Row clicks never switch modes.
    - Default mode is Playing when a player exists, otherwise Mixer. The last
      mode is kept for the session. Track changes never switch modes. While in
      Mixer, a small accent dot appears on the Playing tab when anything is
@@ -128,7 +129,7 @@ VLC live page.
 | `setAppRoute` (follow preferred / explicit override) | Mixer route chip → menu (default reflects the selected output) |
 | `setAppVolume` | Mixer volume slider |
 | `toggleAppMute` | Mixer mute button; `Mixed` badge for divergent levels |
-| `playerAction` play-pause / previous / next | Playing page transport and Mixer's single play/pause |
+| `playerAction` play-pause / previous / next | Playing page transport (Mixer has no playback controls) |
 | `seek` | Playing page's 2 px seek line + elapsed/duration; live pages hide it |
 | `selectInput` | Input device row → input menu |
 | `setInputVolume` | Input slider + percent |
@@ -159,14 +160,15 @@ Design deliverable:
       selected tab on an accent underline. There is no box, pill or chevron.
       Only one panel is visible.
 - [x] Playing has one snap-scrolling page per current player (Spotify, Tidal,
-      VLC); Firefox is absent. Pages carry app tile/name, `n/N`, artwork,
-      title/artist, transport, supported shuffle/repeat and seek, with a
-      read-only volume glyph + level and no slider.
+      VLC); Firefox is absent. Pages carry the app name, `n/N`, the track
+      thumbnail with a small app badge/fallback, title/artist, transport,
+      supported shuffle/repeat and seek, with a read-only volume glyph + level
+      and no slider.
 - [x] Clicking the Playing level glyph switches to Mixer, focuses the matching
       row, and preserves the user's chosen mode afterwards.
 - [x] Mixer lists every app (four rows), with route, volume, mute, percentage,
-      `Mixed`, a playing dot and one play/pause. It has no seek/prev/next,
-      expand chevron or nested box; row and play/pause stay in Mixer.
+      `Mixed` and a playing dot. It has no playback control, seek/prev/next,
+      expand chevron or nested box; rows never switch modes.
 - [x] The default mode is Playing when a player exists and Mixer otherwise.
       Track changes never switch modes; the chosen mode survives panel
       close/reopen for the session. The Playing tab shows an accent dot while
@@ -232,7 +234,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `7a2cc98b3da119eb48313d99bdf375cb7b1661e657a95831dd0587029e5c22bd`
+  `6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -247,13 +249,13 @@ google-chrome-stable --new-window \
 
 - [x] Persistent output + Playing/Mixer deck implemented per the mock. The
       popover is 352 px wide and anchored under the bar by the shared
-      `PopupHost`; with the skin padding it is 515 px in Playing and 675 px in
-      Mixer for the fixture session (a fixed deck scroller, clamped on short
-      monitors). All five skin renders are in the evidence below.
+      `PopupHost`; its height is content-sized (the deck body is measured and
+      capped with a scroll fallback), so there is no fixed dead space. All five
+      skin renders are in the evidence below.
 - [x] Playing pages: transport/seek; shuffle/repeat capability-gated; no volume
       slider; the read-only level opens Mixer on that app.
-- [x] Mixer rows: route/volume/mute/play-pause; no transport/seek; row and
-      play/pause do not switch modes.
+- [x] Mixer rows: route/volume/mute; no transport/seek or play/pause; row
+      clicks do not switch modes.
 - [x] Tray strip: always visible when enabled + player; click opens the
       dropdown; transport never opens it; wheel cycles players; hidden when
       idle; tray/panel mutually exclusive.
@@ -267,6 +269,40 @@ google-chrome-stable --new-window \
 - [x] `make ci` and `make gates` pass. The composition pin is unchanged on
       purpose: this work produces no bar tag, and the tuple bump is a
       program-wide cutover (see the compliance section).
+
+## QA follow-up (2026-11-12)
+
+Owner QA on the installed panel (REQ-011 in `ags-bar`), fixed without retuning
+the skin:
+
+1. **Settings is one surface.** The native `Gtk.Popover` node/contents is reset
+   to transparent, no border/padding/shadow; only `.audio-settings` is painted
+   with `surface.panel`. It remains a sibling `Gtk.Popover`, not a nested box.
+2. **Output header matches the mock.** The gear is the mock gear glyph (the
+   icon artifact's settings variant is a sliders glyph), then mute, the device
+   row and the 28 px value/slider. The muted state is the small pill.
+3. **The `Muted — the level is kept.` note is gone** from code and mock.
+4. **Mixer has no playback controls.** Rows are route/volume/mute/percentage
+   plus the playing dot only; no play/pause, seek or mode change.
+5. **Track artwork.** The Playing/tray/strip 40/36/24 px frames use the MPRIS
+   thumbnail; the app icon is a small corner badge (or the fallback). File and
+   data URLs are read/cached synchronously before Chromium deletes its `/tmp`
+   thumbnail, and a merged row resolves any of its players' artwork URIs.
+   Shuffle/Loop remain capability-gated; on a playback tie the row prefers the
+   player that advertises them (native Tidal over its Chromium mirror), while
+   Chromium/YouTube (no `Shuffle`/`LoopStatus`) hides them.
+6. **Live position.** While the panel body is mounted it polls MPRIS `Position`
+   once a second for the selected playing page, updating the seek line and
+   time; dragging still suppresses the update and seeks on commit.
+7. **No dead bottom.** The deck body is measured and the scroller is sized to
+   its content (capped); the panel ends under the footer.
+8. **Bare icon-only controls.** The assets template gives gear/mute/transport/
+   carousel/level buttons transparent fill/border; only hover/active state
+   paints. Device/route fields, sliders and the switch keep the role paint.
+
+Mock: the head app tile is removed, the 40 px art carries a small app badge,
+the muted note and Mixer play buttons are removed. New hash
+`6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`.
 
 ## Implementation evidence (2026-11-11)
 
@@ -340,12 +376,10 @@ google-chrome-stable --new-window \
      reserved tray slot; no decorative dots were added next to real items.
   5. **The panel has no nested horizontal scroll**; a long Mixer scrolls
      vertically under the fixed hero, as the paper requires.
-  6. **The deck scroller has a fixed height** (340 px Playing / 500 px Mixer,
-     clamped on short monitors) instead of content-sized height. A live probe
-     with `propagateNaturalHeight` collapsed the scroller to its minimum and
-     produced a 250 px panel — the same class of failure the old drawer
-     measured on 2026-10-07. With the skin's panel/card/cell padding the fixed
-     scroller yields a 515 px Playing panel and a 675 px Mixer panel.
+  6. **The deck scroller is content-sized.** The body is measured at the panel
+     width and its natural height is capped by the monitor; `propagate-
+     natural-height` alone collapsed to the minimum (a 250 px panel), so the
+     explicit measure + height request is used. No fixed dead space remains.
   7. **The Playing page carries the `surface.card` paint.** The mock leaves the
      page transparent; the role audit maps pages to cards, so the shipped page
      is a card (glass: `alpha(@surface_container_high, .18)` + hairline). This
@@ -358,7 +392,7 @@ google-chrome-stable --new-window \
      glass-parity contract; it is a separate skin-design decision.
 - Surface-role compliance: the popover/dropdown/settings/menus are
   `surface.panel`; rows are `surface.cell`; the Playing page is
-  `surface.card`; buttons/fields are `surface.control`; badges are
+  `surface.card`; device/route fields and sliders are `surface.control`; badges are
   `surface.pill`. No `surface.window` and no new literal chrome colour
   (the two greens are the existing semantic live signal).
 - `dotfiles-assets` now ships the paint (`req-028`, branch
@@ -374,7 +408,7 @@ google-chrome-stable --new-window \
 | Query | State |
 | --- | --- |
 | `?mode=playing` / `?mode=mixer` | Force the deck mode; the last user choice survives afterwards |
-| `?muted=1` | Preferred output muted; the level is kept and labelled |
+| `?muted=1` | Preferred output muted; the level stays visible and the small pill marks Muted |
 | `?apps=1` / `?apps=0` | Default alias / zero apps (empty Mixer; empty Playing if forced) |
 | `?playing=1` / `?playing=0` | Explicit playing (the default) / every app audio-only; default mode Mixer |
 | `?player=2` | Focus the 2nd Playing page (1-based over current players); updates the bar strip |
@@ -418,7 +452,7 @@ section below):
 | `surface.panel` | The 352 px popover, the 300 px tray dropdown, the 280 px settings popover, and the device/route menu (each is an AGS layer-shell surface, not a toplevel) |
 | `surface.card` | The per-player Playing page |
 | `surface.cell` | Mixer rows, tray `Players` rows, menu rows, the input consumer row, the settings row |
-| `surface.control` | Device fields, route chips, icon/transport/carousel/mute buttons, artwork frames |
+| `surface.control` | Device fields, route chips and sliders (real fields); icon-only gear/mute/transport/carousel/level buttons are bare with state hover only |
 | `surface.pill` | Muted pill, live badge, tab underline, switch, scroll cue, toast, slider tracks/thumbs |
 
 `--panel-w` becomes skin-remappable only if the appearance plane adds a
@@ -518,7 +552,8 @@ so any paint there would override the skin — there is none.
 | `.audio-surface` (`window.audio-popup`), `.tray-surface` (`window.tray-popup`), `.audio-settings`, `.audio-menu > contents` | `surface.panel` bg/border/border-width/radius/padding/shadow/blur |
 | `.audio-playing-page` | `surface.card` bg/border/border-width/radius/padding |
 | `.audio-mixer-row`, `.audio-tray-player`, `.audio-menu-option`, `.audio-consumer`, `.audio-settings-row` | `surface.cell` bg/radius/padding/hover-bg |
-| `.audio-device`, `.audio-route`, `.audio-icon-button`, `.audio-transport-button`, `.audio-carousel-button`, `.audio-playing-level` | `surface.control` bg/border/border-width/radius/padding/font-size/font-weight |
+| `.audio-device`, `.audio-route` | `surface.control` bg/border/border-width/radius/padding/font-size/font-weight |
+| `.audio-icon-button`, `.audio-transport-button`, `.audio-carousel-button`, `.audio-playing-level`, `.audio-mixer-mute`, `.audio-settings-gear` | **bare icon-only**: transparent/no border; radius + `state.hover/selected` only, never control/cell paint |
 | `.audio-muted-pill`, `.audio-live-badge`, `.audio-switch` | `surface.pill` bg/border/border-width/radius/padding/font-size/letter-spacing |
 | tabs, rows, buttons, menus | `state.hover`/`state.selected`/`state.focus`/`state.disabled` |
 | captions, titles, track lines, footer, menus | `ink.ink`/`ink.ink-dim`/`ink.accent` + `type.size-*` |
@@ -655,8 +690,8 @@ when it lands.
   the device/route menus.
 - The DOM interaction harness passed 78 checks: persistent header geometry,
   default mode, tab/dot state, Playing pages and transport/seek, read-only level
-  → Mixer focus, Mixer rows/volume/mute/route, row and play/pause staying in
-  Mixer, mode dot, and mode persistence through switching.
+  → Mixer focus, Mixer rows/volume/mute/route, row clicks staying in Mixer
+  (no playback control), mode dot, and mode persistence through switching.
 - The states harness passed 46 checks for `?mode=playing`, `?mode=mixer`,
   `?player=2`, `?app=vlc`, `?app=firefox`, `?playing=0`,
   `?mode=playing&playing=0`, `?apps=0`, `?mode=playing&apps=0`, `?muted=1`,
@@ -678,7 +713,7 @@ when it lands.
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 - Customization-layer pass (2026-11-11): `sha256sum mock.html` =
-  `7a2cc98b3da119eb48313d99bdf375cb7b1661e657a95831dd0587029e5c22bd`
+  `6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`
   (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
   default and Mixer states with the normalized radii
   (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,

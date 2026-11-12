@@ -822,12 +822,6 @@ body.is-closed .audio-pop {
 }
 .is-output-muted .big-value { opacity: .42; }
 
-.hero-note {
-  margin-top: 6px;
-  font-size: 10.5px;
-  color: var(--ink-faint);
-}
-
 /* ── ranges ──────────────────────────────────────────────────── */
 
 .range {
@@ -1121,6 +1115,7 @@ body.is-closed .audio-pop {
 }
 
 .artwork {
+  position: relative;
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
@@ -1128,7 +1123,22 @@ body.is-closed .audio-pop {
   background-size: cover;
   background-position: center;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
-  overflow: hidden;
+}
+/* The app icon is a small corner badge over the track thumbnail, not the
+   artwork itself (and the fallback if a player publishes no thumbnail). */
+.art-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .94);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
 /* CSS album art — no external assets. Each is a small composition,
    not a flat swatch, so the page reads as artwork at 40px. */
@@ -1296,7 +1306,7 @@ body.is-closed .audio-pop {
 
 .mixer-head {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
   min-height: 30px;
@@ -1345,17 +1355,6 @@ body.is-closed .audio-pop {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
-.mixer-play {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-control);
-  color: var(--ink-dim);
-  transition: background .16s, color .16s;
-}
-.mixer-play:hover { background: var(--control-hover); color: var(--ink); }
 
 .mixer-controls {
   display: grid;
@@ -1734,7 +1733,6 @@ body.is-closed .audio-pop {
       <input class="range" type="range" id="outputRange" min="0" max="100" step="1"
              value="62" aria-label="Output volume">
     </div>
-    <div class="hero-note" id="mutedNote" hidden>Muted — the level is kept.</div>
   </section>
 
   <div class="pop-scroll" id="popScroll">
@@ -2214,7 +2212,6 @@ function renderHero() {
   $("outputMute").disabled = !device.available;
 
   $("mutedPill").hidden = !muted;
-  $("mutedNote").hidden = !muted;
   $("panel").classList.toggle("is-output-muted", muted);
 }
 
@@ -2236,7 +2233,6 @@ function playingHeadHTML(app) {
   const live = !app.canSeek;
   return `
     <div class="playing-head">
-      <span class="app-art ${app.artClass}" aria-hidden="true">${app.initial}</span>
       <div class="playing-meta">
         <span class="app-name">${app.name}</span>
         ${live ? '<span class="live-badge">Live</span>' : ""}
@@ -2270,7 +2266,9 @@ function playingPageBodyHTML(app) {
   return `
     ${playingHeadHTML(app)}
     <div class="player-strip">
-      <div class="artwork ${track.art}" aria-hidden="true"></div>
+      <div class="artwork ${track.art}" aria-hidden="true">
+        <span class="art-badge ${app.artClass}">${app.initial}</span>
+      </div>
       <div class="track">
         <div class="track-title" title="${track.title}">${track.title}</div>
         <div class="track-artist">${track.artist}</div>
@@ -2405,10 +2403,6 @@ function mixerRowHTML(app) {
                 title="${routeFull(app)}" aria-label="${app.name} route: ${routeFull(app)}">
           <span class="rt">${routeShort(app)}</span>
         </button>
-        ${app.hasPlayer ? `
-          <button class="mixer-play" data-mixer-play="${app.id}"
-                  aria-label="${playing ? "Pause" : "Play"} ${app.name}"
-                  title="${playing ? "Pause" : "Play"}">${playing ? ICON.pause : ICON.play}</button>` : ""}
       </div>
       <div class="mixer-controls">
         <button class="mixer-mute${app.muted ? " is-on" : ""}" data-mixer-mute="${app.id}"
@@ -3194,16 +3188,6 @@ $("playingTrack").addEventListener("pointerup", (event) => {
 
 /* Mixer controls never change mode; the row itself has no click action. */
 $("mixerList").addEventListener("click", (event) => {
-  const play = event.target.closest("[data-mixer-play]");
-  if (play) {
-    const app = appById(play.dataset.mixerPlay);
-    if (!app) return;
-    app.playing = !app.playing;
-    state.mixFocusId = app.id;
-    refreshApp(app);
-    return;
-  }
-
   const mute = event.target.closest("[data-mixer-mute]");
   if (mute) {
     const app = appById(mute.dataset.mixerMute);

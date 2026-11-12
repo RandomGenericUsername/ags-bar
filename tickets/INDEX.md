@@ -43,3 +43,4 @@
 ## Done (links only, newest last)
 
 (none)
+- [REQ-011-sound-panel-qa/ticket.md](./REQ-011-sound-panel-qa/ticket.md) — Sound panel QA: single settings surface, mock header, no Mixer playback, thumbnails, position poll, content height, bare icons | `in-progress` | worktree: .worktrees/REQ-011/ | branch: ticket/REQ-011-sound-panel-qa
