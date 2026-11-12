@@ -1,14 +1,14 @@
 .PHONY: help platform-dev contracts-dev deps test-deps types test conformance drift ci bundle typecheck gates clean
 
-# The program tuple this app builds/tests against (AD-31/AD-34). v1.0.1 is the
-# Generations-v3 tuple (contracts v0.8.0) plus the appearance CSS hex-literal
-# validation patch (ags-platform BUG-002); v0.8.0 froze the v3 generation
-# manifest, the single `current` pointer and the generation-bound refresh
-# protocol while keeping the v2 appearance token vocabulary. Both are LOCAL-ONLY
-# in this run: local gates symlink them from .dev/ (gitignored), CI checks out
-# the tags explicitly once published.
-AGS_PLATFORM_VERSION := v1.0.1
-CONTRACTS_VERSION := v0.8.0
+# The program tuple this app builds/tests against (AD-31/AD-34). v1.1.0 keeps
+# the Generations-v3 contract (single `current` pointer, generation-bound
+# refresh protocol, v2 appearance token vocabulary) and requires the
+# `surface.window` outer-toplevel role added by contracts v0.12.0. This bar's
+# overlays stay on `surface.panel` (doc 113 W-10), so the role is unused here.
+# Both are LOCAL-ONLY in this run: local gates symlink them from .dev/
+# (gitignored), CI checks out the tags explicitly once published.
+AGS_PLATFORM_VERSION := v1.1.0
+CONTRACTS_VERSION := v0.12.0
 AGS_PLATFORM_REPO := https://github.com/RandomGenericUsername/ags-platform.git
 AGS_PLATFORM_DEV ?=
 PLATFORM_FETCH_DIR := $(CURDIR)/.dev/ags-platform/$(AGS_PLATFORM_VERSION)
@@ -29,8 +29,8 @@ help:
 	@echo "make gates        all gates: test + conformance + drift + bundle + typecheck"
 	@echo ""
 	@echo "Local-only tuple: put checkouts/symlinks at"
-	@echo "  .dev/ags-platform/v1.0.1  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
-	@echo "  .dev/contracts/v0.8.0     (or CONTRACTS_ROOT=/path/to/contracts)"
+	@echo "  .dev/ags-platform/v1.1.0  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
+	@echo "  .dev/contracts/v0.12.0    (or CONTRACTS_ROOT=/path/to/contracts)"
 
 # The platform shortcut. It MUST point outside node_modules: Node refuses to
 # type-strip `.ts` under a real node_modules directory, but realpaths a symlink
@@ -124,7 +124,7 @@ conformance: platform-dev contracts-dev
 	CONTRACTS_ROOT="$(CONTRACTS_ROOT)" node --test tests/app-contract.test.mjs
 
 # Contract drift: the vendored generated contract and the shared event client
-# against the canonical contracts v0.8.0 checkout. Stock runner.
+# against the canonical contracts v0.12.0 checkout. Stock runner.
 drift: platform-dev contracts-dev
 	@command -v node >/dev/null || { echo "FAIL: drift: node is not on PATH" >&2; exit 1; }
 	@[ -f "$(CONTRACTS_ROOT)/event-contract.json" ] || { \
