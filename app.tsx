@@ -8,7 +8,7 @@ import { WifiPopup, WifiPopupCatcher } from "./components/wifi/WifiPopup"
 import { BluetoothPopup, BluetoothPopupCatcher } from "./components/bluetooth/BluetoothPopup"
 import { registerBluetoothAgent } from "./settings-panel/bluetooth-agent"
 import { close as closeSettings } from "./settings-panel/state"
-import { AudioCatcher, AudioPopup } from "./audio/AudioPopup"
+import { AudioCatcher, AudioPopup, audioPanelMetrics } from "./audio/AudioPopup"
 import { TrayPopup, TrayPopupCatcher } from "./audio/TrayPopup"
 import { audioPanelBinding, audioPanelTraceLines } from "./audio/composition"
 import { close as closeAudio, open as openAudio } from "./audio/ui-state"
@@ -107,6 +107,7 @@ app.start({
           // their absence read as `null` in the JSON -- which sent a debugging
           // session chasing a preferred-output bug that had not been measured.
           // A dump must carry every field being reasoned about.
+          metrics: audioPanelMetrics(),
           preferredOutputId: model.preferredOutputId,
           preferredOutput: model.preferredOutput,
           // App-scoped intent is not a row field, so it must be dumped from the

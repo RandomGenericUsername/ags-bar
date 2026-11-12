@@ -1,3 +1,10 @@
+## v0.6.14 — 2026-11-12
+
+- Input collapse: force the layer-shell window to re-ask for its natural
+  height when the scroller target changes (`set_default_size(width, -1)` +
+  queue_resize), and expose the last measurements through the existing
+  `audio-panel-debug` request for live diagnosis.
+
 ## v0.6.13 — 2026-11-12
 
 - Input collapse, third pass: the Input body is conditionally mounted through

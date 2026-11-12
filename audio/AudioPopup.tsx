@@ -656,6 +656,12 @@ function AudioFoot() {
 }
 
 /** Compact presentation surface. Actions and the read model are supplied by the composition root. */
+/** Last layout measurements, exposed through `ags request audio-panel-debug`. */
+let lastPanelMetrics: Record<string, unknown> = {}
+export function audioPanelMetrics(): Record<string, unknown> {
+  return lastPanelMetrics
+}
+
 export function AudioPanelContent({
   binding,
   maxScrollHeight = 800,
@@ -680,7 +686,25 @@ export function AudioPanelContent({
     const width = Math.max(220, body.get_width() || 320)
     const measured = body.measure(Gtk.Orientation.VERTICAL, width)
     const target = Math.max(60, Math.min(maxScrollHeight, measured[1]))
-    if (Math.abs(scroller.height_request - target) > 1) scroller.height_request = target
+    const root = scroller.get_root()
+    if (Math.abs(scroller.height_request - target) > 1) {
+      scroller.height_request = target
+      // The layer-shell window caches its mapped height; queueing the child is
+      // not enough after an expand/collapse. Force the window to re-ask for its
+      // natural height (the width stays the panel width).
+      if (root instanceof Gtk.Window) {
+        root.set_default_size(root.get_width(), -1)
+        root.queue_resize()
+      }
+    }
+    lastPanelMetrics = {
+      inputOpen: inputOpen(),
+      measured: measured[1],
+      target,
+      request: scroller.height_request,
+      bodyHeight: body.get_height(),
+      rootHeight: root instanceof Gtk.Window ? root.get_height() : null,
+    }
   }
   const scheduleFit = (): void => {
     GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => { fit(); return false })
