@@ -121,17 +121,6 @@ popover.audio-settings-popover > contents {
   box-shadow: none;
 }
 
-.audio-glyph {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-/* The mock header's gear. The icon artifact's settings variant is a sliders
-   glyph, so the gear is a text glyph like the shuffle/repeat controls. */
-.audio-gear-glyph {
-  font-size: 17px;
-}
-
 .audio-device {
   min-height: 40px;
 }
@@ -345,10 +334,6 @@ popover.audio-settings-popover > contents {
   background-color: transparent;
   background-image: none;
   box-shadow: none;
-}
-
-.audio-glyph-button .audio-glyph {
-  font-size: 14px;
 }
 
 /* Read-only app level; clicking opens Mixer focused on that app. */
@@ -627,12 +612,12 @@ popover.audio-settings-popover > contents {
 }
 
 .audio-tray-transport .audio-transport-button {
-  min-width: 26px;
-  min-height: 30px;
+  min-width: 30px;
+  min-height: 34px;
 }
 
 .audio-tray-transport .audio-transport-button.play {
-  min-width: 32px;
+  min-width: 36px;
 }
 
 .audio-tray-players {
@@ -712,12 +697,12 @@ window#bar .media-strip-widget label {
 }
 
 .audio-strip {
-  min-height: 30px;
+  min-height: 38px;
   padding: 0 2px;
 }
 
 .audio-strip-main {
-  min-height: 30px;
+  min-height: 38px;
   padding: 0 4px;
 }
 
@@ -726,8 +711,12 @@ window#bar .media-strip-widget label {
 }
 
 .audio-strip-art.audio-app-tile {
-  min-width: 24px;
-  min-height: 24px;
+  min-width: 32px;
+  min-height: 32px;
+  /* The strip shows the track thumbnail itself; no tile/fill behind it. */
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .audio-strip-text {
@@ -748,14 +737,10 @@ window#bar .media-strip-widget label {
 }
 
 .audio-strip-controls .audio-transport-button {
-  min-width: 22px;
-  min-height: 28px;
+  min-width: 26px;
+  min-height: 32px;
 }
 
 .audio-strip-controls .audio-transport-button.play {
-  min-width: 26px;
-}
-
-.audio-strip-controls .audio-glyph-button .audio-glyph {
-  font-size: 12px;
+  min-width: 30px;
 }

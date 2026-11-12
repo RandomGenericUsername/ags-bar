@@ -1,3 +1,17 @@
+## v0.6.10 — 2026-11-12
+
+Owner feedback round 2:
+
+- Input collapse now refits the panel after the revealer settles (an 80 ms
+  layout pass plus the revealer's child-revealed signal); no dead bottom.
+- Shuffle/repeat and the Output gear resolve the new assets
+  `media-controls`/`settings-panel` art; the text glyphs (`⇄`, `↻`, `⚙`) are
+  gone. Active/inactive and repeat once/off are icon variants; capability
+  hiding is unchanged.
+- The bar strip uses a 32 px transparent track thumbnail and lets the title
+  use the available width; the tray transport is centered and larger.
+- Requires assets v0.21.0, platform v1.2.0, engine v0.1.71.
+
 ## v0.6.9 — 2026-11-12
 
 - Add a debug-only `ags request -i ags tray-open` door beside

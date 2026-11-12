@@ -160,7 +160,7 @@ app.start({
     res(`unknown request: ${argv.join(" ")}`)
   },
   main() {
-    // The v3 Appearance plane (contracts v0.12.0, ags-platform v1.1.0). ONE
+    // The v3 Appearance plane (contracts v0.12.0, ags-platform v1.2.0). ONE
     // committed generation is applied through the Appearance port; it already
     // contains the palette and the runtime-expanded skin, installed last at
     // USER priority so it overrides the bundled style.css glass fallback.

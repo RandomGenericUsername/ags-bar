@@ -234,7 +234,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`
+  `ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -302,7 +302,7 @@ the skin:
 
 Mock: the head app tile is removed, the 40 px art carries a small app badge,
 the muted note and Mixer play buttons are removed. New hash
-`6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`.
+`ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`.
 
 ## Implementation evidence (2026-11-11)
 
@@ -713,7 +713,7 @@ when it lands.
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 - Customization-layer pass (2026-11-11): `sha256sum mock.html` =
-  `6981d9a966c73410e62cd33df96f4a0fea075b43fc0906ef64a2b68b1e2bdd70`
+  `ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`
   (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
   default and Mixer states with the normalized radii
   (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,
@@ -753,3 +753,12 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   restart is required for this UI setting.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.
+
+### QA round 3 (2026-11-12)
+
+- Input revealer now refits after `child-revealed`/layout; no dead bottom.
+- The owner art is integrated through assets `media-controls` and
+  `settings-panel.settings` and the platform v1.2.0 `icons.json`; the panel,
+  tray and strip resolve registry images; text glyphs are gone.
+- Strip thumbnail is 32 px with no tile fill; tray transport is centered and
+  36/18 px. Mock updated to match; new mock hash `ed9e04fe…`.

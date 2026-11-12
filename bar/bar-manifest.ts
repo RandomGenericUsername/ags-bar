@@ -107,6 +107,7 @@ const ICON_GROUPS: readonly IconGroupDecl[] = [
   { name: "bluetooth", states: ["bluetooth-off", "bluetooth-on"] },
   { name: "btop", states: [] },
   { name: "capture-tool", states: [] },
+  { name: "media-controls", states: [] },
   { name: "microphone", states: ["microphone-mic-off", "microphone-mic-on"] },
   {
     name: "network",
@@ -124,6 +125,7 @@ const ICON_GROUPS: readonly IconGroupDecl[] = [
   },
   { name: "power-menu", states: ["default"] },
   { name: "settings", states: ["default"] },
+  { name: "settings-panel", states: [] },
   { name: "thunderbird", states: [] },
   { name: "tray", states: [] },
   {

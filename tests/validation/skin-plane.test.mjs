@@ -3,7 +3,7 @@
 //
 // contracts v0.12.0 commits palette + skin + mode as ONE immutable generation
 // behind the single `$XDG_STATE_HOME/dotfiles/current` pointer; ags-platform
-// v1.1.0 resolves it. These assertions pin the app-side contract so a later
+// v1.2.0 resolves it. These assertions pin the app-side contract so a later
 // refactor can not silently reintroduce a split theme+skin path, a live-refresh
 // handler, a hardcoded state path or an unnamespaced layout token:
 //
@@ -13,7 +13,7 @@
 //      XDG state or config appearance path and has no refresh handler;
 //   3. SettingsPanel/BluetoothContent read their namespaced layout tokens with
 //      fallbacks;
-//   4. the Makefile pins the v1.1.0 platform / v0.12.0 contracts tuple;
+//   4. the Makefile pins the v1.2.0 platform / v0.12.0 contracts tuple;
 //   5. style.css still carries the bundled glass fallback.
 //
 // Static, no desktop stack needed.
@@ -166,8 +166,8 @@ assert.doesNotMatch(bluetooth, /spacing=\{4\}/);
 const makefile = read("Makefile");
 assert.match(
   makefile,
-  /^AGS_PLATFORM_VERSION := v1\.1\.0$/m,
-  "the platform pin must be the Generations v3 surface.window release (v1.1.0)",
+  /^AGS_PLATFORM_VERSION := v1\.2\.0$/m,
+  "the platform pin must be the Generations v3 surface.window release (v1.2.0)",
 );
 assert.match(
   makefile,

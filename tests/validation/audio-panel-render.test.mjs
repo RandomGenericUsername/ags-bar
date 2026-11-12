@@ -360,14 +360,46 @@ check("the panel is content-sized with a scroll fallback, not fixed dead space",
   assert.ok(!popupSrc.includes("heightRequest={scrollHeight}"), "the fixed scroller height is back");
 });
 
-check("the output header gear is the gear glyph and icons are bare", () => {
-  assert.match(popupSrc, /audio-gear-glyph/, "the gear glyph is missing");
-  assert.match(popupSrc, /label="⚙"/, "the gear glyph is not the mock gear");
-  assert.ok(!popupSrc.includes('icon("settings", "default")'), "the sliders settings icon is still in the header");
+check("the output gear is the settings-panel registry image and icons are bare", () => {
+  assert.match(popupSrc, /icon\(\"settings-panel\", \"settings\"\)/, "the Output gear does not resolve the settings-panel image");
+  assert.ok(!popupSrc.includes("⚙"), "the Output header still uses the text gear");
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const button = css.slice(css.indexOf(".audio-icon-button {"), css.indexOf(".audio-icon-button {") + 500);
   assert.match(button, /background-color:\s*transparent/, "icon buttons are not bare");
   assert.match(button, /border:\s*1px solid transparent/, "icon buttons keep a control border");
+});
+
+check("transport controls use the registry media-controls art", () => {
+  const controls = read(join(AUDIO, "ui/controls.tsx"));
+  assert.match(controls, /icon\("media-controls"/, "shuffle/repeat do not resolve media-controls");
+  assert.match(controls, /shuffle-active/, "the active shuffle variant is not used");
+  assert.match(controls, /repeat-once/, "repeat-one shape is not used");
+  assert.match(controls, /repeat-off/, "repeat-off shape is not used");
+  assert.ok(!controls.includes("GlyphButton"), "a text glyph control remains");
+  assert.ok(!controls.includes("⇄") && !controls.includes("↻"), "text shuffle/repeat glyphs remain");
+  const icons = JSON.parse(read(join(AGS, "icons.json")));
+  assert.ok(icons["media-controls"], "icons.json has no media-controls group");
+  assert.ok(icons["settings-panel"]?.variants?.some((v) => v.name === "settings"), "icons.json has no settings-panel gear");
+  assert.equal(icons["settings"]?.variants?.[0]?.template, "status-bar/settings/default/icon.svg");
+});
+
+check("the strip uses a 32px transparent thumbnail and the tray centers larger controls", () => {
+  const media = read(join(AGS, "bar/widgets/media.tsx"));
+  assert.match(media, /size=\{32\} className="audio-strip-art"/, "strip artwork is not 32px");
+  assert.ok(!media.includes("maxWidthChars"), "the strip still caps its text width");
+  const tray = read(join(AUDIO, "TrayPopup.tsx"));
+  assert.match(tray, /halign=\{Gtk\.Align\.CENTER\}/, "tray transport is not centered");
+  assert.match(tray, /playSize=\{36\} iconSize=\{18\}/, "tray transport icons are not enlarged");
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  assert.match(css, /\.audio-strip-art\.audio-app-tile\s*\{[^}]*background-color:\s*transparent/, "strip artwork keeps a tile fill");
+  assert.match(css, /\.audio-strip-art\.audio-app-tile\s*\{[^}]*border:\s*none/, "strip artwork keeps a tile border");
+});
+
+check("the Input revealer refits the panel after collapsing", () => {
+  assert.match(popupSrc, /<revealer/, "Input is not a revealer");
+  assert.match(popupSrc, /revealChild=\{inputOpen\}/, "the revealer is not bound to Input state");
+  assert.match(popupSrc, /notify::child-revealed/, "the revealer does not refit after settling");
+  assert.match(popupSrc, /fitAfterLayout/, "no post-layout height recalculation");
 });
 
 check("the muted output dims the big value without moving layout", () => {

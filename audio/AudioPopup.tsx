@@ -484,7 +484,7 @@ function MixerDeck({ binding }: { binding: AudioPanelBinding }) {
 // Input — secondary and collapsed by default.
 // ---------------------------------------------------------------------------
 
-function InputSection({ binding }: { binding: AudioPanelBinding }) {
+function InputSection({ binding, onRevealSettled }: { binding: AudioPanelBinding; onRevealSettled?: () => void }) {
   const model = createComputed(() => binding.model())
   const input = createComputed<EndpointState | null>(() => {
     const state = model()
@@ -516,7 +516,15 @@ function InputSection({ binding }: { binding: AudioPanelBinding }) {
         </box>
       </button>
 
-      <box class="audio-input-body" orientation={VERTICAL} spacing={6} visible={inputOpen}>
+      <revealer
+        transitionType={Gtk.RevealerTransitionType.NONE}
+        revealChild={inputOpen}
+        $={(self: Gtk.Revealer) => {
+          self.connect("notify::child-revealed", () => onRevealSettled?.())
+          self.connect("notify::reveal-child", () => onRevealSettled?.())
+        }}
+      >
+        <box class="audio-input-body" orientation={VERTICAL} spacing={6}>
         <DeviceSelector
           title="Input device"
           value={name}
@@ -567,7 +575,8 @@ function InputSection({ binding }: { binding: AudioPanelBinding }) {
           label={createComputed(() => available() ? "No microphone use right now." : "No microphone detected.")}
           visible={createComputed(() => consumers().length === 0)}
         />
-      </box>
+        </box>
+      </revealer>
     </box>
   )
 }
@@ -634,9 +643,7 @@ function SettingsGearButton() {
       onClicked={(self: Gtk.Button) => openSettingsPopover(self)}
       $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, "Sound settings"))}
     >
-      {/* The icon artifact's settings variant is a sliders glyph; the mock's
-          header is a gear, so this is the one text glyph in the header. */}
-      <label class="audio-glyph audio-gear-glyph" label="⚙" />
+      <image pixel_size={18} $={(self: Gtk.Image) => setImageOnce(self, icon("settings-panel", "settings"))} />
     </button>
   )
 }
@@ -683,12 +690,17 @@ export function AudioPanelContent({
   const scheduleFit = (): void => {
     GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => { fit(); return false })
   }
+  /** Re-measure once the revealer's layout has settled, not just on state. */
+  const fitAfterLayout = (): void => {
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => { fit(); return false })
+  }
   createEffect(() => {
     // Re-fit when the deck mode, input disclosure or row set changes.
     model()
     deckMode()
     inputOpen()
     scheduleFit()
+    fitAfterLayout()
   })
 
   // MPRIS Position is not an event: poll it only while this body is mounted
@@ -721,7 +733,7 @@ export function AudioPanelContent({
             <PlayingDeck binding={binding} />
             <MixerDeck binding={binding} />
           </box>
-          <InputSection binding={binding} />
+          <InputSection binding={binding} onRevealSettled={scheduleFit} />
         </box>
       </scrolledwindow>
       <AudioFoot />

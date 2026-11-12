@@ -100,11 +100,11 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
           {(row: AudioAppRowView | null) => row === null
             ? <box class="audio-strip-empty" />
             : (
-              <box class="audio-strip-inner" spacing={6} hexpand>
-                <AppTile row={createComputed(() => row)} size={24} className="audio-strip-art" />
+              <box class="audio-strip-inner" spacing={8} hexpand valign={Gtk.Align.CENTER}>
+                <AppTile row={createComputed(() => row)} size={32} className="audio-strip-art" />
                 <box class="audio-strip-text" orientation={Gtk.Orientation.VERTICAL} spacing={0} hexpand>
-                  <label class="audio-strip-title" xalign={0} maxWidthChars={24} ellipsize={Pango.EllipsizeMode.END} label={title} />
-                  <label class="audio-strip-artist" xalign={0} maxWidthChars={28} ellipsize={Pango.EllipsizeMode.END}
+                  <label class="audio-strip-title" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END} label={title} />
+                  <label class="audio-strip-artist" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END}
                     label={createComputed(() => trayCueValue() ?? artist())} />
                 </box>
               </box>
@@ -120,8 +120,8 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
               binding={binding}
               className="audio-strip-controls"
               compact
-              playSize={26}
-              iconSize={13}
+              playSize={30}
+              iconSize={15}
             />
           )}
       </With>

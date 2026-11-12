@@ -1,13 +1,13 @@
 .PHONY: help platform-dev contracts-dev deps test-deps types test conformance drift ci bundle typecheck gates clean
 
-# The program tuple this app builds/tests against (AD-31/AD-34). v1.1.0 keeps
+# The program tuple this app builds/tests against (AD-31/AD-34). v1.2.0 keeps
 # the Generations-v3 contract (single `current` pointer, generation-bound
 # refresh protocol, v2 appearance token vocabulary) and requires the
 # `surface.window` outer-toplevel role added by contracts v0.12.0. This bar's
 # overlays stay on `surface.panel` (doc 113 W-10), so the role is unused here.
 # Both are LOCAL-ONLY in this run: local gates symlink them from .dev/
 # (gitignored), CI checks out the tags explicitly once published.
-AGS_PLATFORM_VERSION := v1.1.0
+AGS_PLATFORM_VERSION := v1.2.0
 CONTRACTS_VERSION := v0.12.0
 AGS_PLATFORM_REPO := https://github.com/RandomGenericUsername/ags-platform.git
 AGS_PLATFORM_DEV ?=
@@ -29,7 +29,7 @@ help:
 	@echo "make gates        all gates: test + conformance + drift + bundle + typecheck"
 	@echo ""
 	@echo "Local-only tuple: put checkouts/symlinks at"
-	@echo "  .dev/ags-platform/v1.1.0  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
+	@echo "  .dev/ags-platform/v1.2.0  (or AGS_PLATFORM_DEV=/path/to/ags-platform)"
 	@echo "  .dev/contracts/v0.12.0    (or CONTRACTS_ROOT=/path/to/contracts)"
 
 # The platform shortcut. It MUST point outside node_modules: Node refuses to

@@ -90,54 +90,6 @@ export function IconButton({
   )
 }
 
-/**
- * A glyph button for MPRIS controls the registry has no art for.
- *
- * Shuffle/Loop are optional MPRIS properties and the icon artifact ships no
- * variants for them (adding art belongs to `dotfiles-assets`). A text glyph in
- * the same 40/24px button vocabulary is honest and keeps the control usable;
- * the tooltip and accessible label carry the real state.
- */
-export function GlyphButton({
-  glyph,
-  name,
-  tooltip,
-  onClicked,
-  active = false,
-  visible = true,
-  disabled = false,
-  className = "audio-icon-button audio-glyph-button",
-}: {
-  glyph: string
-  name: string | Accessor<string>
-  tooltip: string | Accessor<string>
-  onClicked: () => void
-  active?: boolean | Accessor<boolean>
-  visible?: boolean | Accessor<boolean>
-  disabled?: boolean | Accessor<boolean>
-  className?: string
-}) {
-  const label = resolve(name)
-  const hint = resolve(tooltip)
-  const isActive = resolve(active)
-  const isVisible = resolve(visible)
-  const isDisabled = resolve(disabled)
-  return (
-    <button
-      class={createComputed(() => `${className}${isActive() ? " active" : ""}`)}
-      visible={isVisible}
-      sensitive={createComputed(() => !isDisabled())}
-      tooltipText={hint}
-      onClicked={onClicked}
-      canFocus
-      hasTooltip
-      $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, label()))}
-    >
-      <label class="audio-glyph" label={glyph} />
-    </button>
-  )
-}
-
 /** A fixed-shape level slider; the value is written only after a committed interaction. */
 export function LevelControl({
   label,
@@ -448,26 +400,29 @@ export function TransportRow({
         pixelSize={iconSize}
         className="audio-icon-button audio-transport-button"
       />
-      <GlyphButton
-        glyph="⇄"
+      <IconButton
         name={createComputed(() => `Shuffle ${row().shuffle ? "on" : "off"} for ${appName()}`)}
         tooltip={createComputed(() => (row().shuffle ? "Shuffle on" : "Shuffle off"))}
+        imagePath={createComputed(() => icon("media-controls", row().shuffle ? "shuffle-active" : "shuffle"))}
         visible={createComputed(() => capabilities().canShuffle)}
         active={createComputed(() => row().shuffle)}
         onClicked={() => { const id = playerId(); if (id) binding.actions.toggleShuffle(id) }}
-        className="audio-icon-button audio-transport-button audio-glyph-button"
+        pixelSize={iconSize}
+        className="audio-icon-button audio-transport-button"
       />
-      <GlyphButton
-        glyph="↻"
+      <IconButton
         name={createComputed(() => `Repeat ${row().loop} for ${appName()}`)}
         tooltip={createComputed(() => {
           const loop = row().loop
           return loop === "track" ? "Repeat one" : loop === "playlist" ? "Repeat all" : "Repeat off"
         })}
+        imagePath={createComputed(() => icon("media-controls",
+          row().loop === "track" ? "repeat-once" : row().loop === "playlist" ? "repeat" : "repeat-off"))}
         visible={createComputed(() => capabilities().canLoop)}
         active={createComputed(() => row().loop !== "none")}
         onClicked={() => { const id = playerId(); if (id) binding.actions.cycleLoop(id) }}
-        className="audio-icon-button audio-transport-button audio-glyph-button"
+        pixelSize={iconSize}
+        className="audio-icon-button audio-transport-button"
       />
     </box>
   )
