@@ -44,3 +44,4 @@
 
 (none)
 - [REQ-011-sound-panel-qa/ticket.md](./REQ-011-sound-panel-qa/ticket.md) — Sound panel QA: single settings surface, mock header, no Mixer playback, thumbnails, position poll, content height, bare icons | `in-progress` | worktree: .worktrees/REQ-011/ | branch: ticket/REQ-011-sound-panel-qa
+- [REQ-012-sound-panel-radius/ticket.md](./REQ-012-sound-panel-radius/ticket.md) — Muted big value + spawned settings/tray outer radius; host-radius verification | `in-progress` | worktree: .worktrees/REQ-012/ | branch: ticket/REQ-012-sound-panel-radius
