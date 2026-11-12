@@ -404,7 +404,7 @@ export class MprisArtworkAdapter {
     const path = this.directory.get_path()
     if (path === null || preparedArtworkDirectories.has(path)) return
     try {
-      this.directory.make_directory_with_parents(null)
+      if (!this.directory.query_exists(null)) this.directory.make_directory_with_parents(null)
       const children = this.directory.enumerate_children("standard::name", Gio.FileQueryInfoFlags.NONE, null)
       for (let child = children.next_file(null); child !== null; child = children.next_file(null)) {
         const name = child.get_name()
@@ -433,7 +433,7 @@ export class MprisArtworkAdapter {
       const info = await queryInfo(source)
       const bytes = info.get_size()
       if (bytes <= 0 || bytes > this.maxItemBytes || bytes > this.maxBytes) return null
-      this.directory.make_directory_with_parents(null)
+      if (!this.directory.query_exists(null)) this.directory.make_directory_with_parents(null)
       const name = GLib.compute_checksum_for_string(GLib.ChecksumType.SHA256, uri, -1)
       target = this.directory.get_child(`${name}${artworkExtension(info, source)}`)
       await copyFile(source, target, this.maxItemBytes)
@@ -489,7 +489,10 @@ export class MprisArtworkAdapter {
     const size = bytes.length
     if (size <= 0 || size > this.maxItemBytes || size > this.maxBytes) return null
     try {
-      this.directory.make_directory_with_parents(null)
+      // Gio's make_directory_with_parents() throws `File exists` when the leaf
+      // directory is already there; prepareDirectory() normally created it, so
+      // an unconditional call made every cache write fail on the live install.
+      if (!this.directory.query_exists(null)) this.directory.make_directory_with_parents(null)
       const name = GLib.compute_checksum_for_string(GLib.ChecksumType.SHA256, uri, -1)
       const target = this.directory.get_child(`${name}${extension}`)
       const path = target.get_path()

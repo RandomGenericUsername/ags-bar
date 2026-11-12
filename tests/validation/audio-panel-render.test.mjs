@@ -331,6 +331,15 @@ check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   assert.ok(!popupSrc.includes('class="audio-settings-popover-shell"'), "nested settings shell");
 });
 
+check("the artwork cache never recreates an existing directory", () => {
+  const adapter = read(join(AUDIO, "adapters/mpris/mpris-adapter.ts"));
+  const calls = adapter.split("\n").filter((line) => line.includes("this.directory.make_directory_with_parents"));
+  assert.ok(calls.length >= 2, "the cache directory creation calls are missing");
+  for (const line of calls) {
+    assert.match(line, /query_exists\(null\)/, `unconditional cache directory creation: ${line.trim()}`);
+  }
+});
+
 check("the panel poll updates the MPRIS position while visible", () => {
   assert.match(popupSrc, /GLib\.timeout_add\(/, "no visible-panel position poll");
   assert.match(popupSrc, /binding\.actions\.refreshPosition/, "the poll does not dispatch refreshPosition");

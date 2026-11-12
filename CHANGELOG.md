@@ -1,3 +1,17 @@
+## v0.6.6 — 2026-11-12
+
+Live follow-ups from the v0.6.5 install:
+
+- **Thumbnail cache writes succeed.** Gio's `make_directory_with_parents()`
+  throws `File exists` on the already-prepared cache directory, so every
+  resolution in v0.6.5 failed silently and the panel kept the app icon. The
+  cache now creates the directory only when `query_exists()` says it is absent
+  (prepare/async/sync paths); Chromium's `/tmp` thumbnail and Tidal's HTTPS
+  cover both resolve.
+- **Header actions are right-aligned like the mock.** The Output caption row
+  expands, so the gear and mute sit at the right edge instead of immediately
+  after the caption.
+
 ## v0.6.5 — 2026-11-12
 
 Owner QA on the REQ-005 sound panel. No skin retune; the configured skin still

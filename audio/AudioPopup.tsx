@@ -135,7 +135,7 @@ function OutputHero({ binding }: { binding: AudioPanelBinding }) {
   return (
     <box class="audio-hero" orientation={VERTICAL}>
       <box class="audio-hero-top">
-        <box class="audio-caption-row" spacing={8}>
+        <box class="audio-caption-row" spacing={8} hexpand>
           <label class="audio-caption" label="Output" />
           <label class="audio-muted-pill" label="Muted" visible={muted} />
         </box>
