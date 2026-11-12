@@ -484,7 +484,7 @@ function MixerDeck({ binding }: { binding: AudioPanelBinding }) {
 // Input — secondary and collapsed by default.
 // ---------------------------------------------------------------------------
 
-function InputSection({ binding }: { binding: AudioPanelBinding }) {
+function InputSection({ binding, onVisibilityChanged }: { binding: AudioPanelBinding; onVisibilityChanged?: () => void }) {
   const model = createComputed(() => binding.model())
   const input = createComputed<EndpointState | null>(() => {
     const state = model()
@@ -516,7 +516,8 @@ function InputSection({ binding }: { binding: AudioPanelBinding }) {
         </box>
       </button>
 
-      <box class="audio-input-body" orientation={VERTICAL} spacing={6} visible={inputOpen}>
+      <box class="audio-input-body" orientation={VERTICAL} spacing={6} visible={inputOpen}
+        $={(self: Gtk.Widget) => { self.connect("notify::visible", () => onVisibilityChanged?.()) }}>
         <DeviceSelector
           title="Input device"
           value={name}
@@ -683,7 +684,9 @@ export function AudioPanelContent({
   }
   /** Re-measure once the revealer's layout has settled, not just on state. */
   const fitAfterLayout = (): void => {
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => { fit(); return false })
+    // Visibility updates and GTK's cached height-for-width can settle on the
+    // next frames; the delayed pass is what removes the expanded height.
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => { fit(); return false })
   }
   createEffect(() => {
     // Re-fit when the deck mode, input disclosure or row set changes.
@@ -724,7 +727,7 @@ export function AudioPanelContent({
             <PlayingDeck binding={binding} />
             <MixerDeck binding={binding} />
           </box>
-          <InputSection binding={binding} />
+          <InputSection binding={binding} onVisibilityChanged={scheduleFit} />
         </box>
       </scrolledwindow>
       <AudioFoot />

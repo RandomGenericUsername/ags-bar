@@ -399,6 +399,7 @@ check("the Input section refits the panel after collapsing", () => {
   assert.match(popupSrc, /class="audio-input-body"[^>]*visible=\{inputOpen\}/, "Input is not visibility-bound");
   assert.match(popupSrc, /fitAfterLayout/, "no post-layout height recalculation");
   assert.match(popupSrc, /GLib\.timeout_add\([^\n]*fit\(\)/, "no delayed fit after the visibility change");
+  assert.match(popupSrc, /notify::visible/, "no fit on the Input body visibility change");
 });
 
 check("the muted output dims the big value without moving layout", () => {

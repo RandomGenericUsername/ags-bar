@@ -1,3 +1,9 @@
+## v0.6.12 — 2026-11-12
+
+- Input collapse, second pass: fit on the Input body's `notify::visible` and
+  a 250 ms post-layout fit. The collapsed panel returns from the expanded
+  659 px to the 509 px content height (reopen already did).
+
 ## v0.6.11 — 2026-11-12
 
 - Fix the v0.6.10 Input regression: a `Gtk.Revealer` retained the expanded
