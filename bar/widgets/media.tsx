@@ -82,7 +82,8 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
   const artist = createComputed(() => active()?.artist || "")
 
   return (
-    <box class="audio-strip" spacing={4}>
+    <box class="audio-strip-slot" widthRequest={340}>
+      <box class="audio-strip" spacing={4} halign={Gtk.Align.CENTER}>
       <box
         class="audio-strip-main"
         hexpand
@@ -103,8 +104,8 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
               <box class="audio-strip-inner" spacing={8} hexpand valign={Gtk.Align.CENTER}>
                 <AppTile row={createComputed(() => row)} size={32} className="audio-strip-art" />
                 <box class="audio-strip-text" orientation={Gtk.Orientation.VERTICAL} spacing={0} hexpand>
-                  <label class="audio-strip-title" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END} label={title} />
-                  <label class="audio-strip-artist" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END}
+                  <label class="audio-strip-title" xalign={0} hexpand maxWidthChars={24} ellipsize={Pango.EllipsizeMode.END} label={title} />
+                  <label class="audio-strip-artist" xalign={0} hexpand maxWidthChars={26} ellipsize={Pango.EllipsizeMode.END}
                     label={createComputed(() => trayCueValue() ?? artist())} />
                 </box>
               </box>
@@ -125,6 +126,7 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
             />
           )}
       </With>
+      </box>
     </box>
   )
 }

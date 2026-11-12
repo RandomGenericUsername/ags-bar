@@ -386,7 +386,8 @@ check("transport controls use the registry media-controls art", () => {
 check("the strip uses a 32px transparent thumbnail and the tray centers larger controls", () => {
   const media = read(join(AGS, "bar/widgets/media.tsx"));
   assert.match(media, /size=\{32\} className="audio-strip-art"/, "strip artwork is not 32px");
-  assert.ok(!media.includes("maxWidthChars"), "the strip still caps its text width");
+  assert.match(media, /class="audio-strip-slot" widthRequest=\{340\}/, "strip slot is not 340px");
+  assert.match(media, /halign=\{Gtk\.Align\.CENTER\}/, "strip group is not centered");
   const tray = read(join(AUDIO, "TrayPopup.tsx"));
   assert.match(tray, /halign=\{Gtk\.Align\.CENTER\}/, "tray transport is not centered");
   assert.match(tray, /playSize=\{36\} iconSize=\{18\}/, "tray transport icons are not enlarged");

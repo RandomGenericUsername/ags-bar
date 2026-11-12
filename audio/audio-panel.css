@@ -696,6 +696,10 @@ window#bar .media-strip-widget label {
   padding: 0;
 }
 
+.audio-strip-slot {
+  min-width: 340px;
+}
+
 .audio-strip {
   min-height: 38px;
   padding: 0 2px;

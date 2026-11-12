@@ -1,3 +1,12 @@
+## v0.6.15 — 2026-11-12
+
+- Shuffle-off resolves the assets v0.21.1 50%-opacity art; shuffle-active stays
+  full. State logic unchanged.
+- The bar strip now uses a 340px slot and horizontally centers the
+  art/title/controls group; 32px transparent art, no tile, title bounded for
+  the slot. Mock updated to the same centered slot and hash
+  `7628aae2…`.
+
 ## v0.6.14 — 2026-11-12
 
 - Input collapse: force the layer-shell window to re-ask for its natural
