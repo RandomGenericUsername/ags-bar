@@ -213,15 +213,19 @@ selectInput: (endpointId) => run("selectInput", () =>
     revision()
     const projected = projectAudioPanel(runtime.current())
     if (resolvedArtwork.size === 0) return projected
+    // An app can merge several players; use the first artwork URI that
+    // actually resolved (the native Tidal https image over its Chromium
+    // mirror's deleted /tmp thumbnail). Apply the overlay to the deck rows
+    // AND to `playingRows`: the Playing pages use the latter, so a rows-only
+    // overlay left the 40px frame on the app icon.
+    const withArtwork = (row: (typeof projected.rows)[number]) => {
+      const path = row.artworkUris.map((uri) => resolvedArtwork.get(uri)).find(Boolean)
+      return path && path !== row.artworkPath ? { ...row, artworkPath: path } : row
+    }
     return {
       ...projected,
-      rows: projected.rows.map((row) => {
-        // An app can merge several players; use the first artwork URI that
-        // actually resolved (the native Tidal https image over its Chromium
-        // mirror's deleted /tmp thumbnail).
-        const path = row.artworkUris.map((uri) => resolvedArtwork.get(uri)).find(Boolean)
-        return path && path !== row.artworkPath ? { ...row, artworkPath: path } : row
-      }),
+      rows: projected.rows.map(withArtwork),
+      playingRows: projected.playingRows.map(withArtwork),
     }
   })
 

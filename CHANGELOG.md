@@ -1,3 +1,11 @@
+## v0.6.7 — 2026-11-12
+
+- **Playing pages receive resolved artwork.** The composition overlaid the
+  solved `artworkPath` onto the Mixer rows only; the Playing deck renders
+  `playingRows`, so its 40 px frame stayed on the app icon even after the
+  thumbnail cache succeeded. The overlay now maps both arrays (the app icon
+  remains the corner badge/fallback only).
+
 ## v0.6.6 — 2026-11-12
 
 Live follow-ups from the v0.6.5 install:

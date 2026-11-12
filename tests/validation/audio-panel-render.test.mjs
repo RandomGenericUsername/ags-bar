@@ -331,6 +331,12 @@ check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   assert.ok(!popupSrc.includes('class="audio-settings-popover-shell"'), "nested settings shell");
 });
 
+check("resolved artwork reaches both the Mixer rows and Playing pages", () => {
+  const composition = read(join(AUDIO, "composition.ts"));
+  assert.match(composition, /rows: projected\.rows\.map\(withArtwork\)/, "rows lack the artwork overlay");
+  assert.match(composition, /playingRows: projected\.playingRows\.map\(withArtwork\)/, "Playing pages never receive resolved artwork");
+});
+
 check("the artwork cache never recreates an existing directory", () => {
   const adapter = read(join(AUDIO, "adapters/mpris/mpris-adapter.ts"));
   const calls = adapter.split("\n").filter((line) => line.includes("this.directory.make_directory_with_parents"));
