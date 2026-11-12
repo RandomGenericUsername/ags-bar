@@ -484,7 +484,7 @@ function MixerDeck({ binding }: { binding: AudioPanelBinding }) {
 // Input — secondary and collapsed by default.
 // ---------------------------------------------------------------------------
 
-function InputSection({ binding, onVisibilityChanged }: { binding: AudioPanelBinding; onVisibilityChanged?: () => void }) {
+function InputSection({ binding }: { binding: AudioPanelBinding }) {
   const model = createComputed(() => binding.model())
   const input = createComputed<EndpointState | null>(() => {
     const state = model()
@@ -516,8 +516,9 @@ function InputSection({ binding, onVisibilityChanged }: { binding: AudioPanelBin
         </box>
       </button>
 
-      <box class="audio-input-body" orientation={VERTICAL} spacing={6} visible={inputOpen}
-        $={(self: Gtk.Widget) => { self.connect("notify::visible", () => onVisibilityChanged?.()) }}>
+      <With value={inputOpen}>
+        {(open: boolean) => open ? (
+          <box class="audio-input-body" orientation={VERTICAL} spacing={6}>
         <DeviceSelector
           title="Input device"
           value={name}
@@ -568,7 +569,9 @@ function InputSection({ binding, onVisibilityChanged }: { binding: AudioPanelBin
           label={createComputed(() => available() ? "No microphone use right now." : "No microphone detected.")}
           visible={createComputed(() => consumers().length === 0)}
         />
-      </box>
+          </box>
+        ) : null}
+      </With>
     </box>
   )
 }
@@ -727,7 +730,7 @@ export function AudioPanelContent({
             <PlayingDeck binding={binding} />
             <MixerDeck binding={binding} />
           </box>
-          <InputSection binding={binding} onVisibilityChanged={scheduleFit} />
+          <InputSection binding={binding} />
         </box>
       </scrolledwindow>
       <AudioFoot />

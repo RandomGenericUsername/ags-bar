@@ -396,10 +396,9 @@ check("the strip uses a 32px transparent thumbnail and the tray centers larger c
 });
 
 check("the Input section refits the panel after collapsing", () => {
-  assert.match(popupSrc, /class="audio-input-body"[^>]*visible=\{inputOpen\}/, "Input is not visibility-bound");
+  assert.match(popupSrc, /<With value=\{inputOpen\}>/, "Input body is not conditionally mounted");
   assert.match(popupSrc, /fitAfterLayout/, "no post-layout height recalculation");
-  assert.match(popupSrc, /GLib\.timeout_add\([^\n]*fit\(\)/, "no delayed fit after the visibility change");
-  assert.match(popupSrc, /notify::visible/, "no fit on the Input body visibility change");
+  assert.match(popupSrc, /GLib\.timeout_add\([^\n]*fit\(\)/, "no delayed fit after the state change");
 });
 
 check("the muted output dims the big value without moving layout", () => {

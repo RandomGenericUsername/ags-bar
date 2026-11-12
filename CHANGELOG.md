@@ -1,3 +1,9 @@
+## v0.6.13 — 2026-11-12
+
+- Input collapse, third pass: the Input body is conditionally mounted through
+  `With value={inputOpen}` instead of hidden; the body measure can no longer
+  retain the expanded 659 px cache. The delayed fit still runs after layout.
+
 ## v0.6.12 — 2026-11-12
 
 - Input collapse, second pass: fit on the Input body's `notify::visible` and
