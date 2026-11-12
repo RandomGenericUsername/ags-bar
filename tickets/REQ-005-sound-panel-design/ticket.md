@@ -234,7 +234,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`
+  `1a0d9a2529d3bd3cbc63539fcb06f097fe502d193957d7aaaf3b7fc5f6b6b141`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -302,7 +302,7 @@ the skin:
 
 Mock: the head app tile is removed, the 40 px art carries a small app badge,
 the muted note and Mixer play buttons are removed. New hash
-`ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`.
+`1a0d9a2529d3bd3cbc63539fcb06f097fe502d193957d7aaaf3b7fc5f6b6b141`.
 
 ## Implementation evidence (2026-11-11)
 
@@ -713,7 +713,7 @@ when it lands.
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 - Customization-layer pass (2026-11-11): `sha256sum mock.html` =
-  `ed9e04fe02d040dbfd2d2c380b2921bc9486550e77bc34029966afeeef5f19ee`
+  `1a0d9a2529d3bd3cbc63539fcb06f097fe502d193957d7aaaf3b7fc5f6b6b141`
   (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
   default and Mixer states with the normalized radii
   (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,
