@@ -29,10 +29,17 @@
 
 /* ── windows + overlay surfaces ─────────────────────────────────────────── */
 
-/* Layer-shell windows must be transparent; the inner surface box paints. */
+/* Layer-shell windows must be transparent; the inner surface box paints. The
+   spawned settings/tray windows must not add toolkit radius, border or shadow:
+   the skin-painted `.audio-settings`/`.tray-surface` owns `surface.panel`. */
 window.audio-popup,
 window.tray-popup {
+  padding: 0;
+  border: none;
+  border-radius: 0;
   background-color: transparent;
+  background-image: none;
+  box-shadow: none;
 }
 
 /* A Gtk.Popover is a native surface with its own theme chrome. Neutralise it
@@ -44,14 +51,18 @@ popover.audio-menu {
      inner surface (`.audio-settings` or the menu contents) and no outer frame. */
   padding: 0;
   border: none;
+  border-radius: 0;
   background-color: transparent;
+  background-image: none;
   box-shadow: none;
 }
 
 popover.audio-settings-popover > contents {
   padding: 0;
-  background-color: transparent;
   border: none;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: none;
   box-shadow: none;
 }
 
@@ -140,6 +151,12 @@ popover.audio-settings-popover > contents {
 
 .audio-big-value {
   min-width: 68px;
+}
+
+/* The mock's muted state dims the level; the pill labels it. Opacity only, so
+   the 28px value/slider row keeps its layout. */
+.audio-hero.is-output-muted .audio-big-value {
+  opacity: 0.42;
 }
 
 .audio-big-number {

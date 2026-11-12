@@ -280,7 +280,7 @@ check("audio-panel.css is structure only; the selected skin paints it", () => {
 
 check("the persistent hero is outside the scroll area and the deck is complete", () => {
   const src = popupSrc;
-  const hero = src.indexOf('class="audio-hero"');
+  const hero = src.indexOf("audio-hero");
   const scroll = src.indexOf("<scrolledwindow");
   assert.ok(hero >= 0 && scroll > hero, "the Output hero must precede (and live outside) the scroller");
   for (const marker of ['label="Playing"', 'label="Mixer"', 'audio-input-section', 'class="audio-foot"']) {
@@ -368,6 +368,32 @@ check("the output header gear is the gear glyph and icons are bare", () => {
   const button = css.slice(css.indexOf(".audio-icon-button {"), css.indexOf(".audio-icon-button {") + 500);
   assert.match(button, /background-color:\s*transparent/, "icon buttons are not bare");
   assert.match(button, /border:\s*1px solid transparent/, "icon buttons keep a control border");
+});
+
+check("the muted output dims the big value without moving layout", () => {
+  assert.match(popupSrc, /is-output-muted/, "the hero never marks the muted state");
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  assert.match(
+    css,
+    /\.audio-hero\.is-output-muted \.audio-big-value\s*\{[^}]*opacity:\s*0\.42/,
+    "the muted big value is not dimmed",
+  );
+});
+
+check("spawned settings/tray windows leave radius to the skin surface", () => {
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  for (const selector of ["window.audio-popup", "window.tray-popup"]) {
+    const start = css.indexOf(selector);
+    assert.ok(start >= 0, `${selector} reset missing`);
+    const block = css.slice(start, css.indexOf("}", start));
+    assert.match(block, /border-radius:\s*0/, `${selector} keeps an outer radius`);
+    assert.match(block, /border:\s*none/, `${selector} keeps an outer border`);
+    assert.match(block, /box-shadow:\s*none/, `${selector} keeps an outer shadow`);
+  }
+  const settings = css.slice(css.indexOf("popover.audio-settings-popover"));
+  assert.match(settings, /border-radius:\s*0/, "the settings popover keeps an outer radius");
+  assert.match(settings, /border:\s*none/, "the settings popover keeps an outer border");
+  assert.match(settings, /box-shadow:\s*none/, "the settings popover keeps an outer shadow");
 });
 
 let failed = 0;

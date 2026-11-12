@@ -1,3 +1,18 @@
+## v0.6.8 — 2026-11-12
+
+Owner feedback round 1:
+
+- **Muted big value.** The hero carries `is-output-muted` and
+  `.audio-big-value` drops to `opacity: .42`; the value, unit and slider keep
+  their exact layout. The small Muted pill remains the only label.
+- **Spawned windows leave radius to the skin.** `window.audio-popup`,
+  `window.tray-popup`, the settings popover node and its contents are
+  transparent, borderless, square and shadowless; `.audio-settings` and
+  `.tray-surface` own `surface.panel` radius/border/shadow. No hard-coded
+  outer radius.
+- Mixer row artwork and the measured 361 px width are unchanged (accepted).
+- Requires assets v0.20.2, which removes the dead `.audio-hero-note` selector.
+
 ## v0.6.7 — 2026-11-12
 
 - **Playing pages receive resolved artwork.** The composition overlaid the

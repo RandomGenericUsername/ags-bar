@@ -133,7 +133,7 @@ function OutputHero({ binding }: { binding: AudioPanelBinding }) {
   const muteIcon = createComputed(() => icon("volume", `system-${levelVariant(muted(), volume().level)}`))
 
   return (
-    <box class="audio-hero" orientation={VERTICAL}>
+    <box class={createComputed(() => `audio-hero${muted() ? " is-output-muted" : ""}`)} orientation={VERTICAL}>
       <box class="audio-hero-top">
         <box class="audio-caption-row" spacing={8} hexpand>
           <label class="audio-caption" label="Output" />
