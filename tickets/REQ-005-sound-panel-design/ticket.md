@@ -753,3 +753,15 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   restart is required for this UI setting.
 - The skin work consumes the corrected `:root` roles/radii; `--panel-w` stays
   app-owned until a layout token exists.
+
+### QA round 2 (2026-11-12)
+
+- Muted output: the hero carries `is-output-muted` and the big value drops to
+  `opacity: .42`; /tmp/opencode/req005/r2-final-host0-muted-clean.png.
+- Dead `.audio-hero-note` selector removed from the assets `ags` target
+  (v0.20.2); generated appearance has 0 occurrences.
+- Spawned settings/tray outer containers reset to transparent/borderless/
+  radius 0/no shadow; `.audio-settings`/`.tray-surface` own `surface.panel`.
+  Verified at host radius 0 (terminal-host), 14 (terminal-host), and glass 14:
+  settings/tray/Playing-card all follow the generated skin/host radius.
+- Mixer row artwork and the 361px measured panel width unchanged (accepted).
