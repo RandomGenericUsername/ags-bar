@@ -43,6 +43,7 @@ const REQUEST_COMMANDS = [
   "popup-close",
   "settings-close",
   "audio-panel-open",
+  "tray-open",
   "audio-panel-debug",
 ];
 

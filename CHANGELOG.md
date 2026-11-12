@@ -1,3 +1,10 @@
+## v0.6.9 — 2026-11-12
+
+- Add a debug-only `ags request -i ags tray-open` door beside
+  `audio-panel-open` so the tray radius can be measured when the bar strip's
+  pointer gesture cannot be driven by an automation harness. The strip remains
+  the shipped entry point; no user-facing behavior changes.
+
 ## v0.6.8 — 2026-11-12
 
 Owner feedback round 1:

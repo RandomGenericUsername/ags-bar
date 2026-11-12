@@ -12,7 +12,7 @@ import { AudioCatcher, AudioPopup } from "./audio/AudioPopup"
 import { TrayPopup, TrayPopupCatcher } from "./audio/TrayPopup"
 import { audioPanelBinding, audioPanelTraceLines } from "./audio/composition"
 import { close as closeAudio, open as openAudio } from "./audio/ui-state"
-import { closeTray } from "./audio/panel-state"
+import { closeTray, openTray } from "./audio/panel-state"
 import { closeBluetoothPopup } from "./components/bluetooth/state"
 import { BatteryPopup, BatteryPopupCatcher } from "./components/battery/BatteryPopup"
 import { closeBatteryPopup } from "./components/battery/state"
@@ -86,6 +86,16 @@ app.start({
       closeSettings()
       closeTray()
       openAudio()
+      res("ok")
+      return
+    }
+    // Debug-only, mirrors audio-panel-open: let the QA/measurement harness show
+    // the tray dropdown when the bar strip's pointer gesture cannot be driven
+    // programmatically. The strip remains the shipped entry point.
+    if (argv[0] === "tray-open") {
+      closeSettings()
+      closeAudio()
+      openTray(null)
       res("ok")
       return
     }

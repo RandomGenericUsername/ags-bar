@@ -29,7 +29,7 @@ mode=restart  holdsUnsavedState=false
 
 - Window: `bar`; AGS instance: `ags`; deployed config link basename: `ags`.
 - The request surface is part of the app contract: `popup-close`,
-  `settings-close`, `audio-panel-open`, `audio-panel-debug`, plus the
+  `settings-close`, `audio-panel-open`, `tray-open`, `audio-panel-debug`, plus the
   unknown-request response. Do not drop or rename these while extracting.
 - No app imports another app. Depend on `ags-platform` (and `contracts` at test
   time only), never on a sibling app repo.

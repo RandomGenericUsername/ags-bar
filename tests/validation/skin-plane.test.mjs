@@ -110,6 +110,7 @@ assert.deepEqual(commands, [
   "popup-close",
   "settings-close",
   "audio-panel-open",
+  "tray-open",
   "audio-panel-debug",
 ]);
 

@@ -89,6 +89,7 @@ transient `wlogout` logout overlay deliberately stay on their direct path.
 ags request popup-close       -i ags   # close every bar overlay (Esc keybind)
 ags request settings-close    -i ags   # legacy settings dismissal
 ags request audio-panel-open  -i ags   # open the audio popup (debug entry)
+ags request tray-open         -i ags   # open the tray dropdown (debug entry)
 ags request audio-panel-debug -i ags   # dump the audio projection to state
 ```
 
