@@ -327,6 +327,69 @@ export function AppTile({
 }
 
 /**
+ * Track artwork for a player row: the MPRIS thumbnail when it resolved, the
+ * app icon only as the fallback (or a small corner badge over real artwork).
+ *
+ * Built imperatively because Gtk.Overlay needs one main child plus overlay
+ * children, which the generic JSX child appender does not distinguish.
+ */
+export function TrackArtwork({
+  row,
+  size,
+  className = "",
+  badge = true,
+}: {
+  row: Accessor<AudioAppRowView>
+  size: number
+  className?: string
+  badge?: boolean
+}) {
+  const artworkPath = createComputed(() => row().artworkPath || "")
+  const appIconPath = createComputed(() => icon("app-icons", row().iconName || "application-x-executable"))
+  const mainPath = createComputed(() => artworkPath() || appIconPath())
+  const initial = createComputed(() => row().appName.slice(0, 1).toUpperCase())
+  const badgeSize = Math.max(10, Math.round(size * 0.4))
+
+  const image = new Gtk.Image()
+  image.add_css_class("audio-track-art-image")
+  image.set_pixel_size(size)
+  const fallback = new Gtk.Label({ label: "" })
+  fallback.add_css_class("audio-track-art-fallback")
+  fallback.set_halign(Gtk.Align.CENTER)
+  fallback.set_valign(Gtk.Align.CENTER)
+  const badgeBox = new Gtk.Box()
+  badgeBox.add_css_class("audio-track-badge")
+  badgeBox.set_halign(Gtk.Align.END)
+  badgeBox.set_valign(Gtk.Align.END)
+  badgeBox.set_size_request(badgeSize + 4, badgeSize + 4)
+  const badgeImage = new Gtk.Image()
+  badgeImage.set_pixel_size(badgeSize)
+  badgeBox.append(badgeImage)
+
+  const overlay = new Gtk.Overlay()
+  overlay.set_child(image)
+  overlay.add_overlay(fallback)
+  overlay.add_overlay(badgeBox)
+  overlay.set_size_request(size, size)
+
+  createEffect(() => {
+    const path = mainPath()
+    setImageOnce(image, path)
+    image.set_visible(path !== "")
+    fallback.set_label(initial())
+    fallback.set_visible(path === "")
+    badgeBox.set_visible(badge && artworkPath() !== "" && appIconPath() !== "")
+    setImageOnce(badgeImage, appIconPath())
+  })
+
+  return (
+    <box class={`audio-track-art ${className}`.trim()} widthRequest={size} heightRequest={size}>
+      {overlay}
+    </box>
+  )
+}
+
+/**
  * The one transport row. Capability-gated per player, so a live page hides
  * Previous/Next and both Shuffle/Loop exactly as the mock's VLC page does.
  */

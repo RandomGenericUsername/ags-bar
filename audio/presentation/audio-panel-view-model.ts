@@ -20,6 +20,8 @@ export interface AudioAppRowView {
   desktopId?: string
   iconName: string
   artworkUri: string | null
+  /** Every current player's artwork URI for this app, best candidates first. */
+  artworkUris: readonly string[]
   /** Local bounded-cache path; populated by composition after async artwork resolution. */
   artworkPath: string | null
   title: string
@@ -90,7 +92,19 @@ function choosePlayer(players: readonly AudioPlayer[]): AudioPlayer | null {
       player.playback === "stopped" ? 2 : 1
     return state * 2 + (clean(player.media.title) ? 1 : 0)
   }
-  return [...players].sort((a, b) => rank(b) - rank(a) || a.id.localeCompare(b.id))[0] ?? null
+  // One app can expose several MPRIS players: a native app and a browser mirror
+  // of the same service (Tidal + its Chromium tab) both canonicalise to one
+  // app key. Playback still dominates. On a tie, prefer the player that
+  // advertises more optional controls; otherwise the browser mirror wins by
+  // bus-name sort and the row hides Shuffle/Loop that the native player has.
+  const controls = (player: AudioPlayer): number =>
+    (player.capabilities.canShuffle ? 1 : 0) +
+    (player.capabilities.canLoop ? 1 : 0) +
+    (player.capabilities.canSeek ? 1 : 0) +
+    (player.capabilities.canGoNext ? 1 : 0) +
+    (player.capabilities.canGoPrevious ? 1 : 0)
+  return [...players].sort((a, b) =>
+    rank(b) - rank(a) || controls(b) - controls(a) || a.id.localeCompare(b.id))[0] ?? null
 }
 
 function volumeSummary(streams: readonly AudioStream[]): {
@@ -179,6 +193,8 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       desktopId: app?.desktopId,
       iconName: app?.aliases?.[0] || app?.desktopId || key,
       artworkUri: media?.artworkUri ?? null,
+      artworkUris: [...new Set(players.map((item) => item.media.artworkUri)
+        .filter((uri): uri is string => typeof uri === "string" && uri !== ""))],
       artworkPath: null,
       title: clean(media?.title) || appName,
       artist: clean(media?.artist),

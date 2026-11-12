@@ -6,7 +6,7 @@ import { AudioSessionRuntime } from "./application/runtime/audio-session-runtime
 import {
   playPausePlayer, nextPlayer, previousPlayer, seekPlayer, selectPreferredInput,
   selectPreferredOutput, setAppRoute, setAppVolume, setInputVolume, setPreferredOutputVolume,
-  setPlayerShuffle, cyclePlayerLoop,
+  setPlayerShuffle, cyclePlayerLoop, refreshPlayerPosition,
   toggleAppMute, toggleInputMute, togglePreferredOutputMute,
 } from "./application/audio-actions"
 import type { ActionResult, AudioPorts } from "./application/ports"
@@ -124,6 +124,7 @@ export function audioPanelBinding(): AudioPanelBinding {
       return setPlayerShuffle(ports, playerId, !(player?.shuffle ?? false))
     }),
     cycleLoop: (playerId) => run("cycleLoop", () => cyclePlayerLoop(ports, playerId)),
+    refreshPosition: (playerId) => run("refreshPosition", () => refreshPlayerPosition(ports, playerId)),
 selectInput: (endpointId) => run("selectInput", () =>
       selectPreferredInput(ports, endpointId as EndpointId)
         .then((result) => {
@@ -215,7 +216,10 @@ selectInput: (endpointId) => run("selectInput", () =>
     return {
       ...projected,
       rows: projected.rows.map((row) => {
-        const path = row.artworkUri ? resolvedArtwork.get(row.artworkUri) : undefined
+        // An app can merge several players; use the first artwork URI that
+        // actually resolved (the native Tidal https image over its Chromium
+        // mirror's deleted /tmp thumbnail).
+        const path = row.artworkUris.map((uri) => resolvedArtwork.get(uri)).find(Boolean)
         return path && path !== row.artworkPath ? { ...row, artworkPath: path } : row
       }),
     }

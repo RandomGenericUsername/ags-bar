@@ -25,6 +25,8 @@ export interface AudioPanelActions {
   /** MPRIS Shuffle/Loop; the controls are hidden when the player lacks the capability. */
   toggleShuffle(playerId: string): void
   cycleLoop(playerId: string): void
+  /** Re-read MPRIS Position while the panel is visible (progress bar tick). */
+  refreshPosition(playerId: string): void
   selectInput(endpointId: string): void
   setInputVolume(endpointId: string, percent: number): void
   /** Acts on the session's default input, so no endpoint argument is needed. */

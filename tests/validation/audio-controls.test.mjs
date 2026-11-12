@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import {
   nextLoopStatus, volumeState,
 } from "../../audio/domain/audio-model.ts"
-import { cyclePlayerLoop, setPlayerShuffle } from "../../audio/application/audio-actions.ts"
+import { cyclePlayerLoop, refreshPlayerPosition, setPlayerShuffle } from "../../audio/application/audio-actions.ts"
 import { projectAudioPanel } from "../../audio/presentation/audio-panel-view-model.ts"
 
 /**
@@ -42,7 +42,11 @@ function ports(state) {
   return {
     calls,
     session: { current: () => state },
-    mpris: { setShuffle: record("setShuffle"), setLoop: record("setLoop") },
+    mpris: {
+      setShuffle: record("setShuffle"),
+      setLoop: record("setLoop"),
+      refreshPosition: record("refreshPosition"),
+    },
   }
 }
 
@@ -103,6 +107,46 @@ test("unsupported players and stale ids reject instead of pretending", async () 
   assert.equal((await setPlayerShuffle(bag, "stale", true)).reason, "missing-player")
   assert.equal((await cyclePlayerLoop(bag, "stale")).reason, "missing-player")
   assert.deepEqual(bag.calls, [], "no port call is made for a rejected action")
+})
+
+test("a merged row prefers the player that exposes optional controls", () => {
+  const mirror = player({
+    id: "mpris:chromium.instance9#1",
+    appId: "tidal-hifi",
+    playback: "paused",
+    capabilities: capabilities({ canShuffle: false, canLoop: false }),
+    media: media({ title: "Black Horizons", artworkUri: "file:///tmp/.com.google.Chrome.abc" }),
+  })
+  const native = player({
+    id: "mpris:tidal-hifi#1",
+    appId: "tidal-hifi",
+    playback: "paused",
+    shuffle: true,
+    loop: "playlist",
+    capabilities: capabilities(),
+    media: media({ title: "Black Horizons", artworkUri: "https://resources.tidal.com/cover.jpg" }),
+  })
+  const row = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }],
+    players: [mirror, native],
+  })).rows[0]
+  assert.equal(row.appId, "tidal-hifi")
+  assert.equal(row.playerId, "mpris:tidal-hifi#1", "native Tidal wins the capability tie")
+  assert.equal(row.canShuffle, true)
+  assert.equal(row.canLoop, true)
+  assert.equal(row.shuffle, true)
+  assert.equal(row.loop, "playlist")
+  assert.deepEqual(row.artworkUris.sort(), [
+    "file:///tmp/.com.google.Chrome.abc",
+    "https://resources.tidal.com/cover.jpg",
+  ].sort(), "the row keeps every player artwork candidate")
+})
+
+test("the position action re-reads the MPRIS position", async () => {
+  const bag = ports(session())
+  assert.equal((await refreshPlayerPosition(bag, "mpris:spotify#1")).ok, true)
+  assert.deepEqual(bag.calls, [["refreshPosition", "mpris:spotify#1"]])
+  assert.equal((await refreshPlayerPosition(bag, "stale")).reason, "missing-player")
 })
 
 test("a paused player remains a Playing page and an empty session has none", () => {

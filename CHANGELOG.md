@@ -1,3 +1,36 @@
+## v0.6.5 — 2026-11-12
+
+Owner QA on the REQ-005 sound panel. No skin retune; the configured skin still
+paints the surface.
+
+### Fixed
+
+- **Settings popover is one skin surface.** The native `Gtk.Popover` node and
+  its contents are reset to transparent/no border/padding/shadow; only the
+  `.audio-settings` panel-role box paints. It stays a sibling popover, not a
+  nested box in the audio panel.
+- **Output header matches the mock.** The gear is the mock gear glyph (the
+  icon artifact's settings variant is a sliders glyph), followed by mute, the
+  device row and the 28 px value/slider; the muted state is the small pill.
+- **Removed the `Muted — the level is kept.` note** from the shipped code and
+  the mock.
+- **Mixer is levels/routing only.** Per-row play/pause was removed from the
+  code, mock and ticket; the row keeps the playing dot but no playback/seek.
+- **Track artwork.** Playing/tray/strip frames show the MPRIS thumbnail; the
+  app icon is a small corner badge or the fallback. `file:`/`data:` artwork is
+  read/cached synchronously (Chromium's `/tmp` thumbnails disappear), and a
+  merged row resolves any player's artwork URI. Shuffle/Loop stay
+  capability-gated; on a playback tie the row prefers the player that exposes
+  them (native Tidal over its Chromium mirror); YouTube/Chromium hides them.
+- **Live progress.** While the panel is visible it polls MPRIS `Position`
+  once a second for the selected playing page; the seek line and elapsed time
+  update without interaction. Dragging still seeks on commit.
+- **No dead bottom.** The deck body is measured and the scroller is sized to
+  its content (capped by the monitor), so the panel ends under the footer.
+- **Bare icon-only buttons.** The assets `ags` target gives gear/mute/
+  transport/carousel/level controls transparent fill/border; only hover/active
+  state paints. Device/route fields, sliders and the switch keep role paint.
+
 # Changelog
 
 ## v0.6.4 — 2026-11-12

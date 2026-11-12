@@ -301,6 +301,60 @@ check("shuffle/loop controls are capability-gated and dispatched", () => {
   assert.match(model, /canLoop:\s*boolean/, "PlayerCapabilities has no canLoop");
 });
 
+check("the mix note, Mixer playback and duplicate app tile are gone", () => {
+  assert.ok(!popupSrc.includes("Muted — the level is kept."), "the removed muted note is back");
+  const mixer = popupSrc.slice(popupSrc.indexOf("function MixerRow"), popupSrc.indexOf("function MixerEmpty"));
+  assert.ok(mixer.length > 0, "MixerRow not found");
+  assert.ok(!mixer.includes("playerAction"), "Mixer still dispatches playback");
+  assert.ok(!mixer.includes("audio-mixer-play"), "Mixer still renders a play/pause control");
+  const mock = read(join(AGS, "tickets/REQ-005-sound-panel-design/mock.html"));
+  assert.ok(!mock.includes("Muted — the level is kept."), "the mock still carries the muted note");
+  assert.ok(!mock.includes("data-mixer-play"), "the mock Mixer still has playback");
+});
+
+check("the Playing page uses track artwork with a small app badge", () => {
+  const controls = read(join(AUDIO, "ui/controls.tsx"));
+  assert.match(controls, /export function TrackArtwork/, "no TrackArtwork component");
+  assert.match(controls, /audio-track-badge/, "no app badge over the track artwork");
+  assert.match(popupSrc, /TrackArtwork row=\{row\} size=\{40\}/, "Playing page does not use TrackArtwork");
+  const page = popupSrc.slice(popupSrc.indexOf("function PlayingPage"), popupSrc.indexOf("function PlayingDeck"));
+  assert.ok(!page.includes("<AppTile"), "Playing page still uses an app tile for its artwork/head");
+});
+
+check("the settings popover is one surface and a sibling Gtk.Popover", () => {
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  const popover = css.slice(css.indexOf("popover.audio-settings-popover"));
+  assert.match(popover, /border:\s*none/, "the native popover border is not reset");
+  assert.match(popover, /padding:\s*0/, "the native popover padding is not reset");
+  assert.match(popupSrc, /new Gtk\.Popover/, "the settings surface is not a popover");
+  assert.match(popupSrc, /popover\.set_parent\(anchor\)/, "the settings popover is not anchored as a sibling");
+  assert.ok(!popupSrc.includes('class="audio-settings-popover-shell"'), "nested settings shell");
+});
+
+check("the panel poll updates the MPRIS position while visible", () => {
+  assert.match(popupSrc, /GLib\.timeout_add\(/, "no visible-panel position poll");
+  assert.match(popupSrc, /binding\.actions\.refreshPosition/, "the poll does not dispatch refreshPosition");
+  assert.match(read(join(AUDIO, "binding.ts")), /refreshPosition\(playerId: string\)/, "the binding has no refreshPosition");
+  assert.match(read(join(AUDIO, "adapters/mpris/mpris-adapter.ts")), /async refreshPosition\(/, "the adapter has no Position read");
+  assert.match(read(join(AUDIO, "application/ports.ts")), /refreshPosition\(playerId: PlayerId\)/, "the port has no refreshPosition");
+});
+
+check("the panel is content-sized with a scroll fallback, not fixed dead space", () => {
+  assert.match(popupSrc, /body\.measure\(Gtk\.Orientation\.VERTICAL/, "the deck body is not measured");
+  assert.match(popupSrc, /height_request/, "the scroller height is not driven by the content measure");
+  assert.ok(!popupSrc.includes("heightRequest={scrollHeight}"), "the fixed scroller height is back");
+});
+
+check("the output header gear is the gear glyph and icons are bare", () => {
+  assert.match(popupSrc, /audio-gear-glyph/, "the gear glyph is missing");
+  assert.match(popupSrc, /label="⚙"/, "the gear glyph is not the mock gear");
+  assert.ok(!popupSrc.includes('icon("settings", "default")'), "the sliders settings icon is still in the header");
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  const button = css.slice(css.indexOf(".audio-icon-button {"), css.indexOf(".audio-icon-button {") + 500);
+  assert.match(button, /background-color:\s*transparent/, "icon buttons are not bare");
+  assert.match(button, /border:\s*1px solid transparent/, "icon buttons keep a control border");
+});
+
 let failed = 0;
 for (const { name, ok, err } of checks) {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}`);

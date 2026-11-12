@@ -61,6 +61,11 @@ export interface MprisPort {
   setShuffle(playerId: PlayerId, on: boolean): Promise<void>
   /** MPRIS `LoopStatus`; rejected by the action layer when unsupported. */
   setLoop(playerId: PlayerId, status: LoopStatus): Promise<void>
+  /**
+   * Re-read the optional MPRIS `Position` while a panel is visible. App-driven
+   * polling, not an adapter timer: the panel owns the visibility and cadence.
+   */
+  refreshPosition(playerId: PlayerId): Promise<void>
 }
 
 export interface ArtworkPort {

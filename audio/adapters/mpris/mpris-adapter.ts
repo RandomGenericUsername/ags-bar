@@ -350,6 +350,24 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
   setLoop(id: PlayerId, status: LoopStatus): Promise<void> {
     return this.action(id, "loop", LOOP_TO_WIRE[status] ?? "None")
   }
+  /**
+   * Read MPRIS `Position` on demand. The panel polls this while visible; the
+   * adapter never runs its own timer. A player that vanished between ticks
+   * throws (the caller logs and the next model update reconciles it).
+   */
+  async refreshPosition(id: PlayerId): Promise<void> {
+    const requestedId = String(id)
+    const record = [...this.records.values()].find((candidate) => candidate.id === requestedId)
+    if (record === undefined || this.records.get(record.busName)?.id !== requestedId)
+      throw new Error(`MPRIS player is no longer current: ${requestedId}`)
+    const reply = await this.call(record.busName, PLAYER_PATH, DBUS_PROPERTIES, "Get",
+      new GLib.Variant("(ss)", [PLAYER_IFACE, "Position"]))
+    const value = position((reply.deepUnpack() as unknown[])[0])
+    if (value === null) return
+    record.media.positionUs = value
+    record.positionSyncedAtMs = GLib.get_monotonic_time() / 1000
+    this.emit({ kind: "player-changed", player: toPlayer(record) })
+  }
 }
 
 function isPlayerName(name: string): boolean {
@@ -399,9 +417,16 @@ export class MprisArtworkAdapter {
     }
   }
   async resolve(uri: string): Promise<{ localPath: string } | null> {
-    if (!uri || !/^(file|https?):/i.test(uri)) return null
+    if (!uri) return null
     const hit = this.entries.get(uri)
     if (hit !== undefined) { hit.usedAt = Date.now(); return { localPath: hit.localPath } }
+    // Chromium publishes `file:///tmp/.com.google.Chrome.*` thumbnails that it
+    // deletes as soon as the track changes. The async copy below lost that
+    // race, so a `file:` URI is read synchronously here and cached at once.
+    // `data:` thumbnails are decoded in-process. HTTP(S) stays async.
+    if (uri.startsWith("data:")) return this.resolveData(uri)
+    if (uri.startsWith("file:")) return this.resolveFile(uri)
+    if (!/^https?:/i.test(uri)) return null
     const source = Gio.File.new_for_uri(uri)
     let target: Gio.File | null = null
     try {
@@ -427,6 +452,54 @@ export class MprisArtworkAdapter {
     } catch (error) {
       if (target !== null) try { target.delete(null) } catch { /* partial file absent */ }
       console.debug(`MPRIS artwork unavailable: ${error}`)
+      return null
+    }
+  }
+
+  private resolveFile(uri: string): { localPath: string } | null {
+    try {
+      const source = Gio.File.new_for_uri(uri)
+      const path = source.get_path()
+      if (path === null) return null
+      const [ok, bytes] = GLib.file_get_contents(path)
+      if (!ok || bytes === null) return null
+      return this.cacheBytes(uri, bytes, imageExtension(bytes, path))
+    } catch (error) {
+      console.debug(`MPRIS artwork unavailable: ${error}`)
+      return null
+    }
+  }
+
+  private resolveData(uri: string): { localPath: string } | null {
+    try {
+      const comma = uri.indexOf(",")
+      if (comma < 0) return null
+      const meta = uri.slice(5, comma)
+      if (!/;base64/i.test(meta)) return null
+      const decoded = GLib.base64_decode(uri.slice(comma + 1))
+      const bytes = decoded instanceof Uint8Array ? decoded : new Uint8Array(decoded as ArrayBuffer)
+      return this.cacheBytes(uri, bytes, imageExtension(bytes, meta))
+    } catch (error) {
+      console.debug(`MPRIS artwork unavailable: ${error}`)
+      return null
+    }
+  }
+
+  private cacheBytes(uri: string, bytes: Uint8Array, extension: string): { localPath: string } | null {
+    const size = bytes.length
+    if (size <= 0 || size > this.maxItemBytes || size > this.maxBytes) return null
+    try {
+      this.directory.make_directory_with_parents(null)
+      const name = GLib.compute_checksum_for_string(GLib.ChecksumType.SHA256, uri, -1)
+      const target = this.directory.get_child(`${name}${extension}`)
+      const path = target.get_path()
+      if (path === null || !GLib.file_set_contents(path, bytes)) return null
+      this.evictFor(size)
+      this.entries.set(uri, { localPath: path, bytes: size, usedAt: Date.now() })
+      this.currentBytes += size
+      return { localPath: path }
+    } catch (error) {
+      console.debug(`MPRIS artwork cache write failed: ${error}`)
       return null
     }
   }
@@ -471,4 +544,12 @@ function copyFile(source: Gio.File, target: Gio.File, maxBytes: number): Promise
 function artworkExtension(info: Gio.FileInfo, source: Gio.File): string {
   const name = info.get_name() ?? source.get_basename() ?? ""
   return name.match(/\.[a-zA-Z0-9]{1,8}$/)?.[0] ?? ".img"
+}
+/** Sniff common image magic so a temp file without an extension still loads. */
+function imageExtension(bytes: Uint8Array, fallbackName: string): string {
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return ".png"
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return ".jpg"
+  if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return ".gif"
+  if (bytes.length >= 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return ".webp"
+  return fallbackName.match(/\.[a-zA-Z0-9]{1,8}$/)?.[0] ?? ".img"
 }

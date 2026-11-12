@@ -175,6 +175,14 @@ export async function cyclePlayerLoop(ports: AudioPorts, id: PlayerId): Promise<
   return { ok: true, applied: 1, failed: 0 }
 }
 
+/** A visible panel polls the MPRIS Position; this is the one read-only action. */
+export async function refreshPlayerPosition(ports: AudioPorts, id: PlayerId): Promise<ActionResult> {
+  const player = currentPlayer(ports.session.current(), id)
+  if (!player) return rejected("missing-player")
+  await ports.mpris.refreshPosition(id)
+  return { ok: true, applied: 1, failed: 0 }
+}
+
 export function loopLabel(loop: LoopStatus): string {
   if (loop === "track") return "Repeat one"
   if (loop === "playlist") return "Repeat all"

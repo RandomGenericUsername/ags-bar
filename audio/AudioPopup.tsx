@@ -1,6 +1,7 @@
 import { Gtk, Gdk } from "ags/gtk4"
+import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
-import { Accessor, For, With, createComputed, createEffect } from "ags"
+import { Accessor, For, With, createComputed, createEffect, onCleanup } from "ags"
 import { close, popupVisible, audioIconX } from "./ui-state"
 import { levelVariant } from "./presentation/levels"
 import type {
@@ -16,6 +17,7 @@ import {
   LevelControl,
   SeekLine,
   TransportRow,
+  TrackArtwork,
   asPercent,
   icon,
   openChoicePopover,
@@ -175,7 +177,6 @@ function OutputHero({ binding }: { binding: AudioPanelBinding }) {
           onChange={(value) => { const id = output()?.id; if (id) binding.actions.setOutputVolume(id, value) }}
         />
       </box>
-      <label class="audio-hero-note" xalign={0} label="Muted — the level is kept." visible={muted} />
     </box>
   )
 }
@@ -259,7 +260,6 @@ function PlayingPage({ row, index, total, binding }: {
   return (
     <box class="audio-playing-page" orientation={VERTICAL} spacing={6}>
       <box class="audio-playing-head" spacing={8}>
-        <AppTile row={row} size={28} />
         <box class="audio-playing-meta" spacing={6} hexpand>
           <label class="audio-app-name" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => row().appName)} />
           <label class="audio-live-badge" label="Live" visible={createComputed(() => !canSeek())} />
@@ -268,7 +268,7 @@ function PlayingPage({ row, index, total, binding }: {
       </box>
 
       <box class="audio-player-strip" spacing={8}>
-        <AppTile row={row} size={40} className="audio-artwork" />
+        <TrackArtwork row={row} size={40} className="audio-artwork" />
         <box class="audio-track" orientation={VERTICAL} spacing={1} hexpand>
           <label class="audio-track-title" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
           <label class="audio-track-artist" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => artist() || "Media details unavailable")} />
@@ -366,7 +366,6 @@ function MixerRow({ row, binding }: { row: Accessor<AudioAppRowView>; binding: A
     mixedMuted: row().mixedMuted,
   }))
   const appPresent = createComputed(() => row().hasCurrentStream || row().hasCurrentPlayer)
-  const playerId = createComputed(() => row().hasCurrentPlayer && row().playerId ? row().playerId : null)
   const playing = createComputed(() => row().playback === "playing")
   const sub = createComputed(() => {
     const item = row()
@@ -423,16 +422,6 @@ function MixerRow({ row, binding }: { row: Accessor<AudioAppRowView>; binding: A
         >
           <label class="audio-route-label" ellipsize={Pango.EllipsizeMode.END} label={routeShort} />
         </button>
-        <IconButton
-          name={createComputed(() => `${playing() ? "Pause" : "Play"} ${row().appName}`)}
-          tooltip={createComputed(() => (playing() ? "Pause" : "Play"))}
-          imagePath={createComputed(() => icon("media-transport-panel", playing() ? "pause" : "play"))}
-          visible={createComputed(() => playerId() !== null && row().capabilities.canPlayPause)}
-          onClicked={() => { const id = playerId(); if (id) binding.actions.playerAction(id, "play-pause") }}
-          active={playing}
-          pixelSize={26}
-          className="audio-icon-button audio-mixer-play"
-        />
       </box>
 
       <box class="audio-mixer-controls" spacing={6}>
@@ -645,11 +634,12 @@ function SettingsGearButton() {
       onClicked={(self: Gtk.Button) => openSettingsPopover(self)}
       $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, "Sound settings"))}
     >
-      <image pixel_size={18} $={(self: Gtk.Image) => setImageOnce(self, icon("settings", "default"))} />
+      {/* The icon artifact's settings variant is a sliders glyph; the mock's
+          header is a gear, so this is the one text glyph in the header. */}
+      <label class="audio-glyph audio-gear-glyph" label="⚙" />
     </button>
   )
 }
-
 // ---------------------------------------------------------------------------
 // Panel composition.
 // ---------------------------------------------------------------------------
@@ -666,16 +656,56 @@ function AudioFoot() {
 /** Compact presentation surface. Actions and the read model are supplied by the composition root. */
 export function AudioPanelContent({
   binding,
-  maxScrollHeight = 360,
+  maxScrollHeight = 800,
 }: {
   binding: AudioPanelBinding
-  /** The deck scroller is fixed-height (the old drawer's measured lesson), clamped to the monitor. */
+  /** Upper bound for the deck scroller; the panel itself is content-sized. */
   maxScrollHeight?: number
 }) {
   const model = createComputed(() => binding.model())
   createEffect(() => reconcilePlaying(model()))
-  const scrollHeight = createComputed(() =>
-    Math.min(maxScrollHeight, deckMode() === "mixer" ? 500 : 340))
+
+  let scroller: Gtk.ScrolledWindow | null = null
+  let body: Gtk.Widget | null = null
+  /**
+   * Size the scroller to the deck/input content and cap it. A fixed height
+   * (280/340/500) left dead space under short content; `propagate-natural-
+   * height` collapsed to the minimum on this widget tree. Measuring the body
+   * at the panel width and setting an explicit request is the stable middle.
+   */
+  const fit = (): void => {
+    if (scroller === null || body === null) return
+    const width = Math.max(220, body.get_width() || 320)
+    const measured = body.measure(Gtk.Orientation.VERTICAL, width)
+    const target = Math.max(60, Math.min(maxScrollHeight, measured[1]))
+    if (Math.abs(scroller.height_request - target) > 1) scroller.height_request = target
+  }
+  const scheduleFit = (): void => {
+    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => { fit(); return false })
+  }
+  createEffect(() => {
+    // Re-fit when the deck mode, input disclosure or row set changes.
+    model()
+    deckMode()
+    inputOpen()
+    scheduleFit()
+  })
+
+  // MPRIS Position is not an event: poll it only while this body is mounted
+  // (the panel is visible), for the page the carousel is showing. Dragging is
+  // protected by SeekLine's own `seeking` guard.
+  const poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+    const state = binding.model()
+    const active = state.playingRows.find((row) => row.id === playingId()) ?? state.playingRows[0]
+    if (active?.playerId && active.playback === "playing") {
+      binding.actions.refreshPosition(active.playerId)
+    }
+    return true
+  })
+  onCleanup(() => {
+    if (poll !== 0) GLib.source_remove(poll)
+  })
+
   return (
     <box class="audio-panel" orientation={VERTICAL} spacing={0}>
       <OutputHero binding={binding} />
@@ -683,9 +713,9 @@ export function AudioPanelContent({
         class="audio-scroll"
         hscrollbarPolicy={Gtk.PolicyType.NEVER}
         vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
-        heightRequest={scrollHeight}
+        $={(self: Gtk.ScrolledWindow) => { scroller = self; scheduleFit() }}
       >
-        <box class="audio-scroll-body" orientation={VERTICAL}>
+        <box class="audio-scroll-body" orientation={VERTICAL} $={(self: Gtk.Widget) => { body = self; scheduleFit() }}>
           <box class="audio-deck" orientation={VERTICAL}>
             <DeckTabs model={model} />
             <PlayingDeck binding={binding} />

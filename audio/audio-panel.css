@@ -40,6 +40,10 @@ window.tray-popup {
    child (`.audio-settings`); the menu contents node is painted by the template. */
 popover.audio-settings-popover,
 popover.audio-menu {
+  /* The popover node is chrome, not a surface: the skin paints exactly one
+     inner surface (`.audio-settings` or the menu contents) and no outer frame. */
+  padding: 0;
+  border: none;
   background-color: transparent;
   box-shadow: none;
 }
@@ -88,6 +92,7 @@ popover.audio-settings-popover > contents {
 
 .audio-muted-pill {
   min-height: 20px;
+  padding: 0 8px;
 }
 
 .audio-hero-actions {
@@ -108,6 +113,12 @@ popover.audio-settings-popover > contents {
 .audio-glyph {
   font-size: 15px;
   font-weight: 600;
+}
+
+/* The mock header's gear. The icon artifact's settings variant is a sliders
+   glyph, so the gear is a text glyph like the shuffle/repeat controls. */
+.audio-gear-glyph {
+  font-size: 17px;
 }
 
 .audio-device {
@@ -137,10 +148,6 @@ popover.audio-settings-popover > contents {
 
 .audio-big-unit {
   margin-left: 1px;
-}
-
-.audio-hero-note {
-  margin-top: 6px;
 }
 
 /* ── sliders (shared level + seek vocabulary) ───────────────────────────── */
@@ -414,11 +421,6 @@ popover.audio-settings-popover > contents {
 
 .audio-route-label {
   min-width: 0;
-}
-
-.audio-mixer-play {
-  min-width: 30px;
-  min-height: 30px;
 }
 
 .audio-mixer-controls {
