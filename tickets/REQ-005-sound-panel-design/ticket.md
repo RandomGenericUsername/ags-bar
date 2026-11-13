@@ -859,3 +859,15 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - The app row carries `playerId`/`playerIds`; the debug dump now exposes them.
   `hasCurrentPlayer => playerId` has a regression test.
 - Progress/paused behavior from v0.6.20 is unchanged; no skin retune.
+
+### Round 10 live evidence (stream identity/join)
+
+- Bar `v0.6.21` / assets `v0.21.3` / engine `v0.1.82` / composition `v0.1.90`;
+  platform `v1.2.0`.
+- Live Chrome app row kept two stream IDs (`pipewire:80:143927`,
+  `pipewire:95:150527`) and a non-null `playerId`
+  (`org.mpris.MediaPlayer2.chromium.instance6837#1`); Mixer rendered two
+  Chrome stream rows. Tidal remained separate.
+- Progress with two streams: 1:13 -> 1:28; paused 0:20 held.
+- The second live Chrome sink-input came from a local Chrome probe page/process;
+  same-PID node identity is unit-tested. No per-tab stream is invented.
