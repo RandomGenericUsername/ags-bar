@@ -33,3 +33,9 @@ Live still had a native Tidal + native-style duplicate (the Electron/Chromium
 transport was already suppressed). Tidal now collapses to one canonical current
 page across all Tidal transports: prefer native, then non-ended current media.
 Chrome remains multi-tab/per-player.
+
+## Selected-page stability
+
+The selected app id is retained alongside the player id. If a canonical Tidal
+player id changes after a transport action, the page remains on Tidal instead
+of reverting to the first page. Carousel and tray selections record the app id.

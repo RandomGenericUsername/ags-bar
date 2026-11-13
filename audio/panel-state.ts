@@ -21,6 +21,8 @@ export type AudioDeckMode = "playing" | "mixer"
 
 const [deckMode, setDeckMode] = createState<AudioDeckMode>("playing")
 const [playingId, setPlayingIdRaw] = createState<string | null>(null)
+/** Last selected app, used to keep the page stable if its player id changes. */
+const [playingAppId, setPlayingAppId] = createState<string | null>(null)
 const [mixerFocusId, setMixerFocusId] = createState<string | null>(null)
 const [inputOpen, setInputOpen] = createState(false)
 const [settingsOpen, setSettingsOpen] = createState(false)
@@ -76,8 +78,9 @@ export function chooseDeckMode(mode: AudioDeckMode): void {
 }
 
 /** Select a Playing page; keeps the mode as-is (a page switch is not a mode switch). */
-export function selectPlaying(id: string): void {
+export function selectPlaying(id: string, appId?: string): void {
   setPlayingIdRaw(id)
+  if (appId) setPlayingAppId(appId)
 }
 
 /** The read-only level control in Playing switches to Mixer focused on that app. */
@@ -91,8 +94,22 @@ export function openMixerFor(appId: string): void {
 export function reconcilePlaying(model: AudioPanelViewModel): void {
   const pages = model.playingRows
   const current = playingId()
-  if (current !== null && pages.some((row) => row.id === current)) return
+  const currentPage = current === null ? undefined : pages.find((row) => row.id === current)
+  if (currentPage !== undefined) {
+    if (playingAppId() !== currentPage.appId) setPlayingAppId(currentPage.appId)
+    return
+  }
+  // A canonical Tidal player can change id when native/mirror ownership or
+  // transport role changes. Keep the user on the same app/page instead of
+  // reverting to the first page just because the player id changed.
+  const selectedApp = playingAppId()
+  const replacement = selectedApp === null ? undefined : pages.find((row) => row.appId === selectedApp)
+  if (replacement !== undefined) {
+    setPlayingIdRaw(replacement.id)
+    return
+  }
   setPlayingIdRaw(pages[0]?.id ?? null)
+  setPlayingAppId(pages[0]?.appId ?? null)
 }
 
 /** Move the selected page by one, wrapping; returns the new index+1/length. */
@@ -102,6 +119,7 @@ export function cyclePlaying(model: AudioPanelViewModel, delta: number): void {
   const current = Math.max(0, pages.findIndex((row) => row.id === playingId()))
   const next = (current + delta + pages.length) % pages.length
   setPlayingIdRaw(pages[next].id)
+  setPlayingAppId(pages[next].appId)
 }
 
 export function toggleInputOpen(): void {

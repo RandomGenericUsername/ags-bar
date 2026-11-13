@@ -1,3 +1,12 @@
+## v0.6.24 — 2026-11-13
+
+- Preserve the selected app/page when a canonical Tidal player id changes;
+  page switching and transport no longer revert to the first page after a
+  model update.
+- Collapse all Tidal transports to one canonical current page (native first,
+  non-ended current media preferred); Chrome remains multi-tab/per-player.
+- Bar-only deploy of v0.6.24; no assets/platform/engine/composition tag change.
+
 ## v0.6.23 — 2026-11-13
 
 - Collapse Tidal to one canonical current player/page even when more than one

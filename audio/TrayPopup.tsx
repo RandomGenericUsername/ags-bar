@@ -40,7 +40,7 @@ function PlayerRow({ row, active }: { row: Accessor<AudioAppRowView>; active: Ac
     <button
       class={createComputed(() => `audio-tray-player${active() ? " active" : ""}`)}
       canFocus
-      onClicked={() => selectPlaying(row().id)}
+      onClicked={() => selectPlaying(row().id, row().appId)}
       $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self,
         `${name()}${row().playerIdentity ? ` · ${row().playerIdentity}` : ""}${active() ? ", selected" : ""}`))}
     >

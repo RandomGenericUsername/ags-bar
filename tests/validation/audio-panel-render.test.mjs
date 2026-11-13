@@ -416,6 +416,15 @@ check("the Playing page is keyed by a stable id and fit is not remeasured every 
   assert.match(popupSrc, /if \(signature === lastFitSignature\) return/, "fit still runs on every model tick");
 });
 
+check("Playing selection survives a canonical player id change", () => {
+  const state = read(join(AUDIO, "panel-state.ts"));
+  assert.match(state, /playingAppId/, "no selected-app fallback for page identity");
+  assert.match(state, /pages\.find\(\(row\) => row\.appId === selectedApp\)/, "selected app is not preserved");
+  assert.match(read(join(AUDIO, "TrayPopup.tsx")), /selectPlaying\(row\(\)\.id, row\(\)\.appId\)/,
+    "tray selection does not record app identity");
+  assert.match(state, /setPlayingAppId\(pages\[next\]\.appId\)/, "carousel switch does not record app identity");
+});
+
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const popover = css.slice(css.indexOf("popover.audio-settings-popover"));
