@@ -136,7 +136,7 @@ function OutputHero({ binding }: { binding: AudioPanelBinding }) {
     <box class={createComputed(() => `audio-hero${muted() ? " is-output-muted" : ""}`)} orientation={VERTICAL}>
       <box class="audio-hero-top">
         <box class="audio-caption-row" spacing={8} hexpand>
-          <label class="audio-caption" label="Output" />
+          <label class="audio-section-label" xalign={0} label="Output" />
           <label class="audio-muted-pill" label="Muted" visible={muted} />
         </box>
         <box class="audio-hero-actions" spacing={2}>
@@ -509,7 +509,7 @@ function InputSection({ binding }: { binding: AudioPanelBinding }) {
         $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, `Input, ${summary()}`))}
       >
         <box class="audio-section-head-row" spacing={8}>
-          <label class="audio-section-title" label="Input" />
+          <label class="audio-section-label" xalign={0} label="Input" />
           <box class="audio-live-dot" valign={Gtk.Align.CENTER} visible={createComputed(() => available() && consumers().length > 0)} />
           <label class="audio-section-summary" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END} label={summary} />
           <label class="audio-section-chevron" label={createComputed(() => (inputOpen() ? "▴" : "▾"))} />
@@ -591,6 +591,8 @@ export function SettingsContent() {
         </box>
         <switch
           class="audio-switch"
+          widthRequest={42}
+          heightRequest={24}
           valign={Gtk.Align.CENTER}
           active={mediaWidgetEnabled}
           onNotifyActive={(self: Gtk.Switch) => {
@@ -600,7 +602,6 @@ export function SettingsContent() {
           }}
         />
       </box>
-      <label class="audio-settings-foot" xalign={0} label="Changes save immediately." />
     </box>
   )
 }
@@ -646,14 +647,6 @@ function SettingsGearButton() {
 // Panel composition.
 // ---------------------------------------------------------------------------
 
-function AudioFoot() {
-  return (
-    <box class="audio-foot">
-      <label class="audio-foot-note" xalign={0} hexpand label="Changes apply immediately." />
-      <label class="audio-foot-hint" label="Esc closes" />
-    </box>
-  )
-}
 
 /** Compact presentation surface. Actions and the read model are supplied by the composition root. */
 /** Last layout measurements, exposed through `ags request audio-panel-debug`. */
@@ -757,7 +750,6 @@ export function AudioPanelContent({
           <InputSection binding={binding} />
         </box>
       </scrolledwindow>
-      <AudioFoot />
     </box>
   )
 }

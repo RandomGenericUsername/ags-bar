@@ -1,3 +1,14 @@
+## v0.6.16 — 2026-11-12
+
+- Remove the panel footer (`Changes apply immediately.`, `Esc closes`) and
+  the settings footer (`Changes save immediately.`); the element and skin
+  selectors are gone, and the panel/settings content collapses cleanly.
+- Output and Input share `.audio-section-label` (same size, weight, ink,
+  casing, start alignment).
+- The settings switch is fixed to the existing compact 42x24 track / 20px
+  knob; the skin pill paint cannot inflate it.
+- Assets v0.21.2 supplies the shared label and footer-selector cleanup.
+
 ## v0.6.15 — 2026-11-12
 
 - Shuffle-off resolves the assets v0.21.1 50%-opacity art; shuffle-active stays

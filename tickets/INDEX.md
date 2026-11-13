@@ -46,3 +46,4 @@
 - [REQ-011-sound-panel-qa/ticket.md](./REQ-011-sound-panel-qa/ticket.md) — Sound panel QA: single settings surface, mock header, no Mixer playback, thumbnails, position poll, content height, bare icons | `in-progress` | worktree: .worktrees/REQ-011/ | branch: ticket/REQ-011-sound-panel-qa
 - [REQ-012-sound-panel-radius/ticket.md](./REQ-012-sound-panel-radius/ticket.md) — Muted big value + spawned settings/tray outer radius; host-radius verification | `in-progress` | worktree: .worktrees/REQ-012/ | branch: ticket/REQ-012-sound-panel-radius
 - [REQ-013-sound-round2/ticket.md](./REQ-013-sound-round2/ticket.md) — Sound panel round 2: input fit, owner icons, strip, tray | `done` | worktree: .worktrees/REQ-013/ | branch: ticket/REQ-013-sound-round2
+- [REQ-014-sound-round3/ticket.md](./REQ-014-sound-round3/ticket.md) — Sound round three: footer copy, shared labels, compact switch | `in-progress` | worktree: .worktrees/REQ-014/ | branch: ticket/REQ-014-sound-round3

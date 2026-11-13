@@ -283,11 +283,34 @@ check("the persistent hero is outside the scroll area and the deck is complete",
   const hero = src.indexOf("audio-hero");
   const scroll = src.indexOf("<scrolledwindow");
   assert.ok(hero >= 0 && scroll > hero, "the Output hero must precede (and live outside) the scroller");
-  for (const marker of ['label="Playing"', 'label="Mixer"', 'audio-input-section', 'class="audio-foot"']) {
+  for (const marker of ['label="Playing"', 'label="Mixer"', 'audio-input-section']) {
     assert.ok(src.includes(marker), `the sound surface is missing ${marker}`);
   }
   assert.ok(src.includes("audio-playing-level"), "the read-only Playing level -> Mixer bridge is missing");
   assert.ok(src.includes("openMixerFor"), "the Playing level does not open Mixer on its app");
+});
+
+check("footer copy is gone and Output/Input share one label style", () => {
+  for (const dead of ["Changes apply immediately.", "Esc closes", "Changes save immediately.", "AudioFoot"]) {
+    assert.ok(!popupSrc.includes(dead), `removed footer copy remains: ${dead}`);
+  }
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  assert.ok(!css.includes(".audio-foot"), "the panel footer rule remains");
+  assert.ok(!css.includes(".audio-settings-foot"), "the settings footer rule remains");
+  assert.equal((popupSrc.match(/class="audio-section-label"/g) ?? []).length, 2,
+    "Output and Input must share the audio-section-label class");
+  assert.ok(!popupSrc.includes('class="audio-caption"'), "Output still uses the caption class");
+  assert.ok(!popupSrc.includes('class="audio-section-title"'), "Input still uses a different title class");
+});
+
+check("the settings switch is constrained to the 42x24 compact size", () => {
+  assert.match(popupSrc, /widthRequest=\{42\}/, "the switch has no 42px width request");
+  assert.match(popupSrc, /heightRequest=\{24\}/, "the switch has no 24px height request");
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  const rule = css.slice(css.indexOf(".audio-switch {"), css.indexOf(".audio-switch {") + 500);
+  assert.match(rule, /max-width:\s*42px/, "the switch max width is not 42px");
+  assert.match(rule, /max-height:\s*24px/, "the switch max height is not 24px");
+  assert.match(rule, /padding:\s*0/, "the switch keeps skin padding");
 });
 
 check("shuffle/loop controls are capability-gated and dispatched", () => {

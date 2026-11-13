@@ -377,8 +377,8 @@ kbd {
 .switch {
   position: relative;
   flex: 0 0 auto;
-  width: 38px;
-  height: 22px;
+  width: 42px;
+  height: 24px;
   padding: 0;
   border-radius: var(--r-pill);
   background: rgba(255, 255, 255, .14);
@@ -389,8 +389,8 @@ kbd {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #fbfafc;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
@@ -401,18 +401,10 @@ kbd {
   border-color: transparent;
 }
 .switch[aria-checked="true"] .switch-knob {
-  transform: translateX(16px);
+  transform: translateX(18px);
   background: var(--on-accent);
 }
 .switch:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.settings-foot {
-  margin-top: 10px;
-  padding-top: 9px;
-  border-top: 1px solid var(--hairline-soft);
-  font-size: 10.5px;
-  color: var(--ink-faint);
-}
-
 /* Brief scroll cue, below the bar; never affects bar height. */
 .tray-cue {
   position: fixed;
@@ -714,10 +706,11 @@ body.is-closed .audio-pop {
   min-width: 0;
 }
 
-.caption {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--ink-dim);
+.section-label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+  text-align: left;
 }
 
 .muted-pill {
@@ -901,11 +894,12 @@ body.is-closed .audio-pop {
 .section-head.static { min-height: 40px; cursor: default; }
 .section-head.static:hover { background: transparent; }
 
-.section-title {
+.section-label {
   flex: 0 0 auto;
   font-size: 13px;
   font-weight: 650;
   color: var(--ink);
+  text-align: left;
 }
 .section-count {
   flex: 0 0 auto;
@@ -1489,22 +1483,6 @@ body.is-closed .audio-pop {
 
 /* ── footer ──────────────────────────────────────────────────── */
 
-.foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px 12px;
-  font-size: 10.5px;
-  color: var(--ink-faint);
-}
-.foot .hint {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-}
-
 /* ── menu (device / route pickers) ───────────────────────────── */
 
 .menu {
@@ -1696,7 +1674,7 @@ body.is-closed .audio-pop {
   <section class="hero" aria-labelledby="outputCaption">
     <div class="hero-top">
       <div class="caption-row">
-        <span class="caption" id="outputCaption">Output</span>
+        <span class="section-label" id="outputCaption">Output</span>
         <span class="muted-pill" id="mutedPill" hidden>Muted</span>
       </div>
       <div class="hero-actions">
@@ -1783,7 +1761,7 @@ body.is-closed .audio-pop {
     <!-- INPUT -->
     <section class="section">
       <button class="section-head" id="inputHead" aria-expanded="false" aria-controls="inputBody">
-        <span class="section-title">Input</span>
+        <span class="section-label">Input</span>
         <span class="live-dot" id="inputDot" hidden></span>
         <span class="section-summary" id="inputSummary">AT2020 USB</span>
         <span class="chev" aria-hidden="true">
@@ -1829,11 +1807,6 @@ body.is-closed .audio-pop {
       </div>
     </section>
 
-    <div class="foot">
-      <span>Changes apply immediately.</span>
-      <span class="hint"><kbd>Esc</kbd> closes</span>
-    </div>
-
   </div>
 </main>
 
@@ -1851,7 +1824,6 @@ body.is-closed .audio-pop {
       <span class="switch-knob"></span>
     </button>
   </div>
-  <div class="settings-foot">Changes save immediately.</div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

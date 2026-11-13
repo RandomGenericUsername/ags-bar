@@ -89,8 +89,7 @@ battery icons, with two quiet placeholder tray dots:
 **Settings (bar media widget).** A gear in the Output header, next to mute,
 opens a compact 280 px popover (glass, radius 14, hairline, shadow) anchored
 below the gear. The row is `Bar media widget` with an on/off switch and the
-helper `Show the now-playing strip in the top bar.`; footer
-`Changes save immediately.` Default is **on**.
+helper `Show the now-playing strip in the top bar.` Default is **on**.
 - Turning it off hides the bar strip immediately, closes an open tray dropdown,
   and leaves the volume icon as the panel entry point. Turning it on restores the
   strip only if a player exists; the setting is independent of player state.
@@ -195,9 +194,9 @@ Design deliverable:
       exclusive; `?tray=1` opens with the panel closed; Esc closes tray first,
       then panel; outside click closes tray.
 - [x] The Output gear opens a 280 px settings popover with a live
-      `Bar media widget` switch, helper and save-immediately footer. Default is
-      on; off hides the strip and closes the tray; on restores only with a
-      player; the setting remains independent of player state.
+      `Bar media widget` switch and helper. Default is on; off hides the strip
+      and closes the tray; on restores only with a player; the setting remains
+      independent of player state.
 - [x] The setting persists in `localStorage` for the mock and in the real
       app-owned `$XDG_CONFIG_HOME/ags-bar/config.json` shape; it is not the AGS
       install link or `bar.json`, applies live, and follows the capture-tool
@@ -234,7 +233,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `7628aae213291d71601e48954f4fa300ec30cd81a6e434a6c3bf2b9cd3542abf`
+  `b4a731c39eba08c1e3c75d6283fa27f1f3f1d788c6c349daf7a126d7050310c3`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -295,14 +294,14 @@ the skin:
    once a second for the selected playing page, updating the seek line and
    time; dragging still suppresses the update and seeks on commit.
 7. **No dead bottom.** The deck body is measured and the scroller is sized to
-   its content (capped); the panel ends under the footer.
+   its content (capped); the panel ends after its content.
 8. **Bare icon-only controls.** The assets template gives gear/mute/transport/
    carousel/level buttons transparent fill/border; only hover/active state
    paints. Device/route fields, sliders and the switch keep the role paint.
 
 Mock: the head app tile is removed, the 40 px art carries a small app badge,
 the muted note and Mixer play buttons are removed. New hash
-`7628aae213291d71601e48954f4fa300ec30cd81a6e434a6c3bf2b9cd3542abf`.
+`b4a731c39eba08c1e3c75d6283fa27f1f3f1d788c6c349daf7a126d7050310c3`.
 
 ## Implementation evidence (2026-11-11)
 
@@ -713,7 +712,7 @@ when it lands.
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 - Customization-layer pass (2026-11-11): `sha256sum mock.html` =
-  `7628aae213291d71601e48954f4fa300ec30cd81a6e434a6c3bf2b9cd3542abf`
+  `b4a731c39eba08c1e3c75d6283fa27f1f3f1d788c6c349daf7a126d7050310c3`
   (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
   default and Mixer states with the normalized radii
   (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,
@@ -761,7 +760,7 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   `settings-panel.settings` and the platform v1.2.0 `icons.json`; the panel,
   tray and strip resolve registry images; text glyphs are gone.
 - Strip thumbnail is 32 px with no tile fill; tray transport is centered and
-  36/18 px. Mock updated to match; new mock hash `7628aae2…`.
+  36/18 px. Mock updated to match; new mock hash `b4a731c3…`.
 
 ### QA round 4 (2026-11-12)
 
@@ -771,6 +770,16 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   platform `icons.json` v1.2.0; owner shapes, active/inactive roles; text
   glyphs removed. Tidal shows shuffle/repeat; Chrome/video hides them.
 - Strip 32 px transparent thumbnail, no tile fill, title uses width; tray
-  transport centered 36/18. Mock hash `7628aae2…`.
+  transport centered 36/18. Mock hash `b4a731c3…`.
 - Final tags bar v0.6.14, assets v0.21.0, platform v1.2.0, engine v0.1.75,
   composition v0.1.83; live verify 337.
+
+### QA round 6 (2026-11-12)
+
+- Removed the panel and settings footer copy and their dead selectors; the
+  panel ends after content with no extra strip.
+- Output/Input now use the single `.audio-section-label` style (title size,
+  ink, start alignment); casing is unchanged.
+- Settings switch is fixed at 42x24 with a 20px knob; verified under
+  terminal-host and glass.
+- Mock hash `b4a731c3…`; assets v0.21.2.
