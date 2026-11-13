@@ -827,3 +827,17 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   with stream name, route, mute and level; one-stream browsers state that
   per-tab split is unavailable. App-level controls remain.
 - Mock hash `1abcb074…`; verify the per-stream Mixer at `?mode=mixer`.
+
+### Round 5 live evidence (2026-11-13)
+
+- Installed bar `v0.6.19` / assets `v0.21.3` / engine `v0.1.80` /
+  composition `v0.1.88`; platform `v1.2.0`; runtime `1.5.3`.
+- The live session had only a stopped Chrome MPRIS player: no Playing page or
+  Players row was offered; the panel opened Mixer with the Chrome app row.
+- Glass showed one Chrome PipeWire stream with the honest
+  `One PipeWire stream · per-tab split unavailable` note; no invented per-tab
+  metadata. Restored to terminal-host.
+- Mock verifies one canonical Tidal page and per-stream Chrome rows; unit
+  tests cover Tidal mirror dedupe and stopped/no-media filtering.
+- No skin retune; no CSS max errors; no `surface.window` selector.
+- Mock hash `1abcb074…`.
