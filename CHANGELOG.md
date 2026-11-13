@@ -1,3 +1,14 @@
+## v0.6.20 — 2026-11-13
+
+- Fix live seek progress: the visible panel refreshes the active seekable page
+  even when the projected playback flag is stale, so the adapter's
+  `player-changed` event reaches runtime players, the projection and
+  `playingRows`.
+- `SeekLine` now interpolates its displayed position at 250 ms while actually
+  playing and resets from each authoritative poll; paused pages stay static and
+  dragging retains the `seeking` guard.
+- Add runtime/model and pure interpolation regression tests.
+
 ## v0.6.19 — 2026-11-13
 
 - Dedupe Playing pages/Players rows by app + media track identity; native

@@ -827,3 +827,13 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   with stream name, route, mute and level; one-stream browsers state that
   per-tab split is unavailable. App-level controls remain.
 - Mock hash `1abcb074…`; verify the per-stream Mixer at `?mode=mixer`.
+
+### QA round 9 (progress fix)
+
+- The visible panel refreshes the active seekable page regardless of a stale
+  projected playback flag; the runtime/model/`playingRows` path is pinned by
+  `audio-progress.test.mjs`.
+- `SeekLine` advances locally at 250 ms while playing, holds while paused, and
+  resets from each authoritative poll; the drag/commit guard is unchanged.
+- Timed live captures without play/pause interaction are recorded in the
+  REQ-017 evidence.
