@@ -286,6 +286,7 @@ function PlayingPage({ row, index, total, binding }: {
         visible={canSeek}
         positionUs={createComputed(() => row().positionUs)}
         durationUs={createComputed(() => row().durationUs)}
+        playing={createComputed(() => row().playback === "playing")}
         title={title}
         onCommit={(positionUs) => { const id = row().playerId; if (id) binding.actions.seek(id, positionUs) }}
       />
@@ -835,7 +836,10 @@ export function AudioPanelContent({
   const poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
     const state = binding.model()
     const active = state.playingRows.find((row) => row.id === playingId()) ?? state.playingRows[0]
-    if (active?.playerId && active.playback === "playing") {
+    // Refresh the visible page even when the last projected playback flag is
+    // paused/stale: a paused MPRIS player returns a static Position, while a
+    // player whose PlaybackStatus event was missed still advances the model.
+    if (active?.playerId && active.canSeek) {
       binding.actions.refreshPosition(active.playerId)
     }
     return true

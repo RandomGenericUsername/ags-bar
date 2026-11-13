@@ -391,6 +391,23 @@ check("Mixer adds per-stream rows without dropping app controls", () => {
   assert.match(read(join(AUDIO, "application/audio-actions.ts")), /setStreamVolume/, "no per-stream action");
 });
 
+check("the visible progress poll is not gated on a stale playback flag and SeekLine ticks", () => {
+  assert.match(popupSrc, /const active = state\.playingRows/, "the poll does not find the visible page");
+  assert.match(popupSrc, /active\.canSeek/, "the poll does not refresh the seekable page");
+  assert.ok(!/active\.playback === "playing"\s*\)\s*\{\s*binding\.actions\.refreshPosition/.test(popupSrc),
+    "the poll still skips refresh when the page's playback flag is stale");
+  const controls = read(join(AUDIO, "ui/controls.tsx"));
+  assert.match(controls, /nextDisplayPosition/, "SeekLine has no local progress interpolation");
+  assert.match(controls, /GLib\.timeout_add\(GLib\.PRIORITY_DEFAULT, 250/, "SeekLine has no 250ms tick");
+  assert.match(controls, /if \(!seeking && playing\(\)\)/, "SeekLine ticks while paused or seeking");
+  assert.match(controls, /playing\?: Accessor<boolean>/, "SeekLine has no playing input");
+  assert.match(popupSrc, /playing=\{createComputed\(\(\) => row\(\)\.playback === "playing"\)\}/,
+    "PlayingPage does not pass playing to SeekLine");
+  const tray = read(join(AUDIO, "TrayPopup.tsx"));
+  assert.match(tray, /playing=\{createComputed\(\(\) => active\(\)\?\.playback === "playing"\)\}/,
+    "tray does not pass playing to SeekLine");
+});
+
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const popover = css.slice(css.indexOf("popover.audio-settings-popover"));
