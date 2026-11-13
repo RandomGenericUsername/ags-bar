@@ -408,6 +408,18 @@ check("the visible progress poll is not gated on a stale playback flag and SeekL
     "tray does not pass playing to SeekLine");
 });
 
+check("app rows expose the MPRIS player join and stream projection keeps nodes", () => {
+  const app = read(join(AGS, "app.tsx"));
+  assert.match(app, /playerId: r\.playerId/, "debug dump omits the row playerId");
+  assert.match(app, /playerIds: r\.playerIds/, "debug dump omits playerIds");
+  const model = read(join(AUDIO, "presentation/audio-panel-view-model.ts"));
+  assert.match(model, /playerId: player\?\.id \?\? null/, "app row playerId is not joined");
+  assert.match(model, /streams: streams\.map/, "app row stream projection is missing");
+  const pipewire = read(join(AUDIO, "adapters/pipewire/project-pipewire-session.ts"));
+  assert.match(pipewire, /seenStreamNodes/, "graph-only stream union is missing");
+  assert.match(pipewire, /input\.graph\.streamProperties/, "graph stream nodes are not considered");
+});
+
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const popover = css.slice(css.indexOf("popover.audio-settings-popover"));
