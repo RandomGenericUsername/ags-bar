@@ -233,7 +233,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  0ef38c46ff81e9fb4a8c6bd166f99046cb465295b741b11525348ecd52cb10b7
+  `0ef38c46ff81e9fb4a8c6bd166f99046cb465295b741b11525348ecd52cb10b7`
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -301,7 +301,7 @@ the skin:
 
 Mock: the head app tile is removed, the 40 px art carries a small app badge,
 the muted note and Mixer play buttons are removed. New hash
-0ef38c46ff81e9fb4a8c6bd166f99046cb465295b741b11525348ecd52cb10b7.
+`b4a731c39eba08c1e3c75d6283fa27f1f3f1d788c6c349daf7a126d7050310c3`.
 
 ## Implementation evidence (2026-11-11)
 
@@ -712,7 +712,7 @@ when it lands.
   `widget-hidden.png` (strip hidden), and `widget-restored.png` (strip back).
 - `mock.html` was checked for external URLs and `url(...)`: none.
 - Customization-layer pass (2026-11-11): `sha256sum mock.html` =
-  0ef38c46ff81e9fb4a8c6bd166f99046cb465295b741b11525348ecd52cb10b7
+  `b4a731c39eba08c1e3c75d6283fa27f1f3f1d788c6c349daf7a126d7050310c3`
   (`mock.sha256` matches), and headless Chrome at 1600×1000 rendered the
   default and Mixer states with the normalized radii
   (`/tmp/opencode/req005/paper-default.png`, `paper-mixer.png`). No layout,
@@ -760,7 +760,7 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   `settings-panel.settings` and the platform v1.2.0 `icons.json`; the panel,
   tray and strip resolve registry images; text glyphs are gone.
 - Strip thumbnail is 32 px with no tile fill; tray transport is centered and
-  36/18 px. Mock updated to match; new mock hash `0ef38c46…`.
+  36/18 px. Mock updated to match; new mock hash `b4a731c3…`.
 
 ### QA round 4 (2026-11-12)
 
@@ -770,7 +770,7 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   platform `icons.json` v1.2.0; owner shapes, active/inactive roles; text
   glyphs removed. Tidal shows shuffle/repeat; Chrome/video hides them.
 - Strip 32 px transparent thumbnail, no tile fill, title uses width; tray
-  transport centered 36/18. Mock hash `0ef38c46…`.
+  transport centered 36/18. Mock hash `b4a731c3…`.
 - Final tags bar v0.6.14, assets v0.21.0, platform v1.2.0, engine v0.1.75,
   composition v0.1.83; live verify 337.
 
@@ -806,3 +806,14 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   and two Chrome sessions are independent pages/rows. Mixer stays app-level.
 - Mock hash `0ef38c46…`; assets v0.21.3; final bar/engine/composition tags in
   the release report.
+
+### Round 4 live evidence (2026-11-12)
+
+- Final installed tags: bar `v0.6.18`, assets `v0.21.3`, engine `v0.1.79`,
+  composition `v0.1.87`; platform `v1.2.0`.
+- Live Playing page 4/4 `Tidal` / `tidal-hifi`; tray Players: Firefox, Google
+  Chrome, Tidal `Tidal Hi-Fi`, Tidal `tidal-hifi`.
+- Bare artwork: Playing 40, tray 36, Players 22, strip 32; no artwork skin
+  container/border/background. Terminal-host and glass verified; skin restored.
+- No CSS max-width/height errors; no `surface.window` selector.
+- Mock hash `0ef38c46…`.

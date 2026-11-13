@@ -2,7 +2,7 @@
 id: REQ-015
 title: "Sound panel round 4: bare artwork, MPRIS identity, per-player pages"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
@@ -25,3 +25,26 @@ branch: ticket/REQ-015-sound-round4
    with audio but no MPRIS session gets no Playing page.
 4. Mock/ticket/hash, gates, releases, live verification under terminal-host and
    one other skin. No skin retune; no `surface.window`.
+
+
+## Live verification (2026-11-12)
+
+- Final tags installed: bar `v0.6.18`, assets `v0.21.3`, platform
+  `v1.2.0` (unchanged), engine `v0.1.79`, composition `v0.1.87`; runtime
+  `1.5.3`.
+- Live MPRIS rows: Firefox (`Mozilla firefox`), Google Chrome (`Chrome`), Tidal
+  (`Tidal`); Tidal Electron and native share the Tidal app key but are separate
+  pages/rows. The tray showed four Players: Firefox, Google Chrome, Tidal
+  (Tidal Hi-Fi), Tidal (tidal-hifi). The Tidal page rendered `Tidal` +
+  `tidal-hifi`, not Google Chrome.
+- Bare artwork verified in Playing (40 px), tray (36 px), Players rows (22 px)
+  and strip (32 px); no skin frame/background/border. The generated appearance
+  only has `.audio-track-art-fallback` / `.audio-app-tile-fallback` text rules.
+- Terminal-host and glass were both live; glass showed the same bare artwork
+  and Tidal/Chrome rows. Live skin restored to terminal-host; no skin retune.
+- No CSS `max-width`/`max-height` errors after v0.6.18; no `surface.window`
+  selector.
+- Mock hash `0ef38c46…`; assets v0.21.3.
+- Limitation: the live Chrome exposed one MPRIS session (WhatsApp); the mock
+  shows two Chrome sessions. A Chrome tab with audio but no MPRIS session is
+  Mixer-only and correctly gets no invented Playing page.
