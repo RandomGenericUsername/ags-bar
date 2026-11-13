@@ -783,3 +783,14 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - Settings switch is fixed at 42x24 with a 20px knob; verified under
   terminal-host and glass.
 - Mock hash `b4a731c3…`; assets v0.21.2.
+
+## Final live evidence (round 6)
+
+- bar `v0.6.16` / assets `v0.21.2` / engine `v0.1.77` / composition `v0.1.85`
+  installed; platform `v1.2.0`.
+- Normal panel ends after Input (no footer); Input expanded `626`, collapsed
+  and reopened `476`; settings popover ends after the helper row.
+- Output/Input use the same label type; switch fixed at 42x24.
+- Live terminal-host capture plus glass and paper panel captures; skin
+  restored to terminal-host; no skin retune, no `surface.window` selector.
+- Mock hash `b4a731c3…`.
