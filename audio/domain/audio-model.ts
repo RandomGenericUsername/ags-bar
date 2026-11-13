@@ -29,6 +29,8 @@ export interface VolumeState {
 export interface AudioStream {
   id: StreamId
   appId: AppId
+  /** Honest PipeWire media/node label; blank when the graph exposes none. */
+  name?: string
   direction: "output" | "input"
   /** Effective linked endpoint, independent from a stream's requested target. */
   endpointId: EndpointId | null
@@ -73,6 +75,8 @@ export interface PlayerMedia {
   artist: string
   album: string
   artworkUri: string | null
+  /** Stable per-track identity when the player publishes one (xesam:url). */
+  trackKey?: string
   lengthUs: number | null
   positionUs: number | null
 }

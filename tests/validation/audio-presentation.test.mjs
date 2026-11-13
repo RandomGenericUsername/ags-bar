@@ -61,8 +61,8 @@ test("keeps a stream-only row, falls back honestly to app identity, and disables
 
 test("aggregates multiple app streams explicitly without losing stream identities or per-stream state", () => {
   const row = projectAudioPanel(session({ streams: [
-    stream({ id: "pw:1", volume: { level: 0.2, muted: false } }),
-    stream({ id: "pw:2", endpointId: "B", routeIntent: { kind: "explicit", endpointId: "B" }, volume: { level: 0.8, muted: true } }),
+    stream({ id: "pw:1", name: "What's app — tab", volume: { level: 0.2, muted: false } }),
+    stream({ id: "pw:2", name: "YouTube — tab", endpointId: "B", routeIntent: { kind: "explicit", endpointId: "B" }, volume: { level: 0.8, muted: true } }),
   ] })).rows[0]
   assert.deepEqual(row.streamIds, ["pw:1", "pw:2"])
   // CHANGED 2026-10-07: the row reports the MAX stream level, not the mean.
@@ -81,6 +81,9 @@ test("aggregates multiple app streams explicitly without losing stream identitie
   assert.equal(row.observedEndpointId, null)
   assert.equal(row.routeIntent, null)
   assert.equal(row.routeLabel, "Multiple routes · Mixed intent")
+  assert.deepEqual(row.streams.map((stream) => stream.name), ["What's app — tab", "YouTube — tab"],
+    "per-stream Mixer detail keeps the PipeWire media names")
+  assert.equal(row.streams[1].routeLabel, "USB DAC · Override")
 })
 
 test("projects explicit route separately from effective endpoint and microphone consumers", () => {

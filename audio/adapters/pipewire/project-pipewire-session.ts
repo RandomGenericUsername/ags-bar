@@ -260,6 +260,8 @@ export function projectPipeWireSession(input: {
     streams.push({
       id: `pipewire:${node.id}:${input.graph.streamSerial.get(node.id) ?? node.id}`,
       appId,
+      name: text(props["media.name"]) || text(props["node.description"]) || text(props["node.name"]) ||
+        text(node.description) || text(node.name) || `Stream ${node.id}`,
       direction,
       endpointId,
       requestedEndpointId,

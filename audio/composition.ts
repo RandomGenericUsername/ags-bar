@@ -8,6 +8,7 @@ import {
   selectPreferredOutput, setAppRoute, setAppVolume, setInputVolume, setPreferredOutputVolume,
   setPlayerShuffle, cyclePlayerLoop, refreshPlayerPosition,
   toggleAppMute, toggleInputMute, togglePreferredOutputMute,
+  setStreamRoute, setStreamVolume, toggleStreamMute,
 } from "./application/audio-actions"
 import type { ActionResult, AudioPorts } from "./application/ports"
 import { projectAudioPanel } from "./presentation/audio-panel-view-model"
@@ -109,6 +110,13 @@ export function audioPanelBinding(): AudioPanelBinding {
         : { kind: "explicit", endpointId: route.endpointId as EndpointId })),
     setAppVolume: (appId, percent) => run("setAppVolume", () => setAppVolume(ports, appId, percentToLevel(percent))),
     toggleAppMute: (appId) => run("toggleAppMute", () => toggleAppMute(ports, appId)),
+    setStreamRoute: (streamId, route: RouteChoice) => run("setStreamRoute", () =>
+      setStreamRoute(ports, streamId, route.kind === "follow-preferred"
+        ? { kind: "follow-preferred" }
+        : { kind: "explicit", endpointId: route.endpointId as EndpointId })),
+    setStreamVolume: (streamId, percent) => run("setStreamVolume", () =>
+      setStreamVolume(ports, streamId, percentToLevel(percent))),
+    toggleStreamMute: (streamId) => run("toggleStreamMute", () => toggleStreamMute(ports, streamId)),
     playerAction: (playerId, action: TransportAction) => run("playerAction", () => {
       if (action === "play-pause") return playPausePlayer(ports, playerId)
       if (action === "next") return nextPlayer(ports, playerId)

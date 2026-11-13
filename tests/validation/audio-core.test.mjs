@@ -5,7 +5,9 @@ import {
   initialRouteIntent, routeIntentAfterExternalTargetChange, routeIntentAfterUserSelection,
   routeLabel, volumeState,
 } from "../../audio/domain/audio-model.ts"
-import { setAppVolume, toggleAppMute, setAppRoute, seekPlayer } from "../../audio/application/audio-actions.ts"
+import {
+  setAppVolume, toggleAppMute, setAppRoute, seekPlayer, setStreamVolume, setStreamRoute, toggleStreamMute,
+} from "../../audio/application/audio-actions.ts"
 import { mprisAppDisplayName, resolveMprisAppId } from "../../services/mpris-core.ts"
 
 const endpoints = [
@@ -166,4 +168,21 @@ test("MPRIS app identity comes from Identity/DesktopEntry/exe, never the bus pre
     "the fallback is the owner process, not the bus prefix")
   assert.notEqual(resolveMprisAppId({ processId: 1565980 }), "google-chrome")
   assert.equal(mprisAppDisplayName("firefox"), "Firefox")
+})
+
+
+test("per-stream actions address one exact PipeWire stream", async () => {
+  const ports = fakePorts()
+  assert.equal((await setStreamVolume(ports, "chrome:1", 0.33)).ok, true)
+  assert.equal((await toggleStreamMute(ports, "chrome:1")).ok, true)
+  assert.equal((await setStreamRoute(ports, "chrome:1", { kind: "explicit", endpointId: "B" })).ok, true)
+  assert.deepEqual(ports.calls, [
+    ["streamVolume", "chrome:1", { level: 0.33, muted: false }],
+    ["streamVolume", "chrome:1", { level: 0.4, muted: true }],
+    ["route", "chrome:1", "B"],
+    ["intent", "chrome:1", { kind: "explicit", endpointId: "B" }],
+  ])
+  assert.equal((await setStreamVolume(ports, "missing", 0.2)).reason, "no-current-stream")
+  assert.equal((await setStreamRoute(ports, "chrome:1", { kind: "explicit", endpointId: "missing" })).reason,
+    "missing-endpoint")
 })

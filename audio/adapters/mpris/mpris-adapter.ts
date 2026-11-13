@@ -87,6 +87,7 @@ function metadata(props: RawProps, previous?: PlayerRecord): { track: TrackMeta;
     artist: track.artist,
     album: track.album,
     artworkUri: stringValue(raw["mpris:artUrl"]) || null,
+    trackKey: track.url || [track.title, track.artist, track.album].filter(Boolean).join("\u0000"),
     lengthUs: track.lengthUs > 0 ? track.lengthUs : null,
     positionUs: previous?.media.positionUs ?? null,
   } }

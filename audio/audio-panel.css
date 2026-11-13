@@ -468,6 +468,37 @@ popover.audio-settings-popover > contents {
   font-variant-numeric: tabular-nums;
 }
 
+/* Per-stream Mixer detail, nested under the app row. The app row keeps the
+   fan-out controls; these rows address one exact PipeWire stream. */
+.audio-mixer-streams {
+  min-width: 0;
+  padding: 2px 0 2px 34px;
+}
+
+.audio-mixer-stream {
+  min-width: 0;
+}
+
+.audio-mixer-stream-head {
+  min-width: 0;
+  min-height: 24px;
+}
+
+.audio-mixer-stream-head .audio-route {
+  min-width: 60px;
+  min-height: 24px;
+}
+
+.audio-mixer-stream-controls {
+  margin-top: 0;
+  padding-left: 0;
+}
+
+.audio-mixer-stream-controls .audio-mixer-mute {
+  min-width: 28px;
+  min-height: 28px;
+}
+
 /* ── Input (collapsed by default) ───────────────────────────────────────── */
 
 .audio-section {

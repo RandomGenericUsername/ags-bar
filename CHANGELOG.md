@@ -1,3 +1,14 @@
+## v0.6.19 — 2026-11-13
+
+- Dedupe Playing pages/Players rows by app + media track identity; native
+  Tidal wins a same-track mirror, while distinct media of one app remains
+  separate.
+- Exclude stopped/no-media MPRIS players from Playing and Players; show `Live`
+  only while actually playing. Paused-with-media remains a page.
+- Mixer adds per-stream PipeWire rows (name, route, mute, level) beneath the
+  existing app-level controls; single-stream browsers state that per-tab split
+  is unavailable. Per-stream actions are first-class.
+
 ## v0.6.18 — 2026-11-12
 
 - Remove the unsupported GTK CSS `max-width`/`max-height` declarations from

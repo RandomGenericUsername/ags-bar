@@ -144,13 +144,13 @@ test("a merged row prefers the player that exposes optional controls", () => {
     apps: [{ id: "tidal-hifi", displayName: "Tidal" }],
     players: [mirror, native],
   })).playingRows
-  assert.deepEqual(pages.map((page) => page.id).sort(), [mirror.id, native.id].sort(),
-    "the app row stays merged while Playing pages stay per-player")
-  assert.ok(pages.every((page) => page.appName === "Tidal"), "the Tidal players are not labelled Chrome")
+  assert.deepEqual(pages.map((page) => page.id), [native.id],
+    "the same Tidal track is one canonical Playing page")
+  assert.ok(pages.every((page) => page.appName === "Tidal"), "the Tidal player is not labelled Chrome")
   assert.deepEqual(new Set(pages.map((page) => page.appId)), new Set(["tidal-hifi"]))
 })
 
-test("per-player pages keep Chrome sessions and Tidal native/Electron distinct", () => {
+test("Playing dedupes a same-track Tidal mirror but keeps distinct Chrome media", () => {
   const tidalElectron = player({
     id: "mpris:chromium.instance1565980#1", appId: "tidal-hifi", appName: "Tidal",
     playerIdentity: "tidal-hifi", busName: "org.mpris.MediaPlayer2.chromium.instance1565980",
@@ -180,15 +180,13 @@ test("per-player pages keep Chrome sessions and Tidal native/Electron distinct",
   }))
   assert.equal(model.rows.length, 2, "Mixer keeps the app grouping")
   assert.deepEqual(model.rows.map((row) => row.id).sort(), ["google-chrome", "tidal-hifi"])
-  assert.equal(model.playingRows.length, 4, "every MPRIS player gets a Playing page")
-  assert.deepEqual(model.playingRows.map((row) => row.id).sort(), [
-    tidalElectron.id, tidalNative.id, chromeA.id, chromeB.id,
-  ].sort())
+  assert.equal(model.playingRows.length, 3, "one canonical Tidal page plus two Chrome media")
   const tidalPages = model.playingRows.filter((row) => row.appId === "tidal-hifi")
-  assert.ok(tidalPages.every((row) => row.appName === "Tidal"), "Tidal Electron must not read Google Chrome")
-  assert.deepEqual(tidalPages.map((row) => row.playerIdentity).sort(), ["Tidal Hi-Fi", "tidal-hifi"])
-  assert.equal(model.playingRows.filter((row) => row.appId === "google-chrome").length, 2,
-    "two Chrome MPRIS sessions are two pages")
+  assert.equal(tidalPages.length, 1, "same-app same-track mirror is deduped")
+  assert.equal(tidalPages[0].id, tidalNative.id, "the native Tidal owner wins the tie")
+  assert.equal(tidalPages[0].appName, "Tidal")
+  assert.deepEqual(model.playingRows.filter((row) => row.appId === "google-chrome").map((row) => row.title).sort(),
+    ["WhatsApp Web", "YouTube"], "distinct Chrome media stays separate")
 })
 
 test("the position action re-reads the MPRIS position", async () => {
@@ -205,4 +203,59 @@ test("a paused player remains a Playing page and an empty session has none", () 
   const empty = projectAudioPanel(session({ players: [] }))
   assert.equal(empty.playingRows.length, 0)
   assert.equal(empty.anyPlaying, false)
+})
+
+
+test("Playing dedupes same-app same-track mirrors and excludes stopped/no-media players", () => {
+  const native = player({
+    id: "mpris:tidal-hifi#1", appId: "tidal-hifi", appName: "Tidal", playback: "paused",
+    busName: "org.mpris.MediaPlayer2.tidal-hifi", playerIdentity: "Tidal Hi-Fi",
+    media: media({ title: "Black Horizons", artist: "Dissection", album: "The Somberlain" }),
+  })
+  const mirror = player({
+    id: "mpris:chromium.instance1565980#1", appId: "tidal-hifi", appName: "Tidal", playback: "paused",
+    busName: "org.mpris.MediaPlayer2.chromium.instance1565980", playerIdentity: "tidal-hifi",
+    media: media({ title: "Black Horizons", artist: "Dissection", album: "The Somberlain" }),
+  })
+  const stopped = player({
+    id: "mpris:chromium.instance330504#1", appId: "google-chrome", appName: "Google Chrome",
+    playback: "stopped", media: media({ title: "WhatsApp Web" }),
+  })
+  const noMedia = player({
+    id: "mpris:chromium.instance440000#1", appId: "google-chrome", appName: "Google Chrome",
+    playback: "playing", media: media({ title: "", artist: "", album: "", artworkUri: null }),
+  })
+  const chromeA = player({
+    id: "mpris:chromium.instance550000#1", appId: "google-chrome", appName: "Google Chrome",
+    playback: "paused", media: media({ title: "WhatsApp Web" }),
+  })
+  const chromeB = player({
+    id: "mpris:chromium.instance550001#1", appId: "google-chrome", appName: "Google Chrome",
+    playback: "paused", media: media({ title: "YouTube" }),
+  })
+  const model = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }, { id: "google-chrome", displayName: "Google Chrome" }],
+    players: [native, mirror, stopped, noMedia, chromeA, chromeB],
+  }))
+  assert.equal(model.playingRows.length, 3, "one Tidal page plus two distinct Chrome media")
+  const tidal = model.playingRows.filter((row) => row.appId === "tidal-hifi")
+  assert.equal(tidal.length, 1, "native + Electron mirror must not duplicate")
+  assert.equal(tidal[0].id, native.id, "paused same-track tie prefers the native owner")
+  assert.ok(!model.playingRows.some((row) => row.id === stopped.id), "stopped Chrome is not a Playing page")
+  assert.ok(!model.playingRows.some((row) => row.id === noMedia.id), "no-media Chrome is not a Playing page")
+  assert.deepEqual(model.playingRows.filter((row) => row.appId === "google-chrome").map((row) => row.title).sort(),
+    ["WhatsApp Web", "YouTube"], "distinct media of one app stays separate")
+  assert.equal(model.rows.find((row) => row.id === "google-chrome").hasCurrentPlayer, true,
+    "Mixer keeps the app row even when no Playing page is valid")
+})
+
+test("same-app different media stays separate", () => {
+  const a = player({ id: "mpris:tidal-hifi#1", appId: "tidal-hifi", appName: "Tidal",
+    media: media({ title: "Sola", artist: "Kiasmos", album: "II" }) })
+  const b = player({ id: "mpris:tidal-hifi#2", appId: "tidal-hifi", appName: "Tidal",
+    media: media({ title: "Black Horizons", artist: "Dissection", album: "The Somberlain" }) })
+  const pages = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }], players: [a, b],
+  })).playingRows
+  assert.deepEqual(pages.map((row) => row.title).sort(), ["Black Horizons", "Sola"])
 })
