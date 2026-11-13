@@ -841,3 +841,12 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   tests cover Tidal mirror dedupe and stopped/no-media filtering.
 - No skin retune; no CSS max errors; no `surface.window` selector.
 - Mock hash `1abcb074…`.
+### QA round 9 (progress fix)
+
+- The visible panel refreshes the active seekable page regardless of a stale
+  projected playback flag; the runtime/model/`playingRows` path is pinned by
+  `audio-progress.test.mjs`.
+- `SeekLine` advances locally at 250 ms while playing, holds while paused, and
+  resets from each authoritative poll; the drag/commit guard is unchanged.
+- Timed live captures without play/pause interaction are recorded in the
+  REQ-017 evidence.

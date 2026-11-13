@@ -2,7 +2,7 @@
 id: REQ-017
 title: "Sound panel progress tick: refreshPosition must reach the model and SeekLine"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
