@@ -310,8 +310,8 @@ check("the settings switch is constrained to the 42x24 compact size", () => {
   assert.match(popupSrc, /heightRequest=\{24\}/, "the switch has no 24px height request");
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const rule = css.slice(css.indexOf(".audio-switch {"), css.indexOf(".audio-switch {") + 500);
-  assert.match(rule, /max-width:\s*42px/, "the switch max width is not 42px");
-  assert.match(rule, /max-height:\s*24px/, "the switch max height is not 24px");
+  assert.match(rule, /min-width:\s*42px/, "the switch width floor is not 42px");
+  assert.match(rule, /min-height:\s*24px/, "the switch height floor is not 24px");
   assert.match(rule, /padding:\s*0/, "the switch keeps skin padding");
 });
 

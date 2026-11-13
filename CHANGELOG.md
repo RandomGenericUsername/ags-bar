@@ -1,3 +1,10 @@
+## v0.6.18 — 2026-11-12
+
+- Remove the unsupported GTK CSS `max-width`/`max-height` declarations from
+  the player identity labels and the settings switch. Identity labels use
+  `maxWidthChars`; the switch keeps its 42x24 `widthRequest`/`heightRequest`
+  plus structural width floors. No visual retune.
+
 ## v0.6.17 — 2026-11-12
 
 - Artwork is app-owned content: transparent/borderless/shadowless containers;

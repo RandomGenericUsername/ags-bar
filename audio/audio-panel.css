@@ -313,14 +313,6 @@ popover.audio-settings-popover > contents {
   font-weight: 500;
 }
 
-.audio-player-identity {
-  max-width: 118px;
-}
-
-.audio-tray-player-identity {
-  max-width: 150px;
-}
-
 .audio-live-badge {
   min-height: 19px;
 }
@@ -585,8 +577,6 @@ popover.audio-settings-popover > contents {
      keep the skin's pill paint from inflating the widget. */
   min-width: 42px;
   min-height: 24px;
-  max-width: 42px;
-  max-height: 24px;
   padding: 0;
   margin: 0;
 }
