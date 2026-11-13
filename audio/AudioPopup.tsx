@@ -299,9 +299,9 @@ function PlayingPage({ row, index, total, binding }: {
 function PlayingDeck({ binding }: { binding: AudioPanelBinding }) {
   const model = createComputed(() => binding.model())
   const pages = createComputed(() => model().playingRows)
-  const active = createComputed<AudioAppRowView | null>(() =>
-    pages().find((row) => row.id === playingId()) ?? pages()[0] ?? null)
-  const index = createComputed(() => Math.max(0, pages().findIndex((row) => row.id === active()?.id)))
+  const activeId = createComputed<string | null>(() =>
+    (pages().find((row) => row.id === playingId()) ?? pages()[0])?.id ?? null)
+  const index = createComputed(() => Math.max(0, pages().findIndex((row) => row.id === activeId())))
   const multi = createComputed(() => pages().length > 1)
   let lastWheel = 0
 
@@ -334,14 +334,14 @@ function PlayingDeck({ binding }: { binding: AudioPanelBinding }) {
         </button>
 
         <box class="audio-playing-viewport" hexpand>
-          <With value={active}>
-            {(page: AudioAppRowView | null) => page === null
+          <With value={activeId}>
+            {(id: string | null) => id === null
               ? <PlayingEmpty />
               : (
                 <PlayingPage
                   row={createComputed(() => {
-                    const id = page.id
-                    return binding.model().playingRows.find((row) => row.id === id) ?? page
+                    const current = binding.model().playingRows
+                    return current.find((row) => row.id === id) ?? current[0]!
                   })}
                   index={index}
                   total={createComputed(() => pages().length)}
@@ -821,11 +821,19 @@ export function AudioPanelContent({
     // next frames; the delayed pass is what removes the expanded height.
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => { fit(); return false })
   }
+  let lastFitSignature = ""
   createEffect(() => {
-    // Re-fit when the deck mode, input disclosure or row set changes.
-    model()
-    deckMode()
-    inputOpen()
+    // Fit only when layout-affecting state changes. Position polling updates the
+    // model every second; re-measuring the whole tree on every tick made the
+    // panel sluggish and contributed to first-click losses.
+    const state = model()
+    const signature = [
+      deckMode(), inputOpen(), playingId(),
+      state.playingRows.map((row) => `${row.id}|${row.title}|${row.durationUs}|${row.canSeek}`).join(","),
+      state.rows.map((row) => `${row.id}|${row.streamIds.length}|${row.playerId ?? ""}`).join(","),
+    ].join("~")
+    if (signature === lastFitSignature) return
+    lastFitSignature = signature
     scheduleFit()
     fitAfterLayout()
   })

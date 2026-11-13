@@ -259,3 +259,36 @@ test("same-app different media stays separate", () => {
   })).playingRows
   assert.deepEqual(pages.map((row) => row.title).sort(), ["Black Horizons", "Sola"])
 })
+
+test("native Tidal suppresses its Electron mirror, but Chrome tabs stay separate", () => {
+  const native = player({
+    id: "mpris:tidal-hifi.instance1#1", appId: "tidal-hifi", appName: "Tidal",
+    busName: "org.mpris.MediaPlayer2.tidal-hifi.instance1", playerIdentity: "Tidal Hi-Fi",
+    playback: "paused", media: media({ title: "Old Tidal Track", artist: "Tidal" }),
+  })
+  const mirror = player({
+    id: "mpris:chromium.instance99#1", appId: "tidal-hifi", appName: "Tidal",
+    busName: "org.mpris.MediaPlayer2.chromium.instance99", playerIdentity: "tidal-hifi",
+    playback: "playing", media: media({ title: "Current Mirror Track", artist: "Tidal" }),
+  })
+  const chromeA = player({
+    id: "mpris:chromium.instance10#1", appId: "google-chrome", appName: "Google Chrome",
+    busName: "org.mpris.MediaPlayer2.chromium.instance10", media: media({ title: "WhatsApp Web" }),
+  })
+  const chromeB = player({
+    id: "mpris:chromium.instance11#1", appId: "google-chrome", appName: "Google Chrome",
+    busName: "org.mpris.MediaPlayer2.chromium.instance11", media: media({ title: "YouTube" }),
+  })
+  const model = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }, { id: "google-chrome", displayName: "Google Chrome" }],
+    players: [native, mirror, chromeA, chromeB],
+  }))
+  const tidalPages = model.playingRows.filter((row) => row.appId === "tidal-hifi")
+  assert.deepEqual(tidalPages.map((row) => row.id), [native.id],
+    "the native Tidal player must be the only Tidal page")
+  assert.ok(!model.playingRows.some((row) => row.id === mirror.id), "the Electron Tidal mirror is suppressed")
+  assert.equal(model.rows.find((row) => row.id === "tidal-hifi").playerId, native.id,
+    "the Tidal app row joins the native player")
+  assert.equal(model.playingRows.filter((row) => row.appId === "google-chrome").length, 2,
+    "genuine Chrome tab media must stay separate")
+})

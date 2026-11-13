@@ -408,6 +408,14 @@ check("the visible progress poll is not gated on a stale playback flag and SeekL
     "tray does not pass playing to SeekLine");
 });
 
+check("the Playing page is keyed by a stable id and fit is not remeasured every poll", () => {
+  assert.match(popupSrc, /const activeId = createComputed<string \| null>/, "no stable active page id");
+  assert.match(popupSrc, /<With value={activeId}>/, "the Playing page is keyed by a fresh row object");
+  assert.ok(!popupSrc.includes("<With value={active}>"), "the old object-keyed Playing page remains");
+  assert.match(popupSrc, /lastFitSignature/, "fit has no layout signature");
+  assert.match(popupSrc, /if \(signature === lastFitSignature\) return/, "fit still runs on every model tick");
+});
+
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {
   const css = stripComments(read(join(AUDIO, "audio-panel.css")));
   const popover = css.slice(css.indexOf("popover.audio-settings-popover"));

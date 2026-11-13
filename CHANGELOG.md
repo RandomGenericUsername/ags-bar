@@ -1,3 +1,15 @@
+## v0.6.22 — 2026-11-13
+
+- Suppress the Electron/Chromium Tidal mirror whenever a current native Tidal
+  player exists, including when the mirror advertises a different stale track.
+  Genuine Chrome multi-tab media remains separate.
+- Key the Playing page by a stable page id instead of a fresh row object, and
+  fit the panel only when layout-affecting state changes. Position polling no
+  longer recreates the transport or remeasures every second.
+- Preserve progress interpolation/pause behavior and the skin.
+- Validate the same-PID two-Chrome-stream shape with the graph union test; no
+  in-repo stream is synthesized.
+
 ## v0.6.21 — 2026-11-13
 
 - Keep distinct PipeWire sink-inputs even when AstalWp exposes fewer nodes than

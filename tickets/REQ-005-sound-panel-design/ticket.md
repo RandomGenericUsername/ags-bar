@@ -868,3 +868,12 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - The app row carries `playerId`/`playerIds`; the debug dump now exposes them.
   `hasCurrentPlayer => playerId` has a regression test.
 - Progress/paused behavior from v0.6.20 is unchanged; no skin retune.
+
+### QA round 11 (final correctness)
+
+- Native Tidal supersedes its Electron mirror; the mirror is suppressed even
+  with a different stale track. Chrome tabs with distinct media remain
+  separate.
+- Playing page keyed by stable id; fit signature skips position-only polls.
+- Same-PID Chrome stream union covered by the regression test.
+- Bar-only deploy; assets/platform/engine/composition tags unchanged.

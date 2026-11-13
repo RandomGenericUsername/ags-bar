@@ -139,6 +139,29 @@ function dedupePlayers(players: readonly AudioPlayer[]): AudioPlayer[] {
   return chosen
 }
 
+function isTidalApp(player: AudioPlayer): boolean {
+  return (canonicalAppKey(player.appId) || player.appId) === "tidal-hifi"
+}
+
+function isElectronTidalMirror(player: AudioPlayer): boolean {
+  if (!isTidalApp(player)) return false
+  const bus = (player.busName ?? "").toLowerCase()
+  return bus.includes(".chromium.") || bus.includes(".electron.") || bus.includes(".chrome.")
+}
+
+/**
+ * Native Tidal owns the Tidal page when it is current. Its Electron/Chromium
+ * mirror can be a stale duplicate with an older track; suppress that mirror
+ * entirely. This rule is Tidal-specific: Chrome tabs with distinct media must
+ * remain separate pages.
+ */
+function suppressNativeTidalMirrors(players: readonly AudioPlayer[]): AudioPlayer[] {
+  const hasNativeTidal = players.some((player) =>
+    player.current && isTidalApp(player) && !isElectronTidalMirror(player) && hasPlaybackMedia(player))
+  if (!hasNativeTidal) return [...players]
+  return players.filter((player) => !(isTidalApp(player) && isElectronTidalMirror(player)))
+}
+
 function sameIntent(a: RouteIntent, b: RouteIntent): boolean {
   return a.kind === b.kind && (a.kind !== "explicit" || (b.kind === "explicit" && a.endpointId === b.endpointId))
 }
@@ -217,9 +240,10 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     const streams = group.streams.filter((stream) => stream.direction === "output")
       .sort((a, b) => a.id.localeCompare(b.id))
     const players = [...group.players].sort((a, b) => a.id.localeCompare(b.id))
-    const player = choosePlayer(players)
+    const displayPlayers = suppressNativeTidalMirrors(players)
+    const player = choosePlayer(displayPlayers)
     const media = player?.media
-    const appName = players[0]?.appName?.trim() || app?.displayName?.trim() ||
+    const appName = displayPlayers[0]?.appName?.trim() || app?.displayName?.trim() ||
       mprisAppDisplayName(key) || group.streams[0]?.appId || key
     const intents = streams.map((stream) => stream.routeIntent)
     // With no stream there is no stream intent to show, so fall back to the
@@ -249,9 +273,9 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       appId: key,
       appName,
       desktopId: app?.desktopId,
-      iconName: players[0]?.appId || app?.aliases?.[0] || app?.desktopId || key,
+      iconName: displayPlayers[0]?.appId || app?.aliases?.[0] || app?.desktopId || key,
       artworkUri: media?.artworkUri ?? null,
-      artworkUris: [...new Set(players.map((item) => item.media.artworkUri)
+      artworkUris: [...new Set(displayPlayers.map((item) => item.media.artworkUri)
         .filter((uri): uri is string => typeof uri === "string" && uri !== ""))],
       artworkPath: null,
       title: clean(media?.title) || appName,
@@ -259,7 +283,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       album: clean(media?.album),
       playback: player?.playback ?? null,
       playerId: player?.id ?? null,
-      playerIds: players.map((item) => item.id),
+      playerIds: displayPlayers.map((item) => item.id),
       playerIdentity: player?.playerIdentity ?? null,
       playerProcessId: player?.processId ?? null,
       playerBusName: player?.busName ?? null,
@@ -298,8 +322,8 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
   // Mixer grouping; two Chrome sessions (or Tidal native + its Electron mirror)
   // are two pages with their own metadata, transport and identity.
   const rowByApp = new Map(rows.map((row) => [row.id, row]))
-  const playablePlayers = dedupePlayers(session.players.filter((player) =>
-    player.current && player.playback !== "stopped" && hasPlaybackMedia(player)))
+  const playablePlayers = dedupePlayers(suppressNativeTidalMirrors(session.players.filter((player) =>
+    player.current && player.playback !== "stopped" && hasPlaybackMedia(player))))
   const playerRows = playablePlayers
     .map((player): AudioAppRowView | null => {
       const appId = canonicalAppKey(player.appId) || player.appId
