@@ -263,8 +263,10 @@ check("audio-panel.css is structure only; the selected skin paints it", () => {
   assert.ok(!/backdrop-filter\s*:/.test(css), "backdrop-filter belongs in the skin template");
   assert.ok(!/outline\s*:/.test(css), "focus outline belongs in the skin template");
   const radii = [...css.matchAll(/border-radius\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+  // 4px is the app-owned content radius for artwork; pills are 999px and resets
+  // are 0. Any other radius is a skin role and is rejected.
   assert.deepEqual(
-    radii.filter((value) => value !== "0" && value !== "999px"),
+    radii.filter((value) => !["0", "4px", "999px"].includes(value)),
     [],
     `skin radii leaked into the app stylesheet: ${radii.join(", ")}`,
   );
@@ -342,6 +344,28 @@ check("the Playing page uses track artwork with a small app badge", () => {
   assert.match(popupSrc, /TrackArtwork row=\{row\} size=\{40\}/, "Playing page does not use TrackArtwork");
   const page = popupSrc.slice(popupSrc.indexOf("function PlayingPage"), popupSrc.indexOf("function PlayingDeck"));
   assert.ok(!page.includes("<AppTile"), "Playing page still uses an app tile for its artwork/head");
+});
+
+check("artwork containers are bare app content, not skin-painted tiles", () => {
+  const css = stripComments(read(join(AUDIO, "audio-panel.css")));
+  const rule = css.slice(css.indexOf(".audio-app-tile,"), css.indexOf(".audio-app-tile,") + 500);
+  assert.match(rule, /background-color:\s*transparent/, "artwork tile has a background");
+  assert.match(rule, /border:\s*none/, "artwork tile has a border");
+  assert.match(rule, /box-shadow:\s*none/, "artwork tile has a shadow");
+  assert.match(rule, /border-radius:\s*4px/, "the app content radius is missing");
+  assert.match(css, /\.audio-track-art\s*\{/, "the Playing artwork container is not app-owned");
+  assert.ok(!css.includes("SKIN_SURFACE_CONTROL_RADIUS"), "a skin role leaked into the app tile CSS");
+});
+
+check("Playing pages are per-player and carry the MPRIS identity", () => {
+  const model = read(join(AUDIO, "presentation/audio-panel-view-model.ts"));
+  assert.match(model, /const playerRows = session\.players/, "Playing pages are still app-collapsed");
+  assert.match(model, /id: player\.id/, "per-player page id is not the player id");
+  assert.match(model, /playerIdentity: player\.playerIdentity/, "the page loses the MPRIS identity");
+  assert.match(popupSrc, /class="audio-player-identity"/, "the Playing page does not show the player identity");
+  assert.match(popupSrc, /openMixerFor\(row\(\)\.appId\)/, "the Playing level opens the player id as an app");
+  const tray = read(join(AUDIO, "TrayPopup.tsx"));
+  assert.match(tray, /class="audio-tray-player-identity"/, "the Players row does not show the player identity");
 });
 
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {

@@ -83,6 +83,14 @@ export type PlaybackState = "playing" | "paused" | "stopped" | "unknown"
 export interface AudioPlayer {
   id: PlayerId
   appId: AppId
+  /** Human app name derived from the MPRIS app identity (e.g. Tidal). */
+  appName?: string
+  /** Raw MPRIS Identity/DesktopEntry string for this player, if published. */
+  playerIdentity?: string
+  /** MPRIS bus name; a transport identity, never the app label. */
+  busName?: string
+  /** Owner PID reported by D-Bus; helps distinguish two sessions. */
+  processId?: number | null
   current: boolean
   playback: PlaybackState
   capabilities: PlayerCapabilities

@@ -236,7 +236,7 @@ function PlayingLevel({ row }: { row: Accessor<AudioAppRowView> }) {
     <button
       class="audio-playing-level"
       tooltipText="Open in Mixer"
-      onClicked={() => openMixerFor(row().id)}
+      onClicked={() => openMixerFor(row().appId)}
       $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, `Open ${row().appName} in Mixer`))}
     >
       <box spacing={5}>
@@ -262,6 +262,10 @@ function PlayingPage({ row, index, total, binding }: {
       <box class="audio-playing-head" spacing={8}>
         <box class="audio-playing-meta" spacing={6} hexpand>
           <label class="audio-app-name" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => row().appName)} />
+          <label class="audio-player-identity" xalign={0} ellipsize={Pango.EllipsizeMode.END}
+            label={createComputed(() => row().playerIdentity ?? "")}
+            visible={createComputed(() => Boolean(row().playerIdentity))}
+            tooltipText={createComputed(() => row().playerIdentity ?? "")} />
           <label class="audio-live-badge" label="Live" visible={createComputed(() => !canSeek())} />
           <label class="audio-page-index" hexpand xalign={1} label={createComputed(() => `${index() + 1}/${total()}`)} />
         </box>

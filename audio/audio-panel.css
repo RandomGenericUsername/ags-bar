@@ -276,8 +276,26 @@ popover.audio-settings-popover > contents {
   min-width: 0;
 }
 
-.audio-app-tile {
+/* Artwork is content, never a skin-painted tile. The thumbnail or app icon is
+   the only visual: the container stays transparent, borderless, shadowless.
+   The 4px content radius is an app literal (not a skin role). */
+.audio-app-tile,
+.audio-track-art {
   min-width: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.audio-app-tile-image,
+.audio-track-art-image {
+  border-radius: 4px;
+}
+
+.audio-track-badge {
+  border-radius: 999px;
 }
 
 .audio-app-tile-fallback {
@@ -287,6 +305,20 @@ popover.audio-settings-popover > contents {
 .audio-app-name {
   min-width: 0;
   font-weight: 650;
+}
+
+.audio-player-identity,
+.audio-tray-player-identity {
+  min-width: 0;
+  font-weight: 500;
+}
+
+.audio-player-identity {
+  max-width: 118px;
+}
+
+.audio-tray-player-identity {
+  max-width: 150px;
 }
 
 .audio-live-badge {
