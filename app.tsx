@@ -140,6 +140,8 @@ app.start({
             canSeek: r.canSeek,
             hasCurrentPlayer: r.hasCurrentPlayer,
             hasCurrentStream: r.hasCurrentStream,
+            playerId: r.playerId,
+            playerIds: r.playerIds,
             playback: r.playback,
             shuffle: r.shuffle,
             loop: r.loop,

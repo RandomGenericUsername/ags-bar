@@ -71,7 +71,17 @@ export function createPipeWireCommands(
     },
     async setStreamVolume(streamId, volume) {
       const rawStreamId = streamNodeId(streamId)
-      applyVolume(findNode(requiredWp(), rawStreamId, 4), volume)
+      const node = (requiredWp().nodes ?? []).find((candidate) =>
+        candidate.id === numericId(rawStreamId) && candidate["media-class"] === 4)
+      if (node) {
+        applyVolume(node, volume)
+        return
+      }
+      // The graph can expose a sink-input that AstalWp's node collection does
+      // not. Keep the per-stream control honest via wpctl rather than silently
+      // doing nothing.
+      await run(["wpctl", "set-volume", rawStreamId, String(volume.level)])
+      await run(["wpctl", "set-mute", rawStreamId, volume.muted ? "1" : "0"])
     },
     async setOutputVolume(endpointId, volume) {
       applyVolume(findNode(requiredWp(), endpointId, 2), volume)

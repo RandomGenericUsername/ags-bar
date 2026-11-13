@@ -860,3 +860,11 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - Paused page held `1:20` for 5 seconds.
 - Runtime/model `player-changed` propagation and paused interpolation are
   covered by `audio-progress.test.mjs`.
+### QA round 10 (stream identity/join)
+
+- PipeWire graph-only sink-inputs are unioned with AstalWp nodes; two Chrome
+  nodes keep distinct `pipewire:<node>:<serial>` IDs and independent
+  volume/mute rows.
+- The app row carries `playerId`/`playerIds`; the debug dump now exposes them.
+  `hasCurrentPlayer => playerId` has a regression test.
+- Progress/paused behavior from v0.6.20 is unchanged; no skin retune.

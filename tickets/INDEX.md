@@ -50,3 +50,4 @@
 - [REQ-015-sound-round4/ticket.md](./REQ-015-sound-round4/ticket.md) — Sound round four: bare artwork, MPRIS identity, per-player pages | `in-progress` | worktree: .worktrees/REQ-015/ | branch: ticket/REQ-015-sound-round4
 - [REQ-016-sound-round5/ticket.md](./REQ-016-sound-round5/ticket.md) — Sound round five: per-player dedupe, per-stream Mixer | `done` | tag: v0.6.19 | worktree: .worktrees/REQ-016/ | branch: ticket/REQ-016-sound-round5
 - [REQ-017-sound-progress/ticket.md](./REQ-017-sound-progress/ticket.md) — Sound progress tick and refreshPosition/model update | `in-progress` | worktree: .worktrees/REQ-017/ | branch: ticket/REQ-017-sound-progress
+- [REQ-018-sound-stream-join/ticket.md](./REQ-018-sound-stream-join/ticket.md) — Sound stream identity and MPRIS player join | `in-progress` | worktree: .worktrees/REQ-018/ | branch: ticket/REQ-018-sound-stream-join
