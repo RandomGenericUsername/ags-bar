@@ -1,10 +1,12 @@
 import { Gtk } from "ags/gtk4"
+import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
-import { Accessor, createComputed, createEffect, createState } from "ags"
+import { Accessor, createComputed, createEffect, createState, onCleanup } from "ags"
 import { registry } from "ags-platform/adapters/icon-registry"
 import type { AudioAppRowView } from "../presentation/audio-panel-view-model"
 import type { PlayerCapabilities } from "../domain/audio-model"
 import type { AudioPanelBinding, TransportAction } from "../binding"
+import { nextDisplayPosition } from "./seek-progress"
 
 /**
  * Shared GTK controls for the sound panel, the bar strip and the tray dropdown.
@@ -172,6 +174,7 @@ export function LevelControl({
 export function SeekLine({
   positionUs,
   durationUs,
+  playing: playingProp,
   title,
   onCommit,
   compact = false,
@@ -179,27 +182,60 @@ export function SeekLine({
 }: {
   positionUs: Accessor<number | null>
   durationUs: Accessor<number | null>
+  /** Actually playing (not merely a page with a playing icon). */
+  playing?: Accessor<boolean>
   title: Accessor<string>
   onCommit: (positionUs: number) => void
   compact?: boolean
   visible?: boolean | Accessor<boolean>
 }) {
   const [seekValue, setSeekValue] = createState(0)
+  const [displayUs, setDisplayUs] = createState(positionUs() ?? 0)
   let seeking = false
+  let baseUs = displayUs()
+  let baseAt = Date.now()
   const duration = createComputed(() => durationUs() ?? 0)
   const position = createComputed(() => positionUs() ?? 0)
+  const playing = createComputed(() => playingProp?.() ?? false)
+  const display = createComputed(() => displayUs())
   const enabled = createComputed(() => duration() > 0)
+  // The model is authoritative, but the display must tick even when a poll
+  // response is delayed. Reset the interpolation base on every model update;
+  // while playing, advance from it locally between polls. A paused player never
+  // advances.
+  createEffect(() => {
+    const current = position()
+    if (seeking) return
+    baseUs = current
+    baseAt = Date.now()
+    setDisplayUs(current)
+  })
   createEffect(() => {
     if (seeking) return
     const total = duration()
-    setSeekValue(total > 0 ? Math.max(0, Math.min(1000, (position() / total) * 1000)) : 0)
+    setSeekValue(total > 0 ? Math.max(0, Math.min(1000, (display() / total) * 1000)) : 0)
+  })
+  const tick = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+    if (!seeking && playing()) {
+      const total = duration()
+      const value = nextDisplayPosition(baseUs, baseAt, Date.now(), true, total)
+      if (Math.abs(value - displayUs()) >= 100_000) setDisplayUs(value)
+    }
+    return true
+  })
+  onCleanup(() => {
+    if (tick !== 0) GLib.source_remove(tick)
   })
 
   function commit(scale: Gtk.Scale) {
     if (!seeking) return
     seeking = false
     if (!enabled()) return
-    onCommit(Math.round((scale.get_value() / 1000) * duration()))
+    const target = Math.round((scale.get_value() / 1000) * duration())
+    baseUs = target
+    baseAt = Date.now()
+    setDisplayUs(target)
+    onCommit(target)
   }
 
   function wire(scale: Gtk.Scale) {
@@ -234,15 +270,24 @@ export function SeekLine({
         value={seekValue}
         drawValue={false}
         sensitive={enabled}
-        tooltipText={createComputed(() => `${title()} position ${formatClock(position())} of ${formatClock(duration())}`)}
-        onNotifyValue={(self: Gtk.Scale) => setSeekValue(Math.round(self.get_value()))}
+        tooltipText={createComputed(() => `${title()} position ${formatClock(display())} of ${formatClock(duration())}`)}
+        onNotifyValue={(self: Gtk.Scale) => {
+          const value = Math.round(self.get_value())
+          setSeekValue(value)
+          if (seeking && duration() > 0) {
+            const shown = Math.round((value / 1000) * duration())
+            baseUs = shown
+            baseAt = Date.now()
+            setDisplayUs(shown)
+          }
+        }}
         $={(self: Gtk.Scale) => {
-          createEffect(() => accessibleLabel(self, `${title()} playback position, ${formatClock(position())} of ${formatClock(duration())}`))
+          createEffect(() => accessibleLabel(self, `${title()} playback position, ${formatClock(display())} of ${formatClock(duration())}`))
           wire(self)
         }}
       />
       <box class="audio-times">
-        <label class="audio-time" xalign={0} hexpand label={createComputed(() => formatClock(position()))} />
+        <label class="audio-time" xalign={0} hexpand label={createComputed(() => formatClock(display()))} />
         <label class="audio-time" xalign={1} label={createComputed(() => formatClock(duration()))} />
       </box>
     </box>
