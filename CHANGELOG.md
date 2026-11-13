@@ -1,3 +1,12 @@
+## v0.6.21 — 2026-11-13
+
+- Keep distinct PipeWire sink-inputs even when AstalWp exposes fewer nodes than
+  `pw-dump`; graph-only streams retain node/serial identity, volume and mute.
+  The app row lists both Chrome stream IDs for the Mixer rows.
+- Include `playerId`/`playerIds` in the debug projection and pin the
+  `hasCurrentPlayer => playerId` join with a regression test.
+- Preserve v0.6.20 progress interpolation/poll behavior and the skin.
+
 ## v0.6.20 — 2026-11-13
 
 - Fix live seek progress: the visible panel refreshes the active seekable page

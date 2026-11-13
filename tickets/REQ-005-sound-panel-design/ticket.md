@@ -850,3 +850,12 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   resets from each authoritative poll; the drag/commit guard is unchanged.
 - Timed live captures without play/pause interaction are recorded in the
   REQ-017 evidence.
+
+### QA round 10 (stream identity/join)
+
+- PipeWire graph-only sink-inputs are unioned with AstalWp nodes; two Chrome
+  nodes keep distinct `pipewire:<node>:<serial>` IDs and independent
+  volume/mute rows.
+- The app row carries `playerId`/`playerIds`; the debug dump now exposes them.
+  `hasCurrentPlayer => playerId` has a regression test.
+- Progress/paused behavior from v0.6.20 is unchanged; no skin retune.

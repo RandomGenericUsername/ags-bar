@@ -63,3 +63,53 @@ test("session projection normalizes IDs, app identity, gain and observed route w
   assert.deepEqual(session.streams[0].routeIntent, { kind: "unknown" })
   assert.equal(session.players.length, 0)
 })
+
+test("two Chrome sink-inputs stay distinct even when AstalWp exposes only one node", async () => {
+  const { projectAudioPanel } = await import("../../audio/presentation/audio-panel-view-model.ts")
+  const twoTabs = [
+    { id: 10, type: "PipeWire:Interface:Node", info: { props: { "media.class": "Audio/Sink", "node.description": "USB DAC", "node.name": "sink-name" } } },
+    { id: 20, type: "PipeWire:Interface:Node", info: { props: {
+      "media.class": "Stream/Output/Audio", "application.name": "Google Chrome",
+      "application.process.binary": "chrome", "application.process.id": "777",
+      "media.name": "WhatsApp Web — tab", "channelVolumes": [0.55], "mute": false,
+    } } },
+    { id: 22, type: "PipeWire:Interface:Node", info: { props: {
+      "media.class": "Stream/Output/Audio", "application.name": "Google Chrome",
+      "application.process.binary": "chrome", "application.process.id": "777",
+      "media.name": "YouTube — tab", "channelVolumes": [0.4], "mute": true,
+    } } },
+    { id: 30, type: "PipeWire:Interface:Link", info: { state: "active", props: { "link.output.node": "20", "link.input.node": "10" } } },
+    { id: 31, type: "PipeWire:Interface:Link", info: { state: "active", props: { "link.output.node": "22", "link.input.node": "10" } } },
+  ]
+  const graph = parsePipeWireGraph(JSON.stringify(twoTabs))
+  const session = projectPipeWireSession({
+    nodes: [
+      { id: 10, name: "sink-name", "media-class": 2, description: "USB DAC", volume: 0.8, mute: false },
+      // AstalWp exposes only node 20; the graph exposes both sink-inputs.
+      { id: 20, name: "chrome-a", "media-class": 4, description: "WhatsApp Web — tab", volume: 0.55, mute: false },
+    ],
+    defaultSpeakerId: 10,
+    defaultMicrophoneId: null,
+    graph,
+  })
+  assert.deepEqual(session.streams.map((stream) => stream.id), ["pipewire:20:20", "pipewire:22:22"])
+  assert.deepEqual(session.streams.map((stream) => stream.name), ["WhatsApp Web — tab", "YouTube — tab"])
+  assert.deepEqual(session.streams.map((stream) => stream.volume.level), [0.55, 0.4])
+  assert.equal(session.streams[1].volume.muted, true)
+
+  const player = {
+    id: "mpris:chromium.instance6837#1", appId: "google-chrome", appName: "Google Chrome",
+    current: true, playback: "paused",
+    capabilities: { canPlay: true, canPause: true, canPlayPause: true, canGoNext: false, canGoPrevious: false,
+      canSeek: true, canShuffle: false, canLoop: false },
+    shuffle: false, loop: "none",
+    media: { title: "WhatsApp", artist: "", album: "", artworkUri: null, lengthUs: null, positionUs: 0 },
+  }
+  const model = projectAudioPanel({ ...session, players: [player] })
+  const chrome = model.rows.find((row) => row.appId === "google-chrome")
+  assert.ok(chrome, "the Chrome app row is missing")
+  assert.equal(chrome.hasCurrentPlayer, true)
+  assert.equal(chrome.playerId, player.id, "hasCurrentPlayer must carry the real playerId")
+  assert.deepEqual(chrome.streamIds, ["pipewire:20:20", "pipewire:22:22"])
+  assert.deepEqual(chrome.streams.map((stream) => stream.volume.level), [0.55, 0.4])
+})

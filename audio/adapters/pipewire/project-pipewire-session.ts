@@ -92,6 +92,18 @@ function isApplicationStream(props: Readonly<Record<string, unknown>>): boolean 
 }
 
 const text = (value: unknown): string => typeof value === "string" ? value : ""
+const streamDirection = (props: Readonly<Record<string, unknown>>): "output" | "input" | null => {
+  const mediaClass = text(props["media.class"])
+  if (mediaClass.startsWith("Stream/Output/")) return "output"
+  if (mediaClass.startsWith("Stream/Input/")) return "input"
+  return null
+}
+const graphVolume = (props: Readonly<Record<string, unknown>>): { level: number; muted: boolean } => {
+  const raw = props["channelVolumes"]
+  const values = Array.isArray(raw) ? raw.map((value) => Number(value)).filter(Number.isFinite) : []
+  const level = values.length ? Math.max(...values) : 1
+  return { level: Math.max(0, Math.min(1, level)), muted: props["mute"] === true }
+}
 const number = (value: unknown): number | null => {
   const n = typeof value === "number" ? value : Number(value)
   return Number.isFinite(n) ? n : null
@@ -219,13 +231,42 @@ export function projectPipeWireSession(input: {
   const inputEndpoint = inputs.find((item) => item.id === microphoneId) ?? null
   const appsById = new Map<string, AppIdentity>()
   const streams: AudioStream[] = []
-
+  const seenStreamNodes = new Set<number>()
+  const candidates: RawNode[] = []
   for (const node of input.nodes) {
     const direction = node["media-class"] === 4 ? "output" : node["media-class"] === 3 ? "input" : null
-    if (direction === null || typeof node.id !== "number") continue
+    if (direction !== null && typeof node.id === "number") {
+      candidates.push(node)
+      seenStreamNodes.add(node.id)
+    }
+  }
+  // AstalWp can expose fewer sink-inputs than the PipeWire graph (measured:
+  // two Chrome tabs, only one Wp node). The graph is the authoritative set of
+  // stream nodes; add any graph-only application stream with its graph volume
+  // and target, preserving node/serial identity instead of collapsing it into
+  // another stream of the same app/PID.
+  for (const [nodeId, props] of input.graph.streamProperties) {
+    if (seenStreamNodes.has(nodeId)) continue
+    const direction = streamDirection(props)
+    if (direction === null || !isApplicationStream(props)) continue
+    const graph = graphVolume(props)
+    candidates.push({
+      id: nodeId,
+      name: text(props["node.name"]) || `Stream ${nodeId}`,
+      description: text(props["node.description"]) || text(props["node.name"]) || `Stream ${nodeId}`,
+      "media-class": direction === "output" ? 4 : 3,
+      volume: graph.level,
+      mute: graph.muted,
+    })
+  }
+
+  for (const node of candidates) {
+    if (typeof node.id !== "number") continue
     const props = input.graph.streamProperties.get(node.id) ?? {}
     // Skip level-meter and monitor streams: not applications using audio.
     if (!isApplicationStream(props)) continue
+    const direction = node["media-class"] === 4 ? "output" : node["media-class"] === 3 ? "input" : null
+    if (direction === null) continue
     const processId = number(props["application.process.id"])
     const rawName = text(props["application.name"]) || text(props["application.process.binary"]) ||
       node.description || node.name || `Application ${node.id}`
@@ -257,6 +298,10 @@ export function projectPipeWireSession(input: {
       : null
     const requestedEndpointId = id(requestedNumericId ?? requestedByName ?? target ?? null)
     const endpointId = id(input.graph.streamEndpoint.get(node.id) ?? target ?? null)
+    const fallbackVolume = graphVolume(props)
+    const streamVolume = node.volume === undefined && node.mute === undefined
+      ? volumeState(fallbackVolume.level, fallbackVolume.muted)
+      : volumeState(node.volume ?? 0, node.mute === true)
     streams.push({
       id: `pipewire:${node.id}:${input.graph.streamSerial.get(node.id) ?? node.id}`,
       appId,
@@ -269,7 +314,7 @@ export function projectPipeWireSession(input: {
       // reconstruct whether an already-live stream followed a previous default.
       // Route-intent reconciliation owns that history and will refine this value.
       routeIntent: UnknownRoute,
-      volume: volumeState(node.volume ?? 0, node.mute === true),
+      volume: streamVolume,
       current: true,
     })
   }
