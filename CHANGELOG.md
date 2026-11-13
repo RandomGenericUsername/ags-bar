@@ -1,3 +1,11 @@
+## v0.6.23 — 2026-11-13
+
+- Collapse Tidal to one canonical current player/page even when more than one
+  Tidal transport exists (native, native-instance, Electron/Chromium). Prefer
+  a non-ended current native transport; Chrome tabs remain separate.
+- Keep the stable Playing page id and layout-signature fit reductions.
+- Bar-only deploy only; no assets/platform/engine/composition tags change.
+
 ## v0.6.22 — 2026-11-13
 
 - Suppress the Electron/Chromium Tidal mirror whenever a current native Tidal

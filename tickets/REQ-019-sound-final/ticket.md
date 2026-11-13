@@ -26,3 +26,10 @@ branch: ticket/REQ-019-sound-final
    `~/.local/share/dotfiles/apps/bar/<tag>`, repoint `~/.config/ags`, restart
    AGS. Do not run bootstrap/provision or change assets/platform/engine/
    composition tags. No skin retune; no `surface.window`.
+
+## Additional canonical Tidal pass
+
+Live still had a native Tidal + native-style duplicate (the Electron/Chromium
+transport was already suppressed). Tidal now collapses to one canonical current
+page across all Tidal transports: prefer native, then non-ended current media.
+Chrome remains multi-tab/per-player.

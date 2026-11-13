@@ -150,16 +150,33 @@ function isElectronTidalMirror(player: AudioPlayer): boolean {
 }
 
 /**
- * Native Tidal owns the Tidal page when it is current. Its Electron/Chromium
- * mirror can be a stale duplicate with an older track; suppress that mirror
- * entirely. This rule is Tidal-specific: Chrome tabs with distinct media must
- * remain separate pages.
+ * Tidal is one app with native and Electron/Chromium MPRIS transports. When a
+ * native current player exists, its mirror can be a stale duplicate with an
+ * older track; keep exactly one canonical Tidal player (native/current first)
+ * and suppress every other Tidal transport. This is Tidal-specific: Chrome
+ * tabs with distinct media must remain separate pages.
  */
-function suppressNativeTidalMirrors(players: readonly AudioPlayer[]): AudioPlayer[] {
-  const hasNativeTidal = players.some((player) =>
-    player.current && isTidalApp(player) && !isElectronTidalMirror(player) && hasPlaybackMedia(player))
-  if (!hasNativeTidal) return [...players]
-  return players.filter((player) => !(isTidalApp(player) && isElectronTidalMirror(player)))
+function canonicalTidalPlayers(players: readonly AudioPlayer[]): AudioPlayer[] {
+  const tidals = players.filter((player) => player.current && isTidalApp(player))
+  if (tidals.length <= 1) return [...players]
+  const natives = tidals.filter((player) => !isElectronTidalMirror(player))
+  const pool = natives.filter(hasPlaybackMedia).length
+    ? natives.filter(hasPlaybackMedia)
+    : natives.length ? natives : tidals
+  const chosen = [...pool].sort((a, b) => {
+    const playback = (player: AudioPlayer): number => player.playback === "playing" ? 4 :
+      player.playback === "paused" ? 3 : player.playback === "stopped" ? 1 : 2
+    const ended = (player: AudioPlayer): boolean => {
+      const length = player.media.lengthUs
+      const position = player.media.positionUs
+      return typeof length === "number" && typeof position === "number" && length > 0 &&
+        position >= length - 1_000_000
+    }
+    return playback(b) - playback(a) || Number(!ended(b)) - Number(!ended(a)) ||
+      Number(!isElectronTidalMirror(b)) - Number(!isElectronTidalMirror(a)) ||
+      controlsScore(b) - controlsScore(a) || a.id.localeCompare(b.id)
+  })[0]
+  return players.filter((player) => !isTidalApp(player) || !player.current || player.id === chosen.id)
 }
 
 function sameIntent(a: RouteIntent, b: RouteIntent): boolean {
@@ -240,7 +257,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     const streams = group.streams.filter((stream) => stream.direction === "output")
       .sort((a, b) => a.id.localeCompare(b.id))
     const players = [...group.players].sort((a, b) => a.id.localeCompare(b.id))
-    const displayPlayers = suppressNativeTidalMirrors(players)
+    const displayPlayers = canonicalTidalPlayers(players)
     const player = choosePlayer(displayPlayers)
     const media = player?.media
     const appName = displayPlayers[0]?.appName?.trim() || app?.displayName?.trim() ||
@@ -322,7 +339,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
   // Mixer grouping; two Chrome sessions (or Tidal native + its Electron mirror)
   // are two pages with their own metadata, transport and identity.
   const rowByApp = new Map(rows.map((row) => [row.id, row]))
-  const playablePlayers = dedupePlayers(suppressNativeTidalMirrors(session.players.filter((player) =>
+  const playablePlayers = dedupePlayers(canonicalTidalPlayers(session.players.filter((player) =>
     player.current && player.playback !== "stopped" && hasPlaybackMedia(player))))
   const playerRows = playablePlayers
     .map((player): AudioAppRowView | null => {

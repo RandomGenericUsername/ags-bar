@@ -136,10 +136,8 @@ test("a merged row prefers the player that exposes optional controls", () => {
   assert.equal(row.canLoop, true)
   assert.equal(row.shuffle, true)
   assert.equal(row.loop, "playlist")
-  assert.deepEqual(row.artworkUris.sort(), [
-    "file:///tmp/.com.google.Chrome.abc",
-    "https://resources.tidal.com/cover.jpg",
-  ].sort(), "the row keeps every player artwork candidate")
+  assert.deepEqual(row.artworkUris, ["https://resources.tidal.com/cover.jpg"],
+    "the canonical native Tidal row does not retain the suppressed mirror artwork")
   const pages = projectAudioPanel(session({
     apps: [{ id: "tidal-hifi", displayName: "Tidal" }],
     players: [mirror, native],
@@ -249,15 +247,15 @@ test("Playing dedupes same-app same-track mirrors and excludes stopped/no-media 
     "Mixer keeps the app row even when no Playing page is valid")
 })
 
-test("same-app different media stays separate", () => {
-  const a = player({ id: "mpris:tidal-hifi#1", appId: "tidal-hifi", appName: "Tidal",
-    media: media({ title: "Sola", artist: "Kiasmos", album: "II" }) })
-  const b = player({ id: "mpris:tidal-hifi#2", appId: "tidal-hifi", appName: "Tidal",
-    media: media({ title: "Black Horizons", artist: "Dissection", album: "The Somberlain" }) })
+test("same-app different Chrome media stays separate", () => {
+  const a = player({ id: "mpris:chromium.instance10#1", appId: "google-chrome", appName: "Google Chrome",
+    busName: "org.mpris.MediaPlayer2.chromium.instance10", media: media({ title: "WhatsApp Web" }) })
+  const b = player({ id: "mpris:chromium.instance11#1", appId: "google-chrome", appName: "Google Chrome",
+    busName: "org.mpris.MediaPlayer2.chromium.instance11", media: media({ title: "YouTube" }) })
   const pages = projectAudioPanel(session({
-    apps: [{ id: "tidal-hifi", displayName: "Tidal" }], players: [a, b],
+    apps: [{ id: "google-chrome", displayName: "Google Chrome" }], players: [a, b],
   })).playingRows
-  assert.deepEqual(pages.map((row) => row.title).sort(), ["Black Horizons", "Sola"])
+  assert.deepEqual(pages.map((row) => row.title).sort(), ["WhatsApp Web", "YouTube"])
 })
 
 test("native Tidal suppresses its Electron mirror, but Chrome tabs stay separate", () => {
@@ -291,4 +289,24 @@ test("native Tidal suppresses its Electron mirror, but Chrome tabs stay separate
     "the Tidal app row joins the native player")
   assert.equal(model.playingRows.filter((row) => row.appId === "google-chrome").length, 2,
     "genuine Chrome tab media must stay separate")
+})
+
+test("two native-style Tidal transports collapse to one current page", () => {
+  const current = player({
+    id: "mpris:tidal-hifi.instance1#1", appId: "tidal-hifi", appName: "Tidal",
+    busName: "org.mpris.MediaPlayer2.tidal-hifi.instance1", playback: "playing",
+    media: media({ title: "Fenris", positionUs: 1_000_000, lengthUs: 400_000_000 }),
+  })
+  const stale = player({
+    id: "mpris:tidal-hifi#1", appId: "tidal-hifi", appName: "Tidal",
+    busName: "org.mpris.MediaPlayer2.tidal-hifi", playback: "playing",
+    media: media({ title: "Black Horizons", positionUs: 492_000_000, lengthUs: 492_000_000 }),
+  })
+  const model = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }], players: [current, stale],
+  }))
+  assert.deepEqual(model.playingRows.filter((row) => row.appId === "tidal-hifi").map((row) => row.id),
+    [current.id], "one current Tidal page")
+  assert.deepEqual(model.rows.find((row) => row.id === "tidal-hifi").playerIds, [current.id],
+    "the app row retains one canonical Tidal player")
 })
