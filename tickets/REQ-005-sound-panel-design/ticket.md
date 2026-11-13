@@ -774,3 +774,12 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   transport centered 36/18. Mock hash `7628aae2…`.
 - Final tags bar v0.6.14, assets v0.21.0, platform v1.2.0, engine v0.1.75,
   composition v0.1.83; live verify 337.
+
+### QA round 5 (2026-11-12)
+
+- Shuffle-off uses the owner's 50% opacity art; active remains full; Tidal
+  on/off verified, video hides shuffle.
+- Strip group centered in its 340 px slot at real 1920 and mock 1920/1280;
+  32 px transparent art, no tile.
+- Final tags canonicalized on main/master; mock hash `7628aae2…`; live
+  v0.6.15/assets v0.21.1/platform v1.2.0/engine v0.1.76/composition v0.1.84.

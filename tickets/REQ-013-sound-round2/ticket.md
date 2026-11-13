@@ -64,3 +64,22 @@ Input body plus the window natural-height refresh remove the dead bottom.
 - `/tmp/opencode/req005/r3-final-settings.png` (one settings surface, square
   host-0 corners; no double frame).
 - No AGS overlay uses `surface.window`; the skin was not retuned.
+
+## Final residuals (v0.6.15)
+
+- **Shuffle-off opacity:** assets v0.21.1 copies the owner's
+  `shuffle-disabled.svg` into `media-controls/shuffle` with
+  `fill-opacity="0.5"`; `shuffle-active` stays full. Live Tidal off
+  `r4-final-tidal-off.png`, on `r4-final-tidal-on.png`; Chrome/video
+  `r4-final-video.png` has no shuffle/repeat.
+- **Strip centering:** 340 px slot with the art/title/controls group
+  horizontally centered; 32 px transparent art, no tile. Real 1920 bar
+  `r4-final-strip-tidal-zoom.png`; mock `r4-mock-1920-strip.png`,
+  `r4-mock-1280-strip.png`.
+- **Canonicalization:** fast-forwarded the final tags to `main`/`master`:
+  bar main `215066e` (v0.6.15), assets master `8776419` (v0.21.1), platform
+  main `85d35b8` (v1.2.0), engine main `79b720d` (v0.1.76), composition master
+  `d09aa0c4` (v0.1.84). Tags pushed.
+- Final live: bar v0.6.15, assets v0.21.1, platform v1.2.0, engine v0.1.76,
+  composition v0.1.84; generation `249c3428…`; verify 337. Muted/settings
+  first-round screenshots `r4-final-muted.png`, `r4-final-settings.png`.
