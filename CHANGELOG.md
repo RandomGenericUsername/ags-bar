@@ -1,3 +1,16 @@
+## v0.6.17 — 2026-11-12
+
+- Artwork is app-owned content: transparent/borderless/shadowless containers;
+  the skin no longer paints the track/app/strip artwork tile. The thumbnail or
+  app fallback is the only visual.
+- MPRIS app identity resolves from Identity/DesktopEntry then the owner
+  executable, never the `chromium` bus prefix. Tidal Electron labels as Tidal;
+  Chrome as Google Chrome.
+- Playing pages and Players rows are per MPRIS player, with the raw player
+  identity retained. Mixer remains the app/stream view; audio-only Chrome tabs
+  with no MPRIS session get no invented Playing page.
+- Assets v0.21.3 supplies the bare-artwork boundary and identity text styles.
+
 ## v0.6.16 — 2026-11-12
 
 - Remove the panel footer (`Changes apply immediately.`, `Esc closes`) and

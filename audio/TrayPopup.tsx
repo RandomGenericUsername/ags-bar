@@ -41,7 +41,8 @@ function PlayerRow({ row, active }: { row: Accessor<AudioAppRowView>; active: Ac
       class={createComputed(() => `audio-tray-player${active() ? " active" : ""}`)}
       canFocus
       onClicked={() => selectPlaying(row().id)}
-      $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self, `${name()}${active() ? ", selected" : ""}`))}
+      $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self,
+        `${name()}${row().playerIdentity ? ` · ${row().playerIdentity}` : ""}${active() ? ", selected" : ""}`))}
     >
       <box class="audio-tray-player-row" spacing={7}>
         <AppTile row={row} size={22} />
@@ -51,6 +52,10 @@ function PlayerRow({ row, active }: { row: Accessor<AudioAppRowView>; active: Ac
             <box class="audio-playing-dot" valign={Gtk.Align.CENTER} visible={createComputed(() => row().playback === "playing")} />
           </box>
           <label class="audio-tray-player-track" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={title} />
+          <label class="audio-tray-player-identity" xalign={0} ellipsize={Pango.EllipsizeMode.END}
+            label={createComputed(() => row().playerIdentity ?? "")}
+            visible={createComputed(() => Boolean(row().playerIdentity))}
+            tooltipText={createComputed(() => row().playerIdentity ?? "")} />
         </box>
         <label class="audio-tray-check" label={createComputed(() => (active() ? "✓" : ""))} />
       </box>

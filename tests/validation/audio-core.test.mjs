@@ -6,6 +6,7 @@ import {
   routeLabel, volumeState,
 } from "../../audio/domain/audio-model.ts"
 import { setAppVolume, toggleAppMute, setAppRoute, seekPlayer } from "../../audio/application/audio-actions.ts"
+import { mprisAppDisplayName, resolveMprisAppId } from "../../services/mpris-core.ts"
 
 const endpoints = [
   { id: "A", name: "C-Media", available: true, volume: volumeState(0.7, false) },
@@ -144,4 +145,25 @@ test("player actions target player identity and reject stale or unsupported seek
   assert.equal(missing.reason, "missing-player")
   const unsupported = await seekPlayer(fakePorts({ ...session, players: [player({ capabilities: { ...player().capabilities, canSeek: false } })] }), "player:chrome:1", 1)
   assert.equal(unsupported.reason, "unsupported")
+})
+
+
+test("MPRIS app identity comes from Identity/DesktopEntry/exe, never the bus prefix", () => {
+  const tidal = resolveMprisAppId({
+    identity: "tidal-hifi", executable: "/opt/tidal-hifi/tidal-hifi", processId: 1565980,
+  })
+  const chrome = resolveMprisAppId({
+    identity: "Chrome", executable: "/opt/google/chrome/chrome", processId: 330504,
+  })
+  assert.equal(tidal, "tidal-hifi")
+  assert.equal(mprisAppDisplayName(tidal), "Tidal")
+  assert.equal(chrome, "google-chrome")
+  assert.equal(mprisAppDisplayName(chrome), "Google Chrome")
+  assert.notEqual(tidal, chrome, "a Chromium bus prefix must not collapse Tidal into Chrome")
+  assert.equal(resolveMprisAppId({ identity: "chromium", desktopEntry: "tidal-hifi.desktop" }), "tidal-hifi")
+  assert.equal(resolveMprisAppId({ identity: "chromium", executable: "/opt/google/chrome/chrome" }), "google-chrome")
+  assert.equal(resolveMprisAppId({ identity: "", desktopEntry: "", executable: "", processId: 42 }), "mpris-pid-42",
+    "the fallback is the owner process, not the bus prefix")
+  assert.notEqual(resolveMprisAppId({ processId: 1565980 }), "google-chrome")
+  assert.equal(mprisAppDisplayName("firefox"), "Firefox")
 })

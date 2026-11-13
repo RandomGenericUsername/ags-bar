@@ -65,7 +65,7 @@ test("the projection exposes shuffle/loop capability, the selected Playing pages
     players: [player({ shuffle: true, loop: "playlist" })],
   }))
   assert.equal(model.rows.length, 2, "the audio-only app stays in Mixer")
-  assert.deepEqual(model.playingRows.map((row) => row.id), ["spotify"], "only current players are Playing pages")
+  assert.deepEqual(model.playingRows.map((row) => row.id), ["mpris:spotify#1"], "only current players are Playing pages")
   assert.equal(model.anyPlaying, true)
   const spotify = model.rows.find((row) => row.id === "spotify")
   assert.equal(spotify.shuffle, true)
@@ -140,6 +140,55 @@ test("a merged row prefers the player that exposes optional controls", () => {
     "file:///tmp/.com.google.Chrome.abc",
     "https://resources.tidal.com/cover.jpg",
   ].sort(), "the row keeps every player artwork candidate")
+  const pages = projectAudioPanel(session({
+    apps: [{ id: "tidal-hifi", displayName: "Tidal" }],
+    players: [mirror, native],
+  })).playingRows
+  assert.deepEqual(pages.map((page) => page.id).sort(), [mirror.id, native.id].sort(),
+    "the app row stays merged while Playing pages stay per-player")
+  assert.ok(pages.every((page) => page.appName === "Tidal"), "the Tidal players are not labelled Chrome")
+  assert.deepEqual(new Set(pages.map((page) => page.appId)), new Set(["tidal-hifi"]))
+})
+
+test("per-player pages keep Chrome sessions and Tidal native/Electron distinct", () => {
+  const tidalElectron = player({
+    id: "mpris:chromium.instance1565980#1", appId: "tidal-hifi", appName: "Tidal",
+    playerIdentity: "tidal-hifi", busName: "org.mpris.MediaPlayer2.chromium.instance1565980",
+    media: media({ title: "Black Horizons", artist: "Dissection" }),
+  })
+  const tidalNative = player({
+    id: "mpris:tidal-hifi#1", appId: "tidal-hifi", appName: "Tidal",
+    playerIdentity: "Tidal Hi-Fi", busName: "org.mpris.MediaPlayer2.tidal-hifi",
+    media: media({ title: "Black Horizons", artist: "Dissection" }),
+  })
+  const chromeA = player({
+    id: "mpris:chromium.instance330504#1", appId: "google-chrome", appName: "Google Chrome",
+    playerIdentity: "Chrome", busName: "org.mpris.MediaPlayer2.chromium.instance330504",
+    media: media({ title: "WhatsApp Web" }),
+  })
+  const chromeB = player({
+    id: "mpris:chromium.instance440000#1", appId: "google-chrome", appName: "Google Chrome",
+    playerIdentity: "Chrome", busName: "org.mpris.MediaPlayer2.chromium.instance440000",
+    media: media({ title: "YouTube" }),
+  })
+  const model = projectAudioPanel(session({
+    apps: [
+      { id: "tidal-hifi", displayName: "Tidal" },
+      { id: "google-chrome", displayName: "Google Chrome" },
+    ],
+    players: [tidalElectron, tidalNative, chromeA, chromeB],
+  }))
+  assert.equal(model.rows.length, 2, "Mixer keeps the app grouping")
+  assert.deepEqual(model.rows.map((row) => row.id).sort(), ["google-chrome", "tidal-hifi"])
+  assert.equal(model.playingRows.length, 4, "every MPRIS player gets a Playing page")
+  assert.deepEqual(model.playingRows.map((row) => row.id).sort(), [
+    tidalElectron.id, tidalNative.id, chromeA.id, chromeB.id,
+  ].sort())
+  const tidalPages = model.playingRows.filter((row) => row.appId === "tidal-hifi")
+  assert.ok(tidalPages.every((row) => row.appName === "Tidal"), "Tidal Electron must not read Google Chrome")
+  assert.deepEqual(tidalPages.map((row) => row.playerIdentity).sort(), ["Tidal Hi-Fi", "tidal-hifi"])
+  assert.equal(model.playingRows.filter((row) => row.appId === "google-chrome").length, 2,
+    "two Chrome MPRIS sessions are two pages")
 })
 
 test("the position action re-reads the MPRIS position", async () => {

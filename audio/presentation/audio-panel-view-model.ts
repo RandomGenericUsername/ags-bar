@@ -4,6 +4,7 @@ import {
   type AppIdentity, type AudioPlayer, type AudioSession, type AudioStream,
   type EndpointState, type LoopStatus, type PlayerCapabilities, type RouteIntent, type VolumeState,
 } from "../domain/audio-model.ts"
+import { mprisAppDisplayName } from "../../services/mpris-core.ts"
 
 export interface AudioPanelStreamView {
   id: AudioStream["id"]
@@ -30,6 +31,10 @@ export interface AudioAppRowView {
   playback: AudioPlayer["playback"] | null
   playerId: AudioPlayer["id"] | null
   playerIds: readonly AudioPlayer["id"][]
+  /** Raw MPRIS Identity/DesktopEntry (or PID fallback) for this player. */
+  playerIdentity: string | null
+  playerProcessId: number | null
+  playerBusName: string | null
   /** MPRIS Shuffle/Loop for the row's displayed player; unsupported flags hide both controls. */
   shuffle: boolean
   loop: LoopStatus
@@ -155,14 +160,15 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     if (key && !identityByKey.has(key)) identityByKey.set(key, app)
   }
 
-  const rows = [...groups.entries()].map(([key, group]): AudioAppRowView => {
+  const appRows = [...groups.entries()].map(([key, group]): AudioAppRowView => {
     const app = identityByKey.get(key)
     const streams = group.streams.filter((stream) => stream.direction === "output")
       .sort((a, b) => a.id.localeCompare(b.id))
     const players = [...group.players].sort((a, b) => a.id.localeCompare(b.id))
     const player = choosePlayer(players)
     const media = player?.media
-    const appName = app?.displayName?.trim() || player?.appId || group.streams[0]?.appId || key
+    const appName = players[0]?.appName?.trim() || app?.displayName?.trim() ||
+      mprisAppDisplayName(key) || group.streams[0]?.appId || key
     const intents = streams.map((stream) => stream.routeIntent)
     // With no stream there is no stream intent to show, so fall back to the
     // app-scoped one the user set while the app was silent. This is what keeps
@@ -191,7 +197,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       appId: key,
       appName,
       desktopId: app?.desktopId,
-      iconName: app?.aliases?.[0] || app?.desktopId || key,
+      iconName: players[0]?.appId || app?.aliases?.[0] || app?.desktopId || key,
       artworkUri: media?.artworkUri ?? null,
       artworkUris: [...new Set(players.map((item) => item.media.artworkUri)
         .filter((uri): uri is string => typeof uri === "string" && uri !== ""))],
@@ -202,6 +208,9 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       playback: player?.playback ?? null,
       playerId: player?.id ?? null,
       playerIds: players.map((item) => item.id),
+      playerIdentity: player?.playerIdentity ?? null,
+      playerProcessId: player?.processId ?? null,
+      playerBusName: player?.busName ?? null,
       shuffle: player?.shuffle ?? false,
       loop: player?.loop ?? "none",
       canShuffle: player?.capabilities.canShuffle ?? false,
@@ -229,6 +238,51 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       routeLabel: routeText,
     }
   }).sort((a, b) => a.appName.localeCompare(b.appName) || a.id.localeCompare(b.id))
+  const rows = appRows
+
+  // Playing pages are PER MPRIS PLAYER, not per app. An app row stays the
+  // Mixer grouping; two Chrome sessions (or Tidal native + its Electron mirror)
+  // are two pages with their own metadata, transport and identity.
+  const rowByApp = new Map(rows.map((row) => [row.id, row]))
+  const playerRows = session.players.filter((player) => player.current)
+    .map((player): AudioAppRowView | null => {
+      const appId = canonicalAppKey(player.appId) || player.appId
+      const appRow = rowByApp.get(appId)
+      if (appRow === undefined) return null
+      const media = player.media
+      const canSeek = playerSupportsSeek(player)
+      const appName = player.appName?.trim() || appRow.appName
+      return {
+        ...appRow,
+        id: player.id,
+        appId,
+        appName,
+        iconName: player.appId || appRow.iconName,
+        artworkUri: media.artworkUri,
+        artworkUris: media.artworkUri ? [media.artworkUri] : [],
+        artworkPath: null,
+        title: clean(media.title) || appName,
+        artist: clean(media.artist),
+        album: clean(media.album),
+        playback: player.playback,
+        playerId: player.id,
+        playerIds: [player.id],
+        playerIdentity: player.playerIdentity || player.busName || player.id,
+        playerProcessId: player.processId ?? null,
+        playerBusName: player.busName ?? null,
+        shuffle: player.shuffle,
+        loop: player.loop,
+        canShuffle: player.capabilities.canShuffle,
+        canLoop: player.capabilities.canLoop,
+        positionUs: canSeek ? media.positionUs : null,
+        durationUs: canSeek ? media.lengthUs : null,
+        capabilities: { ...player.capabilities },
+        canSeek,
+        hasCurrentPlayer: true,
+      }
+    }).filter((row): row is AudioAppRowView => row !== null)
+    .sort((a, b) => a.appName.localeCompare(b.appName) ||
+      (a.playerIdentity ?? "").localeCompare(b.playerIdentity ?? "") || a.id.localeCompare(b.id))
 
   const consumers = session.streams.filter((stream) => stream.current && stream.direction === "input")
     .sort((a, b) => a.appId.localeCompare(b.appId) || a.id.localeCompare(b.id))
@@ -251,7 +305,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     appEndpoints: session.appEndpoints ?? {},
     inputConsumers: consumers,
     rows,
-    playingRows: rows.filter((row) => row.hasCurrentPlayer),
-    anyPlaying: rows.some((row) => row.hasCurrentPlayer && row.playback === "playing"),
+    playingRows: playerRows,
+    anyPlaying: session.players.some((player) => player.current && player.playback === "playing"),
   }
 }

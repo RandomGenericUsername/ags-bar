@@ -2,8 +2,8 @@ import Gio from "gi://Gio?version=2.0"
 import GLib from "gi://GLib?version=2.0"
 import { execAsync } from "ags/process"
 import {
-  canonicalIdentity, carryDuration, MPRIS_EXCLUDED, MPRIS_PREFIX, normalisePosition, parseBusName, parseMetadata,
-  type TrackMeta,
+  carryDuration, MPRIS_EXCLUDED, MPRIS_PREFIX, mprisAppDisplayName, normalisePosition, parseBusName, parseMetadata,
+  resolveMprisAppId, type TrackMeta,
 } from "../../../services/mpris-core"
 import type { AudioPlayer, LoopStatus, PlayerId, PlayerMedia } from "../../domain/audio-model.ts"
 import type { MprisObservation, MprisObservationPort, MprisPort, Unsubscribe } from "../../application/ports.ts"
@@ -23,6 +23,9 @@ interface PlayerRecord {
   id: string
   busName: string
   appId: string
+  appName: string
+  playerIdentity: string
+  processId: number | null
   playback: AudioPlayer["playback"]
   capabilities: AudioPlayer["capabilities"]
   shuffle: boolean
@@ -89,7 +92,9 @@ function metadata(props: RawProps, previous?: PlayerRecord): { track: TrackMeta;
   } }
 }
 function toPlayer(record: PlayerRecord): AudioPlayer {
-  return { id: record.id, appId: record.appId, current: true, playback: record.playback,
+  return { id: record.id, appId: record.appId, appName: record.appName,
+    playerIdentity: record.playerIdentity, busName: record.busName, processId: record.processId,
+    current: true, playback: record.playback,
     capabilities: { ...record.capabilities }, shuffle: record.shuffle, loop: record.loop,
     media: { ...record.media } }
 }
@@ -164,12 +169,43 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       new GLib.Variant("(s)", [PLAYER_IFACE]))
     return dict((reply.deepUnpack() as unknown[])[0])
   }
-  private async getIdentity(busName: string): Promise<string> {
+  private async getRootString(busName: string, property: string): Promise<string> {
     try {
-      const reply = await this.call(busName, "/org/mpris/MediaPlayer2", DBUS_PROPERTIES, "Get",
-        new GLib.Variant("(ss)", [ROOT_IFACE, "Identity"]))
+      const reply = await this.call(busName, PLAYER_PATH, DBUS_PROPERTIES, "Get",
+        new GLib.Variant("(ss)", [ROOT_IFACE, property]))
       return stringValue((reply.deepUnpack() as unknown[])[0])
     } catch { return "" }
+  }
+
+  /** The owner PID is an app-identity fallback; it is never the bus prefix. */
+  private async getOwnerPid(busName: string): Promise<number | null> {
+    try {
+      const reply = await this.call(DBUS, DBUS_PATH, DBUS, "GetConnectionUnixProcessID",
+        new GLib.Variant("(s)", [busName]))
+      const pid = Number((reply.deepUnpack() as unknown[])[0])
+      return Number.isInteger(pid) && pid >= 0 ? pid : null
+    } catch { return null }
+  }
+
+  private readExecutable(pid: number | null): string {
+    if (pid === null) return ""
+    try {
+      const info = Gio.File.new_for_path(`/proc/${pid}/exe`).query_info(
+        "standard::symlink-target", Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null)
+      return info.get_symlink_target() ?? ""
+    } catch { return "" }
+  }
+
+  /** Read the root Identity/DesktopEntry plus the owner process, never the bus name. */
+  private async getRootInfo(busName: string): Promise<{
+    identity: string; desktopEntry: string; processId: number | null; executable: string
+  }> {
+    const [identity, desktopEntry, processId] = await Promise.all([
+      this.getRootString(busName, "Identity"),
+      this.getRootString(busName, "DesktopEntry"),
+      this.getOwnerPid(busName),
+    ])
+    return { identity, desktopEntry, processId, executable: this.readExecutable(processId) }
   }
 
   private installPlayerSignals(busName: string): void {
@@ -194,10 +230,13 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     let task!: Promise<void>
     task = (async () => {
       try {
-        const [props, identity] = await Promise.all([this.getAll(busName), this.getIdentity(busName)])
+        const [props, root] = await Promise.all([this.getAll(busName), this.getRootInfo(busName)])
         if (this.playerSignals.get(busName) !== installedSignals || this.generations.get(busName) !== generation)
           return // owner changed during reads
-        const record = this.fromProps(busName, identity, props)
+        const appId = resolveMprisAppId(root)
+        const playerIdentity = root.identity || root.desktopEntry ||
+          (root.processId !== null ? `PID ${root.processId}` : "")
+        const record = this.fromProps(busName, appId, playerIdentity, root.processId, props)
         this.records.set(busName, record)
         this.emit({ kind: "player-changed", player: toPlayer(record) })
       } catch (error) {
@@ -211,7 +250,8 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     return task
   }
 
-  private fromProps(busName: string, identity: string, props: RawProps): PlayerRecord {
+  private fromProps(busName: string, appId: string, playerIdentity: string,
+    processId: number | null, props: RawProps): PlayerRecord {
     const previous = this.records.get(busName)
     const { track: trackMeta, media } = metadata(props, previous)
     const reportedPosition = position(props.Position)
@@ -226,7 +266,10 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     return {
       id: `${busName}#${this.generations.get(busName) ?? 0}`,
       busName,
-      appId: canonicalIdentity(identity || parseBusName(busName).identity),
+      appId,
+      appName: mprisAppDisplayName(appId),
+      playerIdentity,
+      processId,
       playback: statusValue(props.PlaybackStatus),
       capabilities: { canPlay, canPause, canPlayPause: canPlay || canPause,
         canGoNext: booleanValue(props.CanGoNext), canGoPrevious: booleanValue(props.CanGoPrevious),
@@ -284,9 +327,9 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       const props = await this.getAll(busName)
       const old = this.records.get(busName)
       if (old === undefined || old.id !== expected.id) return
-      const record = this.fromProps(busName, old.appId, props)
+      const record = this.fromProps(busName, old.appId, old.playerIdentity, old.processId, props)
       // Identity is already canonical here; avoid changing app key on refresh.
-      record.appId = old.appId
+      record.appName = old.appName
       this.records.set(busName, record)
       this.emit({ kind: "player-changed", player: toPlayer(record) })
     } catch (error) { console.debug(`audio mpris refresh failed for ${busName}:`, error) }

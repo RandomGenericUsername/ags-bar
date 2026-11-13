@@ -223,13 +223,69 @@ function canonicalToken(value: string): string {
 
 /** The canonical app key for an MPRIS identity.
  *
- *  Two Chrome windows expose two players that both report `chromium` and are
- *  otherwise indistinguishable, so the UI collapses them by this key rather than
- *  showing a duplicate row. Also folds framework/brand spellings together
- *  (`chromium`/`chrome`/`google-chrome` → `google-chrome`). */
+ *  Framework/brand spellings fold together (`chromium`/`chrome`/`google-chrome`
+ *  → `google-chrome`). This is a key, not a player id: per-player Playing pages
+ *  keep the distinct MPRIS bus identities even when they share an app key. */
 export function canonicalIdentity(identity: string): string {
   return canonicalToken(identity)
 }
+
+const FRAMEWORK_IDENTITIES = new Set(["chromium", "chrome", "google-chrome", "electron"])
+
+/** The human app name for a canonical MPRIS app key. */
+export function mprisAppDisplayName(appId: string): string {
+  const key = canonicalIdentity(appId)
+  switch (key) {
+    case "tidal-hifi": return "Tidal"
+    case "google-chrome": return "Google Chrome"
+    case "firefox": return "Firefox"
+    case "spotify": return "Spotify"
+    case "youtube-music": return "YouTube Music"
+    case "brave-browser": return "Brave"
+    default: return key === "" ? "Unknown player" : key
+  }
+}
+
+/** Root-property inputs available from one MPRIS owner. */
+export interface MprisAppIdentityInput {
+  identity?: string
+  desktopEntry?: string
+  executable?: string
+  processId?: number | null
+}
+
+function executableToken(path: string | undefined): string {
+  const base = (path ?? "").replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? ""
+  return canonicalToken(base)
+}
+
+/**
+ * Resolve the APP key for one MPRIS owner from Identity / DesktopEntry, then
+ * the owner executable, never from the bus-name prefix.
+ *
+ * Live regression: `org.mpris.MediaPlayer2.chromium.instance1565980` is Tidal
+ * (Identity `tidal-hifi`, exe `/opt/tidal-hifi/tidal-hifi`), while
+ * `...chromium.instance330504` is Chrome (Identity `Chrome`, exe
+ * `/opt/google/chrome/chrome`). A bus-prefix fallback labels both `chromium` →
+ * Google Chrome. Framework identities (`chromium`, `electron`) are therefore
+ * only a last resort when the brand properties and process exe are unavailable.
+ */
+export function resolveMprisAppId(input: MprisAppIdentityInput): string {
+  const identity = canonicalIdentity(input.identity ?? "")
+  const desktop = canonicalIdentity((input.desktopEntry ?? "").replace(/\.desktop$/i, ""))
+  const executable = executableToken(input.executable)
+  const specific = (key: string): boolean => key !== "" && !FRAMEWORK_IDENTITIES.has(key)
+  if (specific(identity)) return identity
+  if (specific(desktop)) return desktop
+  if (specific(executable)) return executable
+  if (identity !== "") return identity
+  if (desktop !== "") return desktop
+  if (executable !== "") return executable
+  if (input.processId !== null && input.processId !== undefined && input.processId >= 0)
+    return `mpris-pid-${input.processId}`
+  return "mpris-unknown"
+}
+
 
 // ── App identity resolution (one row per real app) ─────────────────────────
 //

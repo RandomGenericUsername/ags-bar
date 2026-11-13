@@ -268,7 +268,6 @@ kbd {
   border-radius: 6px;
   background-size: cover;
   background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .20);
 }
 .tray-strip-text {
   flex: 0 1 auto;
@@ -474,7 +473,6 @@ kbd {
   font-size: 7.5px;
   font-weight: 700;
   color: rgba(255, 255, 255, .94);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
 }
 .tray-source-name {
   min-width: 0;
@@ -495,7 +493,6 @@ kbd {
   border-radius: var(--r-control);
   background-size: cover;
   background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
 }
 .tray-meta { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .tray-title {
@@ -607,6 +604,15 @@ kbd {
   font-size: 10.5px;
   color: var(--ink-faint);
   line-height: 1.1;
+}
+.tray-player-identity {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 9.5px;
+  line-height: 1.1;
+  color: var(--ink-faint);
 }
 .tray-check {
   flex: 0 0 14px;
@@ -1047,7 +1053,6 @@ body.is-closed .audio-pop {
   font-size: 10.5px;
   font-weight: 700;
   color: rgba(255, 255, 255, .94);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
 }
 .app-spotify { background: radial-gradient(circle at 30% 24%, #1ed760, #0b6b35 72%); }
 .app-firefox { background: radial-gradient(circle at 30% 24%, #ffb35c, #c42b6f 76%); }
@@ -1057,6 +1062,7 @@ body.is-closed .audio-pop {
     linear-gradient(150deg, #0b1220, #1b6b7a);
 }
 .app-vlc { background: radial-gradient(circle at 30% 24%, #ffcf7a, #c2410c 74%); }
+.app-chrome { background: radial-gradient(circle at 30% 24%, #6ee7ff, #1a73e8 72%); }
 
 .playing-meta {
   flex: 1;
@@ -1072,6 +1078,16 @@ body.is-closed .audio-pop {
   text-overflow: ellipsis;
   font-size: 13px;
   font-weight: 650;
+}
+.player-identity {
+  min-width: 0;
+  max-width: 118px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--ink-dim);
 }
 .page-index {
   flex: 0 0 auto;
@@ -1118,7 +1134,6 @@ body.is-closed .audio-pop {
   border-radius: var(--r-control);
   background-size: cover;
   background-position: center;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .13);
 }
 /* The app icon is a small corner badge over the track thumbnail, not the
    artwork itself (and the fallback if a player publishes no thumbnail). */
@@ -1134,7 +1149,6 @@ body.is-closed .audio-pop {
   font-size: 8.5px;
   font-weight: 700;
   color: rgba(255, 255, 255, .94);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
 }
 /* CSS album art — no external assets. Each is a small composition,
    not a flat swatch, so the page reads as artwork at 40px. */
@@ -1895,6 +1909,16 @@ const BASE_APPS = [
     ]
   },
   {
+    id: "chrome", name: "Google Chrome", initial: "C", artClass: "app-chrome",
+    route: "follow-preferred", override: null,
+    volume: 55, muted: false, mixed: false, hasPlayer: true, playing: true,
+    canSeek: false, canPrev: false, canNext: false, shuffle: false, repeat: "off",
+    shuffleSupported: false, repeatSupported: false, position: 0, trackIndex: 0,
+    tracks: [
+      { title: "WhatsApp Web", artist: "Media details unavailable", album: "", length: null, art: "art-radio" }
+    ]
+  },
+  {
     id: "vlc", name: "VLC", initial: "V", artClass: "app-vlc",
     route: "follow-preferred", override: null,
     volume: 60, muted: false, mixed: false, hasPlayer: true, playing: true,
@@ -1907,6 +1931,41 @@ const BASE_APPS = [
 ];
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+
+/* One app can own several MPRIS players. These page objects are the Playing /
+   Players rows; state.apps remains the Mixer app/stream grouping. */
+const makePlayer = (app, overrides) => ({
+  ...clone(app),
+  appId: app.id,
+  identity: app.name,
+  ...overrides,
+});
+const APP = (id) => BASE_APPS.find((app) => app.id === id);
+const BASE_PLAYERS = [
+  makePlayer(APP("spotify"), { id: "spotify", identity: "Spotify" }),
+  makePlayer(APP("tidal"), {
+    id: "tidal-native", identity: "Tidal Hi-Fi", playing: false, shuffle: true, repeat: "all",
+  }),
+  makePlayer(APP("tidal"), {
+    id: "tidal-electron", identity: "tidal-hifi", playing: true, shuffle: false, repeat: "off",
+    trackIndex: 0,
+    tracks: [
+      { title: "Black Horizons", artist: "Dissection", album: "The Somberlain", length: 492, art: "art-lofi" },
+      { title: "Looped", artist: "Kiasmos", album: "Blurred", length: 211, art: "art-weightless" }
+    ],
+  }),
+  makePlayer(APP("chrome"), {
+    id: "chrome-whatsapp", identity: "Chrome", playing: true, canSeek: false,
+  }),
+  makePlayer(APP("chrome"), {
+    id: "chrome-youtube", identity: "Chrome", playing: false, canSeek: true,
+    canPrev: false, canNext: false,
+    tracks: [
+      { title: "YouTube — live set", artist: "Media details unavailable", album: "", length: null, art: "art-radio" }
+    ],
+  }),
+  makePlayer(APP("vlc"), { id: "vlc", identity: "VLC" }),
+];
 
 const SETTINGS_KEY = "ags-bar.settings";
 function loadWidgetEnabled() {
@@ -1930,6 +1989,7 @@ const state = {
   devices: clone(BASE_DEVICES),
   outputId: "speakers",
   apps: clone(BASE_APPS),
+  players: clone(BASE_PLAYERS),
   mode: "playing",
   playingId: "spotify",
   mixFocusId: null,
@@ -1956,13 +2016,15 @@ const currentDevice = () => state.devices.find((d) => d.id === state.outputId) ?
 const currentInput = () => state.inputs.find((d) => d.id === state.input.deviceId) ?? null;
 const trackOf = (app) => app.tracks[app.trackIndex] ?? app.tracks[0];
 const appById = (id) => state.apps.find((app) => app.id === id) ?? null;
-const playingApps = () => state.apps.filter((app) => app.hasPlayer);
-const playingIndex = (id) => playingApps().findIndex((app) => app.id === id);
+const pageById = (id) => state.players.find((player) => player.id === id) ?? null;
+const playersForApp = (appId) => state.players.filter((player) => player.appId === appId);
+const playingApps = () => state.players;
+const playingIndex = (id) => playingApps().findIndex((player) => player.id === id);
 const playingPage = () => {
   const pages = playingApps();
-  return pages.find((app) => app.id === state.playingId) ?? pages[0] ?? null;
+  return pages.find((player) => player.id === state.playingId) ?? pages[0] ?? null;
 };
-const anyPlaying = () => state.apps.some((app) => app.hasPlayer && app.playing);
+const anyPlaying = () => state.players.some((player) => player.playing);
 const trayPlayer = () => playingPage();
 let trayCueTimer = null;
 
@@ -1991,16 +2053,14 @@ if (params.get("muted") === "1") currentDevice().muted = true;
 // ?apps=1 is a harmless default alias; the deck always shows the list.
 if (params.get("apps") === "0") {
   state.apps = [];
+  state.players = [];
   state.playingId = null;
   state.mixFocusId = null;
   state.input.consumers = [];
 }
 
 if (params.get("playing") === "0") {
-  for (const app of state.apps) {
-    app.hasPlayer = false;
-    app.playing = false;
-  }
+  state.players = [];
 }
 
 if (params.get("input") === "1") state.inputOpen = true;
@@ -2040,11 +2100,12 @@ if (wantedApp) {
   const app = appById(wantedApp);
   if (app) {
     state.mixFocusId = app.id;
-    if (app.hasPlayer) {
-      state.playingId = app.id;
+    const firstPlayer = playersForApp(app.id)[0];
+    if (firstPlayer) {
+      state.playingId = firstPlayer.id;
       if (!modeParam) mode = "playing";
     } else {
-      // Audio-only apps have no Playing page; focus them in Mixer.
+      // A tab with audio but no MPRIS session has no Playing page.
       mode = "mixer";
     }
   }
@@ -2205,6 +2266,7 @@ function playingHeadHTML(app) {
     <div class="playing-head">
       <div class="playing-meta">
         <span class="app-name">${app.name}</span>
+        <span class="player-identity" title="${app.identity}">${app.identity}</span>
         ${live ? '<span class="live-badge">Live</span>' : ""}
         <span class="page-index">${index}/${pages.length}</span>
       </div>
@@ -2257,7 +2319,7 @@ function playingPageBodyHTML(app) {
           <span data-playing-duration="${app.id}">${fmt(track.length)}</span>
         </div>
       </div>` : ""}
-    <button class="playing-level" data-mix-app="${app.id}" title="Open in Mixer"
+    <button class="playing-level" data-mix-app="${app.appId}" title="Open in Mixer"
             aria-label="Open ${app.name} in Mixer">
       ${volumeIcon(app.muted, app.volume)}
       <span>${app.muted ? "Muted" : `${app.volume}%`}</span>
@@ -2266,7 +2328,8 @@ function playingPageBodyHTML(app) {
 }
 
 function playingPageHTML(app) {
-  return `<article class="playing-page" data-playing-page="${app.id}" aria-label="${app.name}">${playingPageBodyHTML(app)}</article>`;
+  return `<article class="playing-page" data-playing-page="${app.id}"
+    aria-label="${app.name}${app.identity && app.identity !== app.name ? ` · ${app.identity}` : ""}">${playingPageBodyHTML(app)}</article>`;
 }
 
 function setPlayingHeight() {
@@ -2583,7 +2646,7 @@ function showTrayCue() {
   if (!app) return;
   const pages = playingApps();
   const cue = $("trayCue");
-  cue.textContent = `${playingIndex(app.id) + 1}/${pages.length} · ${app.name}`;
+  cue.textContent = `${playingIndex(app.id) + 1}/${pages.length} · ${app.name}${app.identity && app.identity !== app.name ? ` · ${app.identity}` : ""}`;
   cue.hidden = false;
   requestAnimationFrame(() => cue.classList.add("show"));
   clearTimeout(trayCueTimer);
@@ -2606,6 +2669,7 @@ function trayPlayerRowHTML(player, activeId) {
           ${player.playing ? '<span class="playing-dot" title="Playing"></span>' : ""}
         </span>
         <span class="tray-player-track">${track?.title || "Audio only"}</span>
+        <span class="tray-player-identity">${player.identity || ""}</span>
       </span>
       <span class="tray-check">${active ? ICON.check : ""}</span>
     </button>`;
@@ -2775,8 +2839,8 @@ function setWidgetEnabled(enabled) {
   updateTray();
 }
 
-function selectTrayPlayer(appId) {
-  const app = appById(appId);
+function selectTrayPlayer(playerId) {
+  const app = pageById(playerId);
   if (!app?.hasPlayer) return;
   state.playingId = app.id;
   renderPlaying();
@@ -3126,7 +3190,7 @@ $("mixerTab").addEventListener("click", () => setMode("mixer"));
 $("playingTrack").addEventListener("click", (event) => {
   const action = event.target.closest("[data-playing-action]");
   if (action) {
-    const app = appById(action.dataset.playingApp);
+    const app = pageById(action.dataset.playingApp);
     playingAction(app, action.dataset.playingAction);
     return;
   }
@@ -3138,7 +3202,7 @@ $("playingTrack").addEventListener("click", (event) => {
 $("playingTrack").addEventListener("input", (event) => {
   const seek = event.target.closest("[data-playing-seek]");
   if (!seek) return;
-  const app = appById(seek.dataset.playingSeek);
+  const app = pageById(seek.dataset.playingSeek);
   if (!app?.canSeek) return;
   const track = trackOf(app);
   if (!track?.length) return;
@@ -3293,7 +3357,7 @@ if (params.get("panel") === "closed") setPanelOpen(false);
 const wantsSettings = params.get("settings") === "1";
 if (params.get("tray") === "1" && !wantsSettings) {
   setPanelOpen(false);
-  setTimeout(openTray, 300);
+  openTray();
 }
 if (wantsSettings) {
   setTimeout(openSettings, 50);
