@@ -837,3 +837,13 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   resets from each authoritative poll; the drag/commit guard is unchanged.
 - Timed live captures without play/pause interaction are recorded in the
   REQ-017 evidence.
+
+### Round 9 live evidence (progress fix)
+
+- Bar `v0.6.20` / assets `v0.21.3` / engine `v0.1.81` / composition `v0.1.89`;
+  platform `v1.2.0`.
+- Real Chrome playing page advanced `0:26` -> `0:41` over 15 seconds without
+  play/pause interaction; model/debug position followed.
+- Paused page held `1:20` for 5 seconds.
+- Runtime/model `player-changed` propagation and paused interpolation are
+  covered by `audio-progress.test.mjs`.
