@@ -7,6 +7,7 @@ import { levelVariant } from "./presentation/levels"
 import type {
   AudioAppRowView,
   AudioInputConsumerView,
+  AudioPanelStreamView,
   AudioPanelViewModel,
 } from "./presentation/audio-panel-view-model"
 import type { EndpointState } from "./domain/audio-model"
@@ -266,7 +267,8 @@ function PlayingPage({ row, index, total, binding }: {
             label={createComputed(() => row().playerIdentity ?? "")}
             visible={createComputed(() => Boolean(row().playerIdentity))}
             tooltipText={createComputed(() => row().playerIdentity ?? "")} />
-          <label class="audio-live-badge" label="Live" visible={createComputed(() => !canSeek())} />
+          <label class="audio-live-badge" label="Live"
+            visible={createComputed(() => row().playback === "playing" && !canSeek())} />
           <label class="audio-page-index" hexpand xalign={1} label={createComputed(() => `${index() + 1}/${total()}`)} />
         </box>
       </box>
@@ -452,6 +454,112 @@ function MixerRow({ row, binding }: { row: Accessor<AudioAppRowView>; binding: A
           <label class="audio-mixer-mixed" xalign={1} label="Mixed" visible={createComputed(() => row().mixedLevel)} />
         </box>
       </box>
+      <MixerStreams row={row} binding={binding} />
+    </box>
+  )
+}
+
+function looksLikeBrowser(row: AudioAppRowView): boolean {
+  return /chrome|chromium|firefox|brave|edge|opera/i.test(`${row.appName} ${row.appId}`)
+}
+
+function MixerStreamRow({
+  row, stream, binding,
+}: {
+  row: Accessor<AudioAppRowView>
+  stream: Accessor<AudioPanelStreamView>
+  binding: AudioPanelBinding
+}) {
+  const volume = createComputed(() => stream().volume)
+  const muteIcon = createComputed(() => icon("volume", `system-${levelVariant(volume().muted, volume().level)}`))
+  const routeShort = createComputed(() => {
+    const intent = stream().routeIntent
+    if (intent.kind === "follow-preferred") return "Follow preferred"
+    if (intent.kind === "explicit") {
+      return binding.model().outputs.find((output) => output.id === intent.endpointId)?.name ?? "No route"
+    }
+    return stream().routeLabel
+  })
+
+  function routeOptions(anchor: Gtk.Widget) {
+    const current = stream()
+    const preferred = binding.model().outputs.find((output) =>
+      output.id === binding.model().preferredOutputId)?.name ?? "Unavailable"
+    openChoicePopover(anchor, `${row().appName} · ${current.name} output route`, [
+      {
+        label: `Follow preferred · ${preferred}`,
+        selected: current.routeIntent.kind === "follow-preferred",
+        activate: () => binding.actions.setStreamRoute(current.id, { kind: "follow-preferred" }),
+      },
+      ...binding.model().outputs.map((output) => ({
+        label: output.available ? `${output.name} · Override` : output.name,
+        note: output.available ? "" : "Unavailable",
+        selected: current.routeIntent.kind === "explicit" && current.routeIntent.endpointId === output.id,
+        disabled: !output.available,
+        activate: () => binding.actions.setStreamRoute(current.id, { kind: "explicit", endpointId: output.id }),
+      })),
+    ])
+  }
+
+  return (
+    <box class="audio-mixer-stream" orientation={VERTICAL} spacing={2}
+      $={(self: Gtk.Widget) => createEffect(() => accessibleLabel(self,
+        `${row().appName}, ${stream().name} stream`))}>
+      <box class="audio-mixer-stream-head" spacing={6}>
+        <label class="audio-mixer-sub" xalign={0} hexpand ellipsize={Pango.EllipsizeMode.END}
+          label={createComputed(() => stream().name)} tooltipText={createComputed(() => stream().name)} />
+        <button
+          class="audio-route"
+          tooltipText={createComputed(() => stream().routeLabel)}
+          onClicked={(self: Gtk.Button) => routeOptions(self)}
+          $={(self: Gtk.Button) => createEffect(() => accessibleLabel(self,
+            `${row().appName} ${stream().name} route: ${stream().routeLabel}`))}
+        >
+          <label class="audio-route-label" ellipsize={Pango.EllipsizeMode.END} label={routeShort} />
+        </button>
+      </box>
+      <box class="audio-mixer-controls audio-mixer-stream-controls" spacing={6}>
+        <IconButton
+          name={createComputed(() => `${row().appName} ${stream().name} volume ${volume().muted ? "muted" : "unmuted"}`)}
+          tooltip={createComputed(() => (volume().muted ? "Unmute" : "Mute"))}
+          imagePath={muteIcon}
+          onClicked={() => binding.actions.toggleStreamMute(stream().id)}
+          active={createComputed(() => volume().muted)}
+          className="audio-icon-button audio-mixer-mute"
+        />
+        <LevelControl
+          label={createComputed(() => `${row().appName} ${stream().name} volume`)}
+          volume={volume}
+          className="audio-mixer-level"
+          sliderClass="settings-level-slider audio-level-slider"
+          showValue={false}
+          onChange={(value) => binding.actions.setStreamVolume(stream().id, value)}
+        />
+        <label class="audio-mixer-pct" xalign={1} label={createComputed(() => `${asPercent(volume().level)}%`)} />
+      </box>
+    </box>
+  )
+}
+
+function MixerStreams({ row, binding }: { row: Accessor<AudioAppRowView>; binding: AudioPanelBinding }) {
+  const streams = createComputed(() => row().streams)
+  const multi = createComputed(() => streams().length > 1)
+  const note = createComputed(() => {
+    if (streams().length > 1) return `${streams().length} PipeWire streams`
+    if (streams().length === 1 && looksLikeBrowser(row())) return "One PipeWire stream · per-tab split unavailable"
+    return ""
+  })
+  return (
+    <box class="audio-mixer-streams" orientation={VERTICAL} spacing={2} visible={createComputed(() => streams().length > 0)}>
+      <label class="audio-mixer-sub" xalign={0} label={note}
+        visible={createComputed(() => note() !== "")} />
+      <For each={createComputed(() => multi() ? streams() : [])} id={(stream) => stream.id}>
+        {(item: AudioPanelStreamView) => {
+          const id = item.id
+          const stream = createComputed(() => row().streams.find((candidate) => candidate.id === id) ?? item)
+          return <MixerStreamRow row={row} stream={stream} binding={binding} />
+        }}
+      </For>
     </box>
   )
 }

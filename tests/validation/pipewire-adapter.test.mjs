@@ -54,6 +54,7 @@ test("session projection normalizes IDs, app identity, gain and observed route w
   assert.equal(session.apps[0].processId, 123)
   assert.equal(session.streams[0].id, "pipewire:20:20")
   assert.equal(session.streams[0].appId, "firefox")
+  assert.equal(session.streams[0].name, "AudioStream")
   assert.equal(session.streams[0].endpointId, "10")
   assert.equal(session.streams[0].requestedEndpointId, "10")
   assert.equal(session.streams[0].direction, "output")

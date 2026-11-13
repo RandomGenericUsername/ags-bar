@@ -1406,6 +1406,43 @@ body.is-closed .audio-pop {
   line-height: 1.2;
 }
 
+/* Per-stream Mixer detail beneath the app row. */
+.mixer-streams {
+  padding: 2px 0 2px 34px;
+}
+.mixer-streams-note {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  color: var(--ink-faint);
+  line-height: 1.3;
+}
+.mixer-stream { padding: 2px 0; }
+.mixer-stream-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+.mixer-stream-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  color: var(--ink-dim);
+}
+.mixer-stream .route { height: 24px; max-width: 100px; }
+.mixer-stream-controls {
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  margin-top: 0;
+  padding-left: 0;
+}
+.mixer-stream-controls .mixer-mute { width: 28px; height: 28px; }
+
 .mixer-empty {
   display: flex;
   align-items: center;
@@ -1887,7 +1924,8 @@ const BASE_APPS = [
     tracks: [
       { title: "Weightless", artist: "Marconi Union", album: "Ambient Transmissions", length: 482, art: "art-weightless" },
       { title: "An Ending (Ascent)", artist: "Brian Eno", album: "Apollo", length: 267, art: "art-sola" }
-    ]
+    ],
+    streams: [{ id: "spotify-main", name: "Weightless — Spotify", volume: 74, muted: false, route: "follow-preferred", override: null }]
   },
   {
     id: "firefox", name: "Firefox", initial: "F", artClass: "app-firefox",
@@ -1895,7 +1933,11 @@ const BASE_APPS = [
     volume: 50, muted: false, mixed: true, hasPlayer: false, playing: false,
     canSeek: false, canPrev: false, canNext: false, shuffle: false, repeat: "off",
     shuffleSupported: false, repeatSupported: false, position: 0, trackIndex: 0,
-    tracks: []
+    tracks: [],
+    streams: [
+      { id: "firefox-youtube", name: "YouTube — tab", volume: 50, muted: false, route: "explicit", override: "headphones" },
+      { id: "firefox-background", name: "Background tab — audio only", volume: 35, muted: false, route: "follow-preferred", override: null }
+    ]
   },
   {
     id: "tidal", name: "Tidal", initial: "T", artClass: "app-tidal",
@@ -1906,16 +1948,21 @@ const BASE_APPS = [
     tracks: [
       { title: "Sola", artist: "Kiasmos", album: "II", length: 244, art: "art-sola" },
       { title: "Looped", artist: "Kiasmos", album: "Blurred", length: 211, art: "art-weightless" }
-    ]
+    ],
+    streams: [{ id: "tidal-main", name: "Black Horizons — Tidal", volume: 36, muted: false, route: "follow-preferred", override: null }]
   },
   {
     id: "chrome", name: "Google Chrome", initial: "C", artClass: "app-chrome",
     route: "follow-preferred", override: null,
-    volume: 55, muted: false, mixed: false, hasPlayer: true, playing: true,
+    volume: 55, muted: false, mixed: true, hasPlayer: true, playing: true,
     canSeek: false, canPrev: false, canNext: false, shuffle: false, repeat: "off",
     shuffleSupported: false, repeatSupported: false, position: 0, trackIndex: 0,
     tracks: [
       { title: "WhatsApp Web", artist: "Media details unavailable", album: "", length: null, art: "art-radio" }
+    ],
+    streams: [
+      { id: "chrome-whatsapp-tab", name: "WhatsApp Web — tab", volume: 55, muted: false, route: "follow-preferred", override: null },
+      { id: "chrome-youtube-tab", name: "YouTube — tab", volume: 40, muted: false, route: "explicit", override: "headphones" }
     ]
   },
   {
@@ -1926,7 +1973,8 @@ const BASE_APPS = [
     shuffleSupported: false, repeatSupported: false, position: 0, trackIndex: 0,
     tracks: [
       { title: "Radio Paradise — Main Mix", artist: "Radio Paradise", album: "Live stream", length: null, art: "art-radio" }
-    ]
+    ],
+    streams: [{ id: "vlc-main", name: "Radio Paradise — Main Mix", volume: 60, muted: false, route: "follow-preferred", override: null }]
   }
 ];
 
@@ -1945,6 +1993,11 @@ const BASE_PLAYERS = [
   makePlayer(APP("spotify"), { id: "spotify", identity: "Spotify" }),
   makePlayer(APP("tidal"), {
     id: "tidal-native", identity: "Tidal Hi-Fi", playing: false, shuffle: true, repeat: "all",
+    trackIndex: 0,
+    tracks: [
+      { title: "Black Horizons", artist: "Dissection", album: "The Somberlain", length: 492, art: "art-lofi" },
+      { title: "Looped", artist: "Kiasmos", album: "Blurred", length: 211, art: "art-weightless" }
+    ],
   }),
   makePlayer(APP("tidal"), {
     id: "tidal-electron", identity: "tidal-hifi", playing: true, shuffle: false, repeat: "off",
@@ -1963,6 +2016,12 @@ const BASE_PLAYERS = [
     tracks: [
       { title: "YouTube — live set", artist: "Media details unavailable", album: "", length: null, art: "art-radio" }
     ],
+  }),
+  makePlayer(APP("chrome"), {
+    id: "chrome-stopped", identity: "Chrome", status: "stopped", playing: false, tracks: [],
+  }),
+  makePlayer(APP("chrome"), {
+    id: "chrome-no-media", identity: "Chrome", playing: true, tracks: [],
   }),
   makePlayer(APP("vlc"), { id: "vlc", identity: "VLC" }),
 ];
@@ -2018,13 +2077,29 @@ const trackOf = (app) => app.tracks[app.trackIndex] ?? app.tracks[0];
 const appById = (id) => state.apps.find((app) => app.id === id) ?? null;
 const pageById = (id) => state.players.find((player) => player.id === id) ?? null;
 const playersForApp = (appId) => state.players.filter((player) => player.appId === appId);
-const playingApps = () => state.players;
+const trackIdentity = (player) => {
+  const track = trackOf(player);
+  return track ? [track.title, track.artist, track.album].filter(Boolean).join("|") : "";
+};
+const playingApps = () => {
+  const seen = new Set();
+  const out = [];
+  for (const player of state.players) {
+    if (player.status === "stopped") continue;
+    if (!player.tracks || player.tracks.length === 0) continue;
+    const key = `${player.appId}|${player.trackKey || trackIdentity(player)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(player);
+  }
+  return out;
+};
 const playingIndex = (id) => playingApps().findIndex((player) => player.id === id);
 const playingPage = () => {
   const pages = playingApps();
   return pages.find((player) => player.id === state.playingId) ?? pages[0] ?? null;
 };
-const anyPlaying = () => state.players.some((player) => player.playing);
+const anyPlaying = () => playingApps().some((player) => player.playing);
 const trayPlayer = () => playingPage();
 let trayCueTimer = null;
 
@@ -2415,6 +2490,55 @@ function updatePlayingSeek(app) {
 
 /* Mixer mode: every app with audio, including audio-only apps. */
 
+function streamRouteShort(app, stream) {
+  if (stream.route === "follow-preferred") return "Follow preferred";
+  return state.devices.find((device) => device.id === stream.override)?.name ?? "No route";
+}
+
+function streamRouteFull(app, stream) {
+  if (stream.route === "follow-preferred") return `Follow preferred · ${currentDevice().name}`;
+  return `${state.devices.find((device) => device.id === stream.override)?.name ?? "No route"} · Override`;
+}
+
+function mixerStreamHTML(app, stream) {
+  const key = `${app.id}:${stream.id}`;
+  return `
+    <div class="mixer-stream" data-mixer-stream="${key}">
+      <div class="mixer-stream-head">
+        <span class="mixer-stream-name" title="${stream.name}">${stream.name}</span>
+        <button class="route" data-stream-route="${key}" aria-haspopup="menu" aria-expanded="false"
+                title="${streamRouteFull(app, stream)}" aria-label="${app.name} · ${stream.name} route: ${streamRouteFull(app, stream)}">
+          <span class="rt">${streamRouteShort(app, stream)}</span>
+        </button>
+      </div>
+      <div class="mixer-controls mixer-stream-controls">
+        <button class="mixer-mute${stream.muted ? " is-on" : ""}" data-stream-mute="${key}"
+                aria-pressed="${stream.muted}" aria-label="${stream.muted ? "Unmute" : "Mute"} ${app.name} ${stream.name}">
+          ${volumeIcon(stream.muted, stream.volume)}
+        </button>
+        <input class="range secondary${stream.muted ? " is-muted" : ""}" type="range" min="0" max="100" step="1"
+               value="${stream.volume}" data-stream-range="${key}" style="--fill:${stream.volume}%"
+               aria-label="${app.name} ${stream.name} volume">
+        <span class="mixer-value"><span class="mixer-pct" data-stream-pct="${key}">${stream.volume}%</span></span>
+      </div>
+    </div>`;
+}
+
+function mixerStreamsHTML(app) {
+  const streams = app.streams ?? [];
+  if (streams.length === 0) return "";
+  const browser = /chrome|chromium|firefox|brave|edge|opera/i.test(app.name);
+  if (streams.length === 1) {
+    return browser
+      ? `<div class="mixer-streams"><div class="mixer-streams-note">One PipeWire stream · per-tab split unavailable</div></div>`
+      : "";
+  }
+  return `<div class="mixer-streams">
+    <div class="mixer-streams-note">${streams.length} PipeWire streams</div>
+    ${streams.map((stream) => mixerStreamHTML(app, stream)).join("")}
+  </div>`;
+}
+
 function mixerRowHTML(app) {
   const focused = state.mixFocusId === app.id;
   const playing = app.hasPlayer && app.playing;
@@ -2450,6 +2574,7 @@ function mixerRowHTML(app) {
           ${app.mixed ? '<span class="mixer-mixed" title="This app has streams at different levels">Mixed</span>' : ""}
         </span>
       </div>
+      ${mixerStreamsHTML(app)}
     </div>`;
 }
 
@@ -2925,6 +3050,38 @@ function setPanelOpen(open, { toastOnClose = false } = {}) {
 
 /* ── device & route menus ────────────────────────────────────── */
 
+function openStreamRouteMenu(app, stream, anchor) {
+  if (openMenuState?.anchor === anchor) { closeMenu(true); return; }
+  openMenu(anchor, {
+    title: `${app.name} · ${stream.name} route`,
+    width: 248,
+    items: [
+      {
+        label: `Follow preferred · ${currentDevice().name}`,
+        selected: stream.route === "follow-preferred",
+        onSelect: () => {
+          stream.route = "follow-preferred";
+          stream.override = null;
+          renderMixer();
+          toast(`${app.name} · ${stream.name} follows ${currentDevice().name}`);
+        }
+      },
+      ...state.devices.map((device) => ({
+        label: device.available ? `${device.name} · Override` : device.name,
+        note: device.available ? "" : "Unavailable",
+        selected: stream.route === "explicit" && stream.override === device.id,
+        disabled: !device.available,
+        onSelect: () => {
+          stream.route = "explicit";
+          stream.override = device.id;
+          renderMixer();
+          toast(`${app.name} · ${stream.name} routed to ${device.name}`);
+        }
+      }))
+    ]
+  });
+}
+
 function openOutputMenu() {
   const anchor = $("outputDevice");
   if (openMenuState?.anchor === anchor) { closeMenu(true); return; }
@@ -3222,6 +3379,24 @@ $("playingTrack").addEventListener("pointerup", (event) => {
 
 /* Mixer controls never change mode; the row itself has no click action. */
 $("mixerList").addEventListener("click", (event) => {
+  const streamMute = event.target.closest("[data-stream-mute]");
+  if (streamMute) {
+    const [appId, streamId] = streamMute.dataset.streamMute.split(":");
+    const app = appById(appId);
+    const stream = app?.streams?.find((item) => item.id === streamId);
+    if (!app || !stream) return;
+    stream.muted = !stream.muted;
+    renderMixer();
+    return;
+  }
+  const streamRoute = event.target.closest("[data-stream-route]");
+  if (streamRoute) {
+    const [appId, streamId] = streamRoute.dataset.streamRoute.split(":");
+    const app = appById(appId);
+    const stream = app?.streams?.find((item) => item.id === streamId);
+    if (app && stream) openStreamRouteMenu(app, stream, streamRoute);
+    return;
+  }
   const mute = event.target.closest("[data-mixer-mute]");
   if (mute) {
     const app = appById(mute.dataset.mixerMute);
@@ -3239,6 +3414,19 @@ $("mixerList").addEventListener("click", (event) => {
 });
 
 $("mixerList").addEventListener("input", (event) => {
+  const streamRange = event.target.closest("[data-stream-range]");
+  if (streamRange) {
+    const [appId, streamId] = streamRange.dataset.streamRange.split(":");
+    const app = appById(appId);
+    const stream = app?.streams?.find((item) => item.id === streamId);
+    if (!app || !stream) return;
+    stream.volume = Number(streamRange.value);
+    setFill(streamRange, stream.volume);
+    streamRange.setAttribute("aria-valuetext", `${stream.volume} percent`);
+    const pct = $("mixerList").querySelector(`[data-stream-pct="${appId}:${streamId}"]`);
+    if (pct) pct.textContent = `${stream.volume}%`;
+    return;
+  }
   const range = event.target.closest("[data-mixer-range]");
   if (!range) return;
   const app = appById(range.dataset.mixerRange);

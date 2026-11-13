@@ -1,6 +1,7 @@
 import {
   clampLevel, currentStreamsForApp, nextLoopStatus, playerSupportsSeek, volumeState,
   type AppId, type AudioPlayer, type AudioSession, type EndpointId, type LoopStatus, type PlayerId,
+  type StreamId,
 } from "../domain/audio-model.ts"
 import type { ActionResult, AudioPorts } from "./ports.ts"
 
@@ -104,6 +105,45 @@ export async function toggleAppMute(ports: AudioPorts, appId: AppId): Promise<Ac
   return fanOut(streams.map((stream) => () => ports.pipewire.setStreamVolume(
     stream.id, volumeState(stream.volume.level, muted),
   )))
+}
+
+function currentOutputStream(session: AudioSession, streamId: StreamId): AudioSession["streams"][number] | null {
+  return session.streams.find((stream) =>
+    stream.id === streamId && stream.current && stream.direction === "output") ?? null
+}
+
+/** Per-stream Mixer detail: one exact PipeWire stream, not the whole app fan-out. */
+export async function setStreamVolume(ports: AudioPorts, streamId: StreamId, level: number): Promise<ActionResult> {
+  const stream = currentOutputStream(ports.session.current(), streamId)
+  if (!stream) return rejected("no-current-stream")
+  await ports.pipewire.setStreamVolume(stream.id, volumeState(clampLevel(level), stream.volume.muted))
+  return { ok: true, applied: 1, failed: 0 }
+}
+
+export async function toggleStreamMute(ports: AudioPorts, streamId: StreamId): Promise<ActionResult> {
+  const stream = currentOutputStream(ports.session.current(), streamId)
+  if (!stream) return rejected("no-current-stream")
+  await ports.pipewire.setStreamVolume(stream.id, volumeState(stream.volume.level, !stream.volume.muted))
+  return { ok: true, applied: 1, failed: 0 }
+}
+
+export async function setStreamRoute(
+  ports: AudioPorts, streamId: StreamId,
+  route: { kind: "follow-preferred" } | { kind: "explicit"; endpointId: EndpointId },
+): Promise<ActionResult> {
+  const session = ports.session.current()
+  const stream = currentOutputStream(session, streamId)
+  if (!stream) return rejected("no-current-stream")
+  const target = route.kind === "follow-preferred" ? null : route.endpointId
+  if (target !== null && !session.outputs.some((item) => item.id === target && item.available))
+    return rejected("missing-endpoint")
+  if (target === null && (session.preferredOutputId === null ||
+    !session.outputs.some((item) => item.id === session.preferredOutputId && item.available)))
+    return rejected("missing-endpoint")
+  const intent = route.kind === "follow-preferred" ? { kind: "follow-preferred" as const } : route
+  await ports.pipewire.setStreamTarget(stream.id, target)
+  ports.routeIntents.record(stream.id, intent)
+  return { ok: true, applied: 1, failed: 0 }
 }
 
 export async function setInputVolume(ports: AudioPorts, level: number): Promise<ActionResult> {

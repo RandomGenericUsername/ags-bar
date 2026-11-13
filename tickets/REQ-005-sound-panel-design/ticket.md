@@ -233,7 +233,7 @@ google-chrome-stable --new-window \
 ## Source of truth and drift rule
 
 - Normative mock: `mock.html`; sha256
-  `0ef38c46ff81e9fb4a8c6bd166f99046cb465295b741b11525348ecd52cb10b7`
+  1abcb0747cf1b16d863510c1154cf1e43e7e5c1b38e2a747ef949b5ab24127b5
   (also recorded in `mock.sha256`).
 - This ticket is the **criteria** source of truth; the mock is the **look and
   interaction** source of truth.
@@ -817,3 +817,13 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
   container/border/background. Terminal-host and glass verified; skin restored.
 - No CSS max-width/height errors; no `surface.window` selector.
 - Mock hash `0ef38c46…`.
+### QA round 8 (round five)
+
+- Dedupes same-app/same-track MPRIS mirrors (native Tidal + Electron Tidal);
+  distinct media of one app stays separate. Stopped/no-media players are not
+  Playing pages/Players rows; paused-with-media remains.
+- `Live` is shown only for an actually-playing page without a seek duration.
+- Mixer adds per-stream rows from PipeWire streams under the app controls,
+  with stream name, route, mute and level; one-stream browsers state that
+  per-tab split is unavailable. App-level controls remain.
+- Mock hash `1abcb074…`; verify the per-stream Mixer at `?mode=mixer`.

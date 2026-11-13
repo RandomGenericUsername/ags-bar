@@ -20,6 +20,10 @@ export interface AudioPanelActions {
   setAppRoute(appId: string, route: RouteChoice): void
   setAppVolume(appId: string, percent: number): void
   toggleAppMute(appId: string): void
+  /** Per-stream Mixer detail; the app actions above remain the fan-out controls. */
+  setStreamRoute(streamId: string, route: RouteChoice): void
+  setStreamVolume(streamId: string, percent: number): void
+  toggleStreamMute(streamId: string): void
   playerAction(playerId: string, action: TransportAction): void
   seek(playerId: string, positionUs: number): void
   /** MPRIS Shuffle/Loop; the controls are hidden when the player lacks the capability. */

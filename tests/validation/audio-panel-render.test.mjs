@@ -359,13 +359,36 @@ check("artwork containers are bare app content, not skin-painted tiles", () => {
 
 check("Playing pages are per-player and carry the MPRIS identity", () => {
   const model = read(join(AUDIO, "presentation/audio-panel-view-model.ts"));
-  assert.match(model, /const playerRows = session\.players/, "Playing pages are still app-collapsed");
+  assert.match(model, /const playerRows = playablePlayers/, "Playing pages are still app-collapsed");
   assert.match(model, /id: player\.id/, "per-player page id is not the player id");
   assert.match(model, /playerIdentity: player\.playerIdentity/, "the page loses the MPRIS identity");
   assert.match(popupSrc, /class="audio-player-identity"/, "the Playing page does not show the player identity");
   assert.match(popupSrc, /openMixerFor\(row\(\)\.appId\)/, "the Playing level opens the player id as an app");
   const tray = read(join(AUDIO, "TrayPopup.tsx"));
   assert.match(tray, /class="audio-tray-player-identity"/, "the Players row does not show the player identity");
+});
+
+check("Playing filters stopped/no-media players and dedupes same-app same-track mirrors", () => {
+  const model = read(join(AUDIO, "presentation/audio-panel-view-model.ts"));
+  assert.match(model, /dedupePlayers\(/, "Playing rows are not deduped");
+  assert.match(model, /playback !== "stopped"/, "stopped players are not excluded");
+  assert.match(model, /hasPlaybackMedia\(/, "no-media players are not excluded");
+  assert.match(model, /const playerRows = playablePlayers/, "Playing rows bypass the filtered player set");
+  const page = popupSrc.slice(popupSrc.indexOf("function PlayingPage"), popupSrc.indexOf("function PlayingDeck"));
+  assert.match(page, /row\(\)\.playback === "playing" && !canSeek\(\)/,
+    "Live is shown for paused/no-media pages");
+});
+
+check("Mixer adds per-stream rows without dropping app controls", () => {
+  assert.match(popupSrc, /function MixerStreams/, "no per-stream Mixer container");
+  assert.match(popupSrc, /function MixerStreamRow/, "no per-stream Mixer row");
+  assert.match(popupSrc, /setStreamRoute\(/, "stream route is not dispatched");
+  assert.match(popupSrc, /setStreamVolume\(/, "stream volume is not dispatched");
+  assert.match(popupSrc, /toggleStreamMute\(/, "stream mute is not dispatched");
+  assert.match(popupSrc, /audio-mixer-streams/, "no stream-detail class");
+  assert.match(popupSrc, /per-tab split unavailable/, "single-stream browser limitation is not stated");
+  assert.match(read(join(AUDIO, "binding.ts")), /setStreamRoute/, "binding has no stream route");
+  assert.match(read(join(AUDIO, "application/audio-actions.ts")), /setStreamVolume/, "no per-stream action");
 });
 
 check("the settings popover is one surface and a sibling Gtk.Popover", () => {

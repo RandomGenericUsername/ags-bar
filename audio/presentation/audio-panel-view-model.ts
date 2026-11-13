@@ -8,8 +8,11 @@ import { mprisAppDisplayName } from "../../services/mpris-core.ts"
 
 export interface AudioPanelStreamView {
   id: AudioStream["id"]
+  /** Honest PipeWire stream/media label, or "Audio stream" when absent. */
+  name: string
   endpointId: AudioStream["endpointId"]
   routeIntent: RouteIntent
+  routeLabel: string
   volume: VolumeState
 }
 
@@ -86,6 +89,55 @@ export interface AudioPanelViewModel {
 }
 
 const clean = (value: string | null | undefined): string => value?.trim() ?? ""
+
+function playerMediaKey(player: AudioPlayer): string {
+  const media = player.media
+  // Title/artist/album is the cross-transport identity: native Tidal and its
+  // Electron mirror can publish different xesam:url values for the same track.
+  // Fall back to the published URL/artwork only when no textual identity exists.
+  const identity = [clean(media.title), clean(media.artist), clean(media.album)].filter(Boolean).join("\u0000")
+  return identity || clean(media.trackKey) || clean(media.artworkUri)
+}
+
+function hasPlaybackMedia(player: AudioPlayer): boolean {
+  const media = player.media
+  return Boolean(clean(media.title) || clean(media.artist) || clean(media.album) ||
+    clean(media.artworkUri) || clean(media.trackKey))
+}
+
+/** Native MPRIS owners have no `.instanceN` suffix; browser mirrors do. */
+function isNativePlayer(player: AudioPlayer): boolean {
+  const bus = player.busName ?? ""
+  return bus !== "" && !bus.includes(".instance")
+}
+
+function controlsScore(player: AudioPlayer): number {
+  return (player.capabilities.canShuffle ? 1 : 0) + (player.capabilities.canLoop ? 1 : 0) +
+    (player.capabilities.canSeek ? 1 : 0) + (player.capabilities.canGoNext ? 1 : 0) +
+    (player.capabilities.canGoPrevious ? 1 : 0)
+}
+
+function dedupePlayers(players: readonly AudioPlayer[]): AudioPlayer[] {
+  const groups = new Map<string, AudioPlayer[]>()
+  for (const player of players) {
+    if (!hasPlaybackMedia(player)) continue
+    const appId = canonicalAppKey(player.appId) || player.appId
+    const key = `${appId}\u0000${playerMediaKey(player)}`
+    const group = groups.get(key)
+    if (group) group.push(player)
+    else groups.set(key, [player])
+  }
+  const chosen: AudioPlayer[] = []
+  for (const group of groups.values()) {
+    chosen.push([...group].sort((a, b) => {
+      const state = (player: AudioPlayer): number => player.playback === "playing" ? 4 :
+        player.playback === "paused" ? 3 : player.playback === "stopped" ? 1 : 2
+      return state(b) - state(a) || Number(isNativePlayer(b)) - Number(isNativePlayer(a)) ||
+        controlsScore(b) - controlsScore(a) || a.id.localeCompare(b.id)
+    })[0])
+  }
+  return chosen
+}
 
 function sameIntent(a: RouteIntent, b: RouteIntent): boolean {
   return a.kind === b.kind && (a.kind !== "explicit" || (b.kind === "explicit" && a.endpointId === b.endpointId))
@@ -227,7 +279,9 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       hasCurrentStream: streams.length > 0,
       streamIds: streams.map((stream) => stream.id),
       streams: streams.map((stream) => ({
-        id: stream.id, endpointId: stream.endpointId, routeIntent: stream.routeIntent,
+        id: stream.id, name: clean(stream.name) || "Audio stream",
+        endpointId: stream.endpointId, routeIntent: stream.routeIntent,
+        routeLabel: routeLabel(stream.routeIntent, session.preferredOutputId, stream.endpointId, session.outputs),
         volume: { ...stream.volume },
       })),
       volume: volume.volume,
@@ -244,7 +298,9 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
   // Mixer grouping; two Chrome sessions (or Tidal native + its Electron mirror)
   // are two pages with their own metadata, transport and identity.
   const rowByApp = new Map(rows.map((row) => [row.id, row]))
-  const playerRows = session.players.filter((player) => player.current)
+  const playablePlayers = dedupePlayers(session.players.filter((player) =>
+    player.current && player.playback !== "stopped" && hasPlaybackMedia(player)))
+  const playerRows = playablePlayers
     .map((player): AudioAppRowView | null => {
       const appId = canonicalAppKey(player.appId) || player.appId
       const appRow = rowByApp.get(appId)
@@ -306,6 +362,6 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
     inputConsumers: consumers,
     rows,
     playingRows: playerRows,
-    anyPlaying: session.players.some((player) => player.current && player.playback === "playing"),
+    anyPlaying: playerRows.some((row) => row.playback === "playing"),
   }
 }
