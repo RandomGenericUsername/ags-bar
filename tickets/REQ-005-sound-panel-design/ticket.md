@@ -877,3 +877,15 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - Playing page keyed by stable id; fit signature skips position-only polls.
 - Same-PID Chrome stream union covered by the regression test.
 - Bar-only deploy; assets/platform/engine/composition tags unchanged.
+
+### Round 11 bar-only evidence
+
+- Bar `v0.6.24` staged under `apps/bar/v0.6.24`; both config links point at
+  it; AGS restarted; no bootstrap/provision.
+- Tidal has one app-row player id, one tray Players row and a 1/2 page count
+  with one Tidal page. Chrome app-row playerId is populated.
+- Pause/play first click verified on Chrome; page stayed Chrome. Scripted page
+  switch remained unverified because the panel anchor moved under the pointer;
+  stable-id/app-fallback logic is in place.
+- Same-PID Chrome live no longer present; graph-union same-PID regression test
+  remains. Assets/platform/engine/composition tags unchanged.
