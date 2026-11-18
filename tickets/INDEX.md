@@ -48,3 +48,4 @@
 - [REQ-013-sound-round2/ticket.md](./REQ-013-sound-round2/ticket.md) — Sound panel round 2: input fit, owner icons, strip, tray | `done` | worktree: .worktrees/REQ-013/ | branch: ticket/REQ-013-sound-round2
 - [REQ-014-sound-round3/ticket.md](./REQ-014-sound-round3/ticket.md) — Sound round three: footer copy, shared labels, compact switch | `in-progress` | worktree: .worktrees/REQ-014/ | branch: ticket/REQ-014-sound-round3
 - [REQ-025-display-clock/ticket.md](./REQ-025-display-clock/ticket.md) — Display-only position clock (no MPRIS poll) | `in-progress` | worktree: .worktrees/REQ-025/ | branch: ticket/REQ-025-display-clock
+- [REQ-026-label-caps/ticket.md](./REQ-026-label-caps/ticket.md) — Long-label truncation on the v0.6.32 display-clock candidate | `in-progress` | worktree: .worktrees/REQ-025/ | branch: ticket/REQ-025-display-clock

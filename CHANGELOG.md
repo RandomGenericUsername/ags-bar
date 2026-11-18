@@ -1,3 +1,16 @@
+## v0.6.33 (candidate, not deployed) — 2026-11-17
+
+- Panel/tray long-name truncation ported onto the display-clock candidate:
+  Playing app name (22), title (30) and artist (30); tray source name (18),
+  title (26), artist (26), Players name (18) and track (20) use maxWidthChars +
+  ELLIPSIZE_END at the widget level. Fixed 352/300 widths; full title tooltip
+  retained; no skin/CSS width rule.
+- Display-only position clock from v0.6.32 is preserved: no periodic MPRIS
+  reads, local 250 ms render tick, immediate extrapolated position on page
+  switch, pause static, seek rebases.
+- No per-channel/Mixer change. Staged only at `apps/bar/v0.6.33`; live v0.6.16
+  is unchanged.
+
 ## v0.6.32 (candidate, not deployed) — 2026-11-17
 
 - Position display is a local clock, not an MPRIS poll. The adapter's
