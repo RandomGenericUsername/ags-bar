@@ -2,8 +2,8 @@ import Gio from "gi://Gio?version=2.0"
 import GLib from "gi://GLib?version=2.0"
 import { execAsync } from "ags/process"
 import {
-  canonicalIdentity, carryDuration, MPRIS_EXCLUDED, MPRIS_PREFIX, normalisePosition, parseBusName, parseMetadata,
-  type TrackMeta,
+  canonicalIdentity, carryDuration, interpolatePosition, MPRIS_EXCLUDED, MPRIS_PREFIX,
+  normalisePosition, parseBusName, parseMetadata, type TrackMeta,
 } from "../../../services/mpris-core"
 import type { AudioPlayer, LoopStatus, PlayerId, PlayerMedia } from "../../domain/audio-model.ts"
 import type { MprisObservation, MprisObservationPort, MprisPort, Unsubscribe } from "../../application/ports.ts"
@@ -91,7 +91,7 @@ function metadata(props: RawProps, previous?: PlayerRecord): { track: TrackMeta;
 function toPlayer(record: PlayerRecord): AudioPlayer {
   return { id: record.id, appId: record.appId, current: true, playback: record.playback,
     capabilities: { ...record.capabilities }, shuffle: record.shuffle, loop: record.loop,
-    media: { ...record.media } }
+    media: { ...record.media }, positionSyncedAtMs: record.positionSyncedAtMs }
 }
 
 /** Signal-driven MPRIS adapter. PlayerId includes the bus name and owner generation. */
@@ -248,7 +248,18 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
     const changed = dict(changedRaw)
     const invalidated = Array.isArray(invalidatedRaw) ? invalidatedRaw : []
     const next: PlayerRecord = { ...current, capabilities: { ...current.capabilities }, media: { ...current.media } }
-    if ("PlaybackStatus" in changed) next.playback = statusValue(changed.PlaybackStatus)
+    if ("PlaybackStatus" in changed) {
+      const now = GLib.get_monotonic_time() / 1000
+      // Freeze the display clock at the event instant before changing state:
+      // a pause must keep the position it had reached, and a play must resume
+      // from that frozen base. This is a local extrapolation, never a read.
+      if (current.playback === "playing" && current.media.positionUs !== null) {
+        next.media.positionUs = interpolatePosition(
+          current.media.positionUs, current.positionSyncedAtMs, true, now)
+      }
+      next.playback = statusValue(changed.PlaybackStatus)
+      next.positionSyncedAtMs = now
+    }
     if ("Metadata" in changed) {
       const updated = metadata({ Metadata: changed.Metadata }, current)
       next.trackMeta = updated.track
@@ -272,7 +283,6 @@ export class MprisAdapter implements MprisObservationPort, MprisPort {
       void this.refreshPlayer(busName)
       return
     }
-    next.positionSyncedAtMs = GLib.get_monotonic_time() / 1000
     this.records.set(busName, next)
     this.emit({ kind: "player-changed", player: toPlayer(next) })
   }

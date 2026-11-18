@@ -369,12 +369,19 @@ check("the artwork cache never recreates an existing directory", () => {
   }
 });
 
-check("the panel poll updates the MPRIS position while visible", () => {
-  assert.match(popupSrc, /GLib\.timeout_add\(/, "no visible-panel position poll");
-  assert.match(popupSrc, /binding\.actions\.refreshPosition/, "the poll does not dispatch refreshPosition");
-  assert.match(read(join(AUDIO, "binding.ts")), /refreshPosition\(playerId: string\)/, "the binding has no refreshPosition");
-  assert.match(read(join(AUDIO, "adapters/mpris/mpris-adapter.ts")), /async refreshPosition\(/, "the adapter has no Position read");
-  assert.match(read(join(AUDIO, "application/ports.ts")), /refreshPosition\(playerId: PlayerId\)/, "the port has no refreshPosition");
+check("the panel uses a display clock, not a periodic MPRIS Position poll", () => {
+  // REQ-025: the display advances locally from the adapter snapshot; there is
+  // no recurring refreshPosition/D-Bus read from the panel.
+  assert.ok(!popupSrc.includes("refreshPosition"), "the panel still reads MPRIS Position");
+  assert.ok(!/GLib\.timeout_add\([^)]*1000/.test(popupSrc), "a 1 s Position timer is still mounted");
+  const controls = read(join(AUDIO, "ui/controls.tsx"));
+  assert.match(controls, /displayPositionUs/, "SeekLine does not use the display clock");
+  assert.match(controls, /GLib\.timeout_add\(GLib\.PRIORITY_DEFAULT, 250/,
+    "SeekLine has no local 250 ms render tick");
+  // The event-driven read remains available on the adapter/port for a future
+  // explicit correction, but the UI no longer calls it.
+  assert.match(read(join(AUDIO, "adapters/mpris/mpris-adapter.ts")), /async refreshPosition\(/);
+  assert.match(read(join(AUDIO, "application/ports.ts")), /refreshPosition\(playerId: PlayerId\)/);
 });
 
 check("the panel is content-sized with a scroll fallback, not fixed dead space", () => {

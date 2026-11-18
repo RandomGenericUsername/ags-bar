@@ -91,6 +91,13 @@ export interface AudioPlayer {
   /** MPRIS LoopStatus, "none" when unsupported (see `capabilities.canLoop`). */
   loop: LoopStatus
   media: PlayerMedia
+  /**
+   * Monotonic ms when `media.positionUs` was read from MPRIS.
+   *
+   * Display-only: the UI may extrapolate from this snapshot while playing. It
+   * is never authoritative state for an action.
+   */
+  positionSyncedAtMs?: number
 }
 
 export interface EndpointState {

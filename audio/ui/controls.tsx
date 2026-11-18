@@ -1,8 +1,10 @@
 import { Gtk } from "ags/gtk4"
+import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
-import { Accessor, createComputed, createEffect, createState } from "ags"
+import { Accessor, createComputed, createEffect, createState, onCleanup } from "ags"
 import { registry } from "ags-platform/adapters/icon-registry"
 import type { AudioAppRowView } from "../presentation/audio-panel-view-model"
+import { clampPositionUs, displayPositionUs } from "../presentation/display-clock"
 import type { PlayerCapabilities } from "../domain/audio-model"
 import type { AudioPanelBinding, TransportAction } from "../binding"
 
@@ -171,35 +173,84 @@ export function LevelControl({
 /** The Playing page / tray dropdown seek line (2 px track, 9.5 px times). */
 export function SeekLine({
   positionUs,
+  positionSyncedAtMs,
   durationUs,
+  playing: playingProp,
   title,
   onCommit,
   compact = false,
   visible = true,
 }: {
   positionUs: Accessor<number | null>
+  /** Monotonic ms of the authoritative MPRIS Position snapshot. */
+  positionSyncedAtMs: Accessor<number | null>
   durationUs: Accessor<number | null>
+  /** Actually playing (not merely a page with a play icon). */
+  playing: Accessor<boolean>
   title: Accessor<string>
   onCommit: (positionUs: number) => void
   compact?: boolean
   visible?: boolean | Accessor<boolean>
 }) {
   const [seekValue, setSeekValue] = createState(0)
+  const [displayUs, setDisplayUs] = createState(0)
   let seeking = false
+  let baseUs = 0
+  let baseAt = 0
   const duration = createComputed(() => durationUs() ?? 0)
-  const position = createComputed(() => positionUs() ?? 0)
-  const enabled = createComputed(() => duration() > 0)
+  const playing = createComputed(() => playingProp())
+  const nowMs = (): number => GLib.get_monotonic_time() / 1000
+  const shown = (snapshot: { positionUs: number; positionSyncedAtMs: number; playing: boolean }): number =>
+    clampPositionUs(displayPositionUs(snapshot, nowMs()) ?? 0, duration() > 0 ? duration() : null)
+
+  // Rebase on every authoritative snapshot and show the EXTRAPOLATED value
+  // immediately (never the raw base). That is what removes the page-switch
+  // 0:34 -> 0:39 flash: a page that spent time in the background starts at
+  // base + elapsed on its first frame. No D-Bus read is involved.
+  createEffect(() => {
+    if (seeking) return
+    const position = positionUs()
+    if (position === null) {
+      baseUs = 0
+      baseAt = nowMs()
+      setDisplayUs(0)
+      return
+    }
+    baseUs = position
+    baseAt = positionSyncedAtMs() ?? nowMs()
+    setDisplayUs(shown({ positionUs: baseUs, positionSyncedAtMs: baseAt, playing: playing() }))
+  })
+
   createEffect(() => {
     if (seeking) return
     const total = duration()
-    setSeekValue(total > 0 ? Math.max(0, Math.min(1000, (position() / total) * 1000)) : 0)
+    setSeekValue(total > 0 ? Math.max(0, Math.min(1000, (displayUs() / total) * 1000)) : 0)
+  })
+
+  // Local 250 ms render tick: advances the displayed time while playing. It
+  // never talks to MPRIS; the adapter's Seeked/playback events rebase it.
+  const tick = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
+    if (!seeking && playing()) {
+      const total = duration()
+      const value = shown({ positionUs: baseUs, positionSyncedAtMs: baseAt, playing: true })
+      if (Math.abs(value - displayUs()) >= 100_000) setDisplayUs(value)
+    }
+    return true
+  })
+  onCleanup(() => {
+    if (tick !== 0) GLib.source_remove(tick)
   })
 
   function commit(scale: Gtk.Scale) {
     if (!seeking) return
     seeking = false
-    if (!enabled()) return
-    onCommit(Math.round((scale.get_value() / 1000) * duration()))
+    const total = duration()
+    if (total <= 0) return
+    const target = Math.round((scale.get_value() / 1000) * total)
+    baseUs = target
+    baseAt = nowMs()
+    setDisplayUs(target)
+    onCommit(target)
   }
 
   function wire(scale: Gtk.Scale) {
@@ -233,16 +284,25 @@ export function SeekLine({
         step={1}
         value={seekValue}
         drawValue={false}
-        sensitive={enabled}
-        tooltipText={createComputed(() => `${title()} position ${formatClock(position())} of ${formatClock(duration())}`)}
-        onNotifyValue={(self: Gtk.Scale) => setSeekValue(Math.round(self.get_value()))}
+        sensitive={createComputed(() => duration() > 0)}
+        tooltipText={createComputed(() => `${title()} position ${formatClock(displayUs())} of ${formatClock(duration())}`)}
+        onNotifyValue={(self: Gtk.Scale) => {
+          const value = Math.round(self.get_value())
+          setSeekValue(value)
+          if (seeking && duration() > 0) {
+            const target = Math.round((value / 1000) * duration())
+            baseUs = target
+            baseAt = nowMs()
+            setDisplayUs(target)
+          }
+        }}
         $={(self: Gtk.Scale) => {
-          createEffect(() => accessibleLabel(self, `${title()} playback position, ${formatClock(position())} of ${formatClock(duration())}`))
+          createEffect(() => accessibleLabel(self, `${title()} playback position, ${formatClock(displayUs())} of ${formatClock(duration())}`))
           wire(self)
         }}
       />
       <box class="audio-times">
-        <label class="audio-time" xalign={0} hexpand label={createComputed(() => formatClock(position()))} />
+        <label class="audio-time" xalign={0} hexpand label={createComputed(() => formatClock(displayUs()))} />
         <label class="audio-time" xalign={1} label={createComputed(() => formatClock(duration()))} />
       </box>
     </box>

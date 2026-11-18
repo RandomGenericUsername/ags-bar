@@ -36,6 +36,8 @@ export interface AudioAppRowView {
   canShuffle: boolean
   canLoop: boolean
   positionUs: number | null
+  /** Monotonic ms when `positionUs` was read; display-clock base. */
+  positionSyncedAtMs: number | null
   durationUs: number | null
   capabilities: PlayerCapabilities
   canSeek: boolean
@@ -207,6 +209,7 @@ export function projectAudioPanel(session: AudioSession): AudioPanelViewModel {
       canShuffle: player?.capabilities.canShuffle ?? false,
       canLoop: player?.capabilities.canLoop ?? false,
       positionUs: canSeek ? media?.positionUs ?? null : null,
+      positionSyncedAtMs: canSeek ? player?.positionSyncedAtMs ?? null : null,
       durationUs: canSeek ? media?.lengthUs ?? null : null,
       capabilities: player ? { ...player.capabilities } : {
         canPlay: false, canPause: false, canPlayPause: false,

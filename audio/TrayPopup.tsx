@@ -96,7 +96,9 @@ export function TrayBody({ binding }: { binding: AudioPanelBinding }) {
               compact
               visible={canSeek}
               positionUs={createComputed(() => active()?.positionUs ?? null)}
+              positionSyncedAtMs={createComputed(() => active()?.positionSyncedAtMs ?? null)}
               durationUs={createComputed(() => active()?.durationUs ?? null)}
+              playing={createComputed(() => active()?.playback === "playing")}
               title={title}
               onCommit={(positionUs) => {
                 const id = active()?.playerId

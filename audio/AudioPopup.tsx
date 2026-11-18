@@ -1,7 +1,7 @@
 import { Gtk, Gdk } from "ags/gtk4"
 import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
-import { Accessor, For, With, createComputed, createEffect, onCleanup } from "ags"
+import { Accessor, For, With, createComputed, createEffect } from "ags"
 import { close, popupVisible, audioIconX } from "./ui-state"
 import { levelVariant } from "./presentation/levels"
 import type {
@@ -279,7 +279,9 @@ function PlayingPage({ row, index, total, binding }: {
       <SeekLine
         visible={canSeek}
         positionUs={createComputed(() => row().positionUs)}
+        positionSyncedAtMs={createComputed(() => row().positionSyncedAtMs)}
         durationUs={createComputed(() => row().durationUs)}
+        playing={createComputed(() => row().playback === "playing")}
         title={title}
         onCommit={(positionUs) => { const id = row().playerId; if (id) binding.actions.seek(id, positionUs) }}
       />
@@ -715,21 +717,6 @@ export function AudioPanelContent({
     inputOpen()
     scheduleFit()
     fitAfterLayout()
-  })
-
-  // MPRIS Position is not an event: poll it only while this body is mounted
-  // (the panel is visible), for the page the carousel is showing. Dragging is
-  // protected by SeekLine's own `seeking` guard.
-  const poll = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-    const state = binding.model()
-    const active = state.playingRows.find((row) => row.id === playingId()) ?? state.playingRows[0]
-    if (active?.playerId && active.playback === "playing") {
-      binding.actions.refreshPosition(active.playerId)
-    }
-    return true
-  })
-  onCleanup(() => {
-    if (poll !== 0) GLib.source_remove(poll)
   })
 
   return (
