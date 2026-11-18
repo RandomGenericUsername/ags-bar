@@ -49,3 +49,4 @@
 - [REQ-014-sound-round3/ticket.md](./REQ-014-sound-round3/ticket.md) — Sound round three: footer copy, shared labels, compact switch | `in-progress` | worktree: .worktrees/REQ-014/ | branch: ticket/REQ-014-sound-round3
 - [REQ-025-display-clock/ticket.md](./REQ-025-display-clock/ticket.md) — Display-only position clock (no MPRIS poll) | `in-progress` | worktree: .worktrees/REQ-025/ | branch: ticket/REQ-025-display-clock
 - [REQ-026-label-caps/ticket.md](./REQ-026-label-caps/ticket.md) — Long-label truncation on the v0.6.32 display-clock candidate | `in-progress` | worktree: .worktrees/REQ-025/ | branch: ticket/REQ-025-display-clock
+- [REQ-027-transport-zones/ticket.md](./REQ-027-transport-zones/ticket.md) — Transport row fixed left/center/right zones | `in-progress` | worktree: .worktrees/REQ-027/ | branch: ticket/REQ-027-transport-zones
