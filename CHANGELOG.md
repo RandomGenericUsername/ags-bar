@@ -1,3 +1,18 @@
+## v0.6.32 (candidate, not deployed) — 2026-11-17
+
+- Position display is a local clock, not an MPRIS poll. The adapter's
+  authoritative snapshot (`positionUs` + monotonic `positionSyncedAtMs` +
+  playback) is extrapolated by `SeekLine` while playing on a 250 ms render
+  tick; no D-Bus read, no `refreshPosition` timer.
+- Firefox progress advances from that clock. A page switch immediately shows
+  the newly selected player's current position (base + elapsed since its
+  snapshot), removing the stale 0:34 -> 0:39 frame. Paused freezes; drag/seek
+  rebases the clock; `Seeked`/playback events remain authoritative.
+- A PlaybackStatus transition extrapolates the stored position to the event
+  instant (local) so pause/play resumes from the correct time.
+- Staged only at `apps/bar/v0.6.32`; live v0.6.16 is unchanged. No per-channel
+  Mixer, selection, transport or skin change.
+
 ## v0.6.16 — 2026-11-12
 
 - Remove the panel footer (`Changes apply immediately.`, `Esc closes`) and
