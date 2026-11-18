@@ -315,8 +315,13 @@ check("the settings switch is constrained to the 42x24 compact size", () => {
 
 check("shuffle/loop controls are capability-gated and dispatched", () => {
   const controls = read(join(AUDIO, "ui/controls.tsx"));
-  assert.match(controls, /capabilities\(\)\.canShuffle/, "the shuffle control is not capability-gated");
-  assert.match(controls, /capabilities\(\)\.canLoop/, "the loop control is not capability-gated");
+  // REQ-027: visibility comes from the fixed-zone layout, whose inputs are the
+  // player capabilities; the slot itself is always reserved.
+  assert.match(controls, /zones\(\)\.left\.visible/, "the shuffle slot is not capability-gated");
+  assert.match(controls, /zones\(\)\.right\.visible/, "the repeat slot is not capability-gated");
+  const zones = read(join(AUDIO, "presentation/transport-zones.ts"));
+  assert.match(zones, /canShuffle/, "the zone model ignores canShuffle");
+  assert.match(zones, /canLoop/, "the zone model ignores canLoop");
   assert.match(controls, /actions\.toggleShuffle/, "shuffle is not dispatched");
   assert.match(controls, /actions\.cycleLoop/, "loop is not dispatched");
   const model = read(join(AUDIO, "domain/audio-model.ts"));

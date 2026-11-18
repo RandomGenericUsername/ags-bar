@@ -120,6 +120,7 @@ function MediaStrip({ binding }: { binding: AudioPanelBinding }) {
               row={createComputed(() => row)}
               binding={binding}
               className="audio-strip-controls"
+              surface="strip"
               compact
               playSize={30}
               iconSize={15}

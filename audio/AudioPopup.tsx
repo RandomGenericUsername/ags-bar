@@ -273,7 +273,7 @@ function PlayingPage({ row, index, total, binding }: {
           <label class="audio-track-title" xalign={0} maxWidthChars={30} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
           <label class="audio-track-artist" xalign={0} maxWidthChars={30} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => artist() || "Media details unavailable")} />
         </box>
-        <TransportRow row={row} binding={binding} />
+        <TransportRow row={row} binding={binding} surface="panel" />
       </box>
 
       <SeekLine

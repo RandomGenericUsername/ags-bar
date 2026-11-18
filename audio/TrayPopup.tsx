@@ -89,7 +89,7 @@ export function TrayBody({ binding }: { binding: AudioPanelBinding }) {
             </box>
 
             <box halign={Gtk.Align.CENTER}>
-              <TransportRow row={createComputed(() => row)} binding={binding} className="audio-tray-transport" playSize={36} iconSize={18} />
+              <TransportRow row={createComputed(() => row)} binding={binding} className="audio-tray-transport" surface="tray" playSize={36} iconSize={18} />
             </box>
 
             <SeekLine

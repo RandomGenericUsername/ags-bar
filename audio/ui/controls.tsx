@@ -7,6 +7,7 @@ import type { AudioAppRowView } from "../presentation/audio-panel-view-model"
 import { clampPositionUs, displayPositionUs } from "../presentation/display-clock"
 import type { PlayerCapabilities } from "../domain/audio-model"
 import type { AudioPanelBinding, TransportAction } from "../binding"
+import { transportZones, type TransportSurface } from "../presentation/transport-zones"
 
 /**
  * Shared GTK controls for the sound panel, the bar strip and the tray dropdown.
@@ -410,6 +411,7 @@ export function TransportRow({
   binding,
   className = "audio-transport",
   compact = false,
+  surface = "panel",
   playSize = 34,
   iconSize = 16,
 }: {
@@ -417,6 +419,8 @@ export function TransportRow({
   binding: AudioPanelBinding
   className?: string
   compact?: boolean
+  /** Which fixed zone widths to use (the caller's CSS min-widths match). */
+  surface?: TransportSurface
   /** The filled `media-transport-panel` art is the play button's circle; its pixel size is the button size. */
   playSize?: number
   iconSize?: number
@@ -425,65 +429,97 @@ export function TransportRow({
   const playerId = createComputed(() => row().playerId)
   const capabilities = createComputed<PlayerCapabilities>(() => row().capabilities)
   const playing = createComputed(() => row().playback === "playing")
+  // Three fixed zones. Hiding a capability only hides the icon; the slot keeps
+  // its width, so the center controls never shift between players.
+  const zones = createComputed(() => transportZones(surface, capabilities()))
+  const gap = compact ? 0 : 1
   const dispatch = (action: TransportAction) => {
     const id = playerId()
     if (id) binding.actions.playerAction(id, action)
   }
 
+  const shuffle = (
+    <IconButton
+      name={createComputed(() => `Shuffle ${row().shuffle ? "on" : "off"} for ${appName()}`)}
+      tooltip={createComputed(() => (row().shuffle ? "Shuffle on" : "Shuffle off"))}
+      imagePath={createComputed(() => icon("media-controls", row().shuffle ? "shuffle-active" : "shuffle"))}
+      visible={createComputed(() => zones().left.visible)}
+      active={createComputed(() => row().shuffle)}
+      onClicked={() => { const id = playerId(); if (id) binding.actions.toggleShuffle(id) }}
+      pixelSize={iconSize}
+      className="audio-icon-button audio-transport-button"
+    />
+  )
+  const previous = (
+    <IconButton
+      name={createComputed(() => `Previous in ${appName()}`)}
+      tooltip="Previous"
+      imagePath={icon("media-transport", "previous")}
+      visible={createComputed(() => zones().center[0].visible)}
+      onClicked={() => dispatch("previous")}
+      pixelSize={iconSize}
+      className="audio-icon-button audio-transport-button"
+    />
+  )
+  const play = (
+    <IconButton
+      name={createComputed(() => `${playing() ? "Pause" : "Play"} ${appName()}`)}
+      tooltip={createComputed(() => (playing() ? "Pause" : "Play"))}
+      imagePath={createComputed(() => icon("media-transport-panel", playing() ? "pause" : "play"))}
+      visible={createComputed(() => zones().center[1].visible)}
+      onClicked={() => dispatch("play-pause")}
+      active={playing}
+      pixelSize={playSize}
+      className="audio-icon-button audio-transport-button play"
+    />
+  )
+  const next = (
+    <IconButton
+      name={createComputed(() => `Next in ${appName()}`)}
+      tooltip="Next"
+      imagePath={icon("media-transport", "next")}
+      visible={createComputed(() => zones().center[2].visible)}
+      onClicked={() => dispatch("next")}
+      pixelSize={iconSize}
+      className="audio-icon-button audio-transport-button"
+    />
+  )
+  const repeat = (
+    <IconButton
+      name={createComputed(() => `Repeat ${row().loop} for ${appName()}`)}
+      tooltip={createComputed(() => {
+        const loop = row().loop
+        return loop === "track" ? "Repeat one" : loop === "playlist" ? "Repeat all" : "Repeat off"
+      })}
+      imagePath={createComputed(() => icon("media-controls",
+        row().loop === "track" ? "repeat-once" : row().loop === "playlist" ? "repeat" : "repeat-off"))}
+      visible={createComputed(() => zones().right.visible)}
+      active={createComputed(() => row().loop !== "none")}
+      onClicked={() => { const id = playerId(); if (id) binding.actions.cycleLoop(id) }}
+      pixelSize={iconSize}
+      className="audio-icon-button audio-transport-button"
+    />
+  )
+
   return (
-    <box class={className} spacing={compact ? 0 : 1}>
-      <IconButton
-        name={createComputed(() => `Previous in ${appName()}`)}
-        tooltip="Previous"
-        imagePath={icon("media-transport", "previous")}
-        visible={createComputed(() => capabilities().canGoPrevious)}
-        onClicked={() => dispatch("previous")}
-        pixelSize={iconSize}
-        className="audio-icon-button audio-transport-button"
-      />
-      <IconButton
-        name={createComputed(() => `${playing() ? "Pause" : "Play"} ${appName()}`)}
-        tooltip={createComputed(() => (playing() ? "Pause" : "Play"))}
-        imagePath={createComputed(() => icon("media-transport-panel", playing() ? "pause" : "play"))}
-        visible={createComputed(() => capabilities().canPlayPause)}
-        onClicked={() => dispatch("play-pause")}
-        active={playing}
-        pixelSize={playSize}
-        className="audio-icon-button audio-transport-button play"
-      />
-      <IconButton
-        name={createComputed(() => `Next in ${appName()}`)}
-        tooltip="Next"
-        imagePath={icon("media-transport", "next")}
-        visible={createComputed(() => capabilities().canGoNext)}
-        onClicked={() => dispatch("next")}
-        pixelSize={iconSize}
-        className="audio-icon-button audio-transport-button"
-      />
-      <IconButton
-        name={createComputed(() => `Shuffle ${row().shuffle ? "on" : "off"} for ${appName()}`)}
-        tooltip={createComputed(() => (row().shuffle ? "Shuffle on" : "Shuffle off"))}
-        imagePath={createComputed(() => icon("media-controls", row().shuffle ? "shuffle-active" : "shuffle"))}
-        visible={createComputed(() => capabilities().canShuffle)}
-        active={createComputed(() => row().shuffle)}
-        onClicked={() => { const id = playerId(); if (id) binding.actions.toggleShuffle(id) }}
-        pixelSize={iconSize}
-        className="audio-icon-button audio-transport-button"
-      />
-      <IconButton
-        name={createComputed(() => `Repeat ${row().loop} for ${appName()}`)}
-        tooltip={createComputed(() => {
-          const loop = row().loop
-          return loop === "track" ? "Repeat one" : loop === "playlist" ? "Repeat all" : "Repeat off"
-        })}
-        imagePath={createComputed(() => icon("media-controls",
-          row().loop === "track" ? "repeat-once" : row().loop === "playlist" ? "repeat" : "repeat-off"))}
-        visible={createComputed(() => capabilities().canLoop)}
-        active={createComputed(() => row().loop !== "none")}
-        onClicked={() => { const id = playerId(); if (id) binding.actions.cycleLoop(id) }}
-        pixelSize={iconSize}
-        className="audio-icon-button audio-transport-button"
-      />
+    <box class={className} spacing={gap}>
+      <box class="audio-transport-slot" widthRequest={zones().left.width} valign={Gtk.Align.CENTER}>
+        {shuffle}
+      </box>
+      <box class="audio-transport-center" spacing={gap}>
+        <box class="audio-transport-slot" widthRequest={zones().center[0].width} valign={Gtk.Align.CENTER}>
+          {previous}
+        </box>
+        <box class="audio-transport-slot play-slot" widthRequest={zones().center[1].width} valign={Gtk.Align.CENTER}>
+          {play}
+        </box>
+        <box class="audio-transport-slot" widthRequest={zones().center[2].width} valign={Gtk.Align.CENTER}>
+          {next}
+        </box>
+      </box>
+      <box class="audio-transport-slot" widthRequest={zones().right.width} valign={Gtk.Align.CENTER}>
+        {repeat}
+      </box>
     </box>
   )
 }
