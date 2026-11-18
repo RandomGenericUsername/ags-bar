@@ -1,3 +1,16 @@
+## v0.6.34 (candidate, not deployed) — 2026-11-17
+
+- Transport row pinned into three fixed zones: shuffle left, previous /
+  play-pause / next center, repeat right. Capability hiding only hides the
+  icon; every slot keeps its width, so the center controls no longer shift when
+  shuffle/repeat appears/disappears or when switching players. Center slots are
+  fixed too, keeping play-pause centered for players without previous/next.
+- Surface widths match the existing compact/full buttons: panel 24/34, tray
+  30/36, strip 26/30 (side/play). Panel, tray and strip pass their surface.
+- First-click dispatch, transport actions, app-level Mixer, selection, progress
+  clock and skin are untouched. Staged only at `apps/bar/v0.6.34`; live v0.6.33
+  is unchanged.
+
 ## v0.6.33 (candidate, not deployed) — 2026-11-17
 
 - Panel/tray long-name truncation ported onto the display-clock candidate:
