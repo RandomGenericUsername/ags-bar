@@ -261,7 +261,7 @@ function PlayingPage({ row, index, total, binding }: {
     <box class="audio-playing-page" orientation={VERTICAL} spacing={6}>
       <box class="audio-playing-head" spacing={8}>
         <box class="audio-playing-meta" spacing={6} hexpand>
-          <label class="audio-app-name" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => row().appName)} />
+          <label class="audio-app-name" xalign={0} maxWidthChars={22} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => row().appName)} />
           <label class="audio-live-badge" label="Live" visible={createComputed(() => !canSeek())} />
           <label class="audio-page-index" hexpand xalign={1} label={createComputed(() => `${index() + 1}/${total()}`)} />
         </box>
@@ -270,8 +270,8 @@ function PlayingPage({ row, index, total, binding }: {
       <box class="audio-player-strip" spacing={8}>
         <TrackArtwork row={row} size={40} className="audio-artwork" />
         <box class="audio-track" orientation={VERTICAL} spacing={1} hexpand>
-          <label class="audio-track-title" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
-          <label class="audio-track-artist" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => artist() || "Media details unavailable")} />
+          <label class="audio-track-title" xalign={0} maxWidthChars={30} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
+          <label class="audio-track-artist" xalign={0} maxWidthChars={30} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => artist() || "Media details unavailable")} />
         </box>
         <TransportRow row={row} binding={binding} />
       </box>

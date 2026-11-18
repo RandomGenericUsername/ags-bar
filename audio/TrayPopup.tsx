@@ -47,10 +47,10 @@ function PlayerRow({ row, active }: { row: Accessor<AudioAppRowView>; active: Ac
         <AppTile row={row} size={22} />
         <box class="audio-tray-player-meta" orientation={Gtk.Orientation.VERTICAL} spacing={0} hexpand>
           <box class="audio-tray-player-name-line" spacing={4}>
-            <label class="audio-tray-player-name" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={name} />
+            <label class="audio-tray-player-name" xalign={0} maxWidthChars={18} ellipsize={Pango.EllipsizeMode.END} label={name} />
             <box class="audio-playing-dot" valign={Gtk.Align.CENTER} visible={createComputed(() => row().playback === "playing")} />
           </box>
-          <label class="audio-tray-player-track" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={title} />
+          <label class="audio-tray-player-track" xalign={0} maxWidthChars={20} ellipsize={Pango.EllipsizeMode.END} label={title} />
         </box>
         <label class="audio-tray-check" label={createComputed(() => (active() ? "✓" : ""))} />
       </box>
@@ -76,15 +76,15 @@ export function TrayBody({ binding }: { binding: AudioPanelBinding }) {
               <label class="audio-tray-caption" label="Now playing" />
               <box class="audio-tray-source" spacing={5} hexpand>
                 <AppTile row={createComputed(() => row)} size={14} />
-                <label class="audio-tray-source-name" xalign={1} hexpand ellipsize={Pango.EllipsizeMode.END} label={row.appName} />
+                <label class="audio-tray-source-name" xalign={1} hexpand maxWidthChars={18} ellipsize={Pango.EllipsizeMode.END} label={row.appName} />
               </box>
             </box>
 
             <box class="audio-tray-track-row" spacing={9}>
               <AppTile row={createComputed(() => row)} size={36} className="audio-artwork" />
               <box class="audio-tray-meta" orientation={Gtk.Orientation.VERTICAL} spacing={1} hexpand>
-                <label class="audio-tray-title" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
-                <label class="audio-tray-artist" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={artist} />
+                <label class="audio-tray-title" xalign={0} maxWidthChars={26} ellipsize={Pango.EllipsizeMode.END} label={title} tooltipText={title} />
+                <label class="audio-tray-artist" xalign={0} maxWidthChars={26} ellipsize={Pango.EllipsizeMode.END} label={artist} />
               </box>
             </box>
 
