@@ -783,3 +783,9 @@ Implementation maps onto the existing composition plus the new MPRIS surface:
 - Settings switch is fixed at 42x24 with a 20px knob; verified under
   terminal-host and glass.
 - Mock hash `b4a731c3…`; assets v0.21.2.
+
+## Batch reference
+
+This is the implemented reference pattern for the redesign batch (app-owned
+layout/content; skin paint/role geometry; semantic state; no per-channel). See
+`dotfiles-v3/docs/117-redesign-batch.md`.

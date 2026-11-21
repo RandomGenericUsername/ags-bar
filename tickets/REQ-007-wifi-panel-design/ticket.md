@@ -310,3 +310,10 @@ Implementation maps onto the current Wi-Fi service and `WifiContent`:
   interval entry), which is already correct.
 - Visual → map `:root` chrome roles/radii to the appearance layer; the hero and
   lists use semantic state colours, not a palette role for green.
+
+## Batch context
+
+This design is part of the frozen redesign batch. Canonical architecture,
+live state and the pending design index (including this ticket and its mock):
+`dotfiles-v3/docs/117-redesign-batch.md` (workspace path). Follow the
+appearance/skin rules and the in-page-panel/popover lesson there.

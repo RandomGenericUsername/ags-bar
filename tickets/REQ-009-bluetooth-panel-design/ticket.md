@@ -474,3 +474,10 @@ width, pinned adapter line and footer belong to the popover variant only.
   adapter line visibility and the off/no-adapter copy.
 - `make test` / `make typecheck` / `make gates`; bump the composition pin if the
   bar tag changes.
+
+## Batch context
+
+This design is part of the frozen redesign batch. Canonical architecture,
+live state and the pending design index (including this ticket and its mock):
+`dotfiles-v3/docs/117-redesign-batch.md` (workspace path). Follow the
+appearance/skin rules and the in-page-panel/popover lesson there.

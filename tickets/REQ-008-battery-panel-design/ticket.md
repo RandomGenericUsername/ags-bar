@@ -325,3 +325,10 @@ Precedence: `loading` > `unlisted` > `variant` > `mode` > battery state.
   every state. Keep the rate absent path blank-free.
 - `make test` / `make typecheck` / `make gates`; bump the composition pin if the
   bar tag changes.
+
+## Batch context
+
+This design is part of the frozen redesign batch. Canonical architecture,
+live state and the pending design index (including this ticket and its mock):
+`dotfiles-v3/docs/117-redesign-batch.md` (workspace path). Follow the
+appearance/skin rules and the in-page-panel/popover lesson there.
