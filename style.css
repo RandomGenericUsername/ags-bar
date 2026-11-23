@@ -1148,7 +1148,13 @@ window.wifi-popup {
   border-color: rgba(74, 222, 128, 0.26);
 }
 .wifi-head-glyph.is-off { opacity: 0.55; }
-.wifi-head-glyph-image { min-width: 19px; min-height: 19px; }
+.wifi-head-glyph-image {
+  min-width: 19px;
+  min-height: 19px;
+  /* Gtk.Box packs the 19 px image at start; the 7 px margins centre it inside
+     the 34 px badge without letting it expand the badge into an oval. */
+  margin: 7px;
+}
 .wifi-head-title { font-size: 15px; font-weight: 650; }
 .wifi-head-sub { font-size: 11.5px; color: alpha(@on_surface, 0.62); }
 .wifi-head-actions { min-width: 0; }

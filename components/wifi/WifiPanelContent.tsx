@@ -207,6 +207,8 @@ function HeadGlyph() {
     <image
       class="wifi-head-glyph-image"
       pixel_size={19}
+      halign={Gtk.Align.CENTER}
+      valign={Gtk.Align.CENTER}
       $={(self: Gtk.Image) => {
         createEffect(() => {
           self.set_from_file(src())
