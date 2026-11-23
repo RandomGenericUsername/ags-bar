@@ -1113,9 +1113,11 @@ window.wifi-popup {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.26);
 }
 
-/* Bar glyph highlight while the popover is open. */
+/* Bar glyph highlight while the popover is open. Neutral like the mock's
+   active chip; the base bar rule is "no button chrome", so this stays a soft
+   plate rather than a primary-filled block. */
 .network-widget.wifi-open {
-  background-color: alpha(@primary, 0.16);
+  background-color: alpha(@on_surface, 0.12);
   border-radius: 8px;
 }
 
@@ -1136,6 +1138,9 @@ window.wifi-popup {
   border-radius: 999px;
   border: 1px solid alpha(@on_surface, 0.12);
   background-color: alpha(@on_surface, 0.055);
+  /* Symbolic theme glyph follows this colour (the registry icon baked its
+     primary tint and could not show the semantic connected green). */
+  color: alpha(@on_surface, 0.62);
 }
 .wifi-head-glyph.is-connected {
   color: #4ade80;

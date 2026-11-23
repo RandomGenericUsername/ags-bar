@@ -149,6 +149,9 @@ function SignalBars({
       {[0, 1, 2, 3].map((index) => (
         <box
           class={createComputed(() => (index < level() ? `wifi-sig-bar bar-${index + 1} on` : `wifi-sig-bar bar-${index + 1}`))}
+          // Without END every bar fills the tallest sibling's height, so the
+          // four bars render as an equal-height block instead of the ladder.
+          valign={Gtk.Align.END}
         />
       ))}
     </box>
@@ -164,18 +167,21 @@ function qualityWord(strength: number): string {
 // ---------------------------------------------------------------------------
 
 function HeadGlyph() {
-  const src = createComputed(() =>
-    registry.resolve("settings-panel", wifiEnabled() ? "wifi" : "wifi-off"),
-  )
+  // The mock's header glyph is the semantic connected green, not the
+  // settings-panel capability icon (which the icon contract paints primary).
+  // A symbolic theme icon follows the CSS `color`, so the state classes on the
+  // circle actually tint it; file-backed registry icons carry baked colours.
   return (
     <image
       class="wifi-head-glyph-image"
       pixel_size={19}
       $={(self: Gtk.Image) => {
         createEffect(() => {
-          const path = src()
-          if (path !== null) self.set_from_file(path)
-          else self.set_from_file("")
+          self.set_from_icon_name(
+            wifiEnabled()
+              ? "network-wireless-symbolic"
+              : "network-wireless-offline-symbolic",
+          )
         })
       }}
     />
@@ -595,7 +601,19 @@ function NetworksSection() {
                 last one, so the header rendered as "(8) Scan" with no chevron
                 or "Nearby". Wrap them in the button's horizontal box. */}
             <box spacing={4} hexpand>
-              <label class="wifi-nearby-chevron" label={createComputed(() => nearbyOpen() ? "▾" : "▸")} />
+              {/* A symbolic chevron follows the skin's ink; the text glyph
+                  (▸/▾) fell back to a dot in the mono face. */}
+              <image
+                class="wifi-nearby-chevron"
+                pixel_size={10}
+                $={(self: Gtk.Image) => {
+                  createEffect(() => {
+                    self.set_from_icon_name(
+                      nearbyOpen() ? "pan-down-symbolic" : "pan-end-symbolic",
+                    )
+                  })
+                }}
+              />
               <label class="wifi-list-title" xalign={0} label="Nearby" />
               <label class="wifi-list-count" label={createComputed(() => `(${nearby().length})`)} />
             </box>
