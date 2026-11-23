@@ -166,22 +166,50 @@ function qualityWord(strength: number): string {
 // Header
 // ---------------------------------------------------------------------------
 
+/**
+ * The mock's header glyph is the standard three-arc Wi-Fi mark drawn with
+ * `currentColor` at 19 px. The icon registry's `settings-panel/wifi` is the
+ * capability badge and is contract-painted primary; the theme's symbolic
+ * `network-wireless` is Qogir's filled wedge. Neither matches. These are the
+ * mock's exact paths, written once into the runtime dir with the semantic
+ * state colour baked in (the same app-owned green literal the CSS uses).
+ */
+const WIFI_GLYPH_PATHS =
+  '<path d="M2.5 8.5a15 15 0 0 1 19 0"></path>' +
+  '<path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>' +
+  '<path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>'
+
+function wifiGlyph(name: string, colour: string, off = false): string {
+  const slash = off
+    ? '<path d="M4 4l16 16"></path>'
+    : '<circle cx="12" cy="19" r="1" fill="' + colour + '" stroke="none"></circle>'
+  const svg =
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
+    `stroke="${colour}" stroke-width="1.7" stroke-linecap="round" ` +
+    `aria-hidden="true">${WIFI_GLYPH_PATHS}${slash}</svg>`
+  const path = `${GLib.get_user_runtime_dir()}/ags-${name}.svg`
+  GLib.file_set_contents(path, svg)
+  return path
+}
+
+const WIFI_GLYPH_CONNECTED = wifiGlyph("wifi-connected", "#4ade80")
+const WIFI_GLYPH_IDLE = wifiGlyph("wifi-idle", "#c6c5d0")
+const WIFI_GLYPH_OFF = wifiGlyph("wifi-off", "#90909a", true)
+
 function HeadGlyph() {
-  // The mock's header glyph is the semantic connected green, not the
-  // settings-panel capability icon (which the icon contract paints primary).
-  // A symbolic theme icon follows the CSS `color`, so the state classes on the
-  // circle actually tint it; file-backed registry icons carry baked colours.
+  const src = createComputed(() => {
+    if (!wifiEnabled()) return WIFI_GLYPH_OFF
+    return wifiNetworks().some((network) => network.connected)
+      ? WIFI_GLYPH_CONNECTED
+      : WIFI_GLYPH_IDLE
+  })
   return (
     <image
       class="wifi-head-glyph-image"
       pixel_size={19}
       $={(self: Gtk.Image) => {
         createEffect(() => {
-          self.set_from_icon_name(
-            wifiEnabled()
-              ? "network-wireless-symbolic"
-              : "network-wireless-offline-symbolic",
-          )
+          self.set_from_file(src())
         })
       }}
     />
