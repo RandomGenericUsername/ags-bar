@@ -1,55 +1,40 @@
-import { Gtk, Gdk } from "ags/gtk4"
-import { createComputed } from "ags"
+import { createEffect } from "ags"
+import { Gdk } from "ags/gtk4"
 import {
   closeWifiPopup,
   wifiIconX,
   wifiPopupVisible,
 } from "./state"
 import {
-  WifiContent,
-} from "./WifiContent"
-import { WifiSwitch } from "../primitives/WifiSwitch"
-import { setWifiEnabled, wifiEnabled, wifiReady } from "../../services/wifi-service"
-import { stcExpanded, wifiPromptVisible } from "./WifiContent"
+  WifiPanelContent,
+  closeWifiSettingsSurface,
+} from "./WifiPanelContent"
+import {
+  clearPromptTarget,
+  closePrompt,
+  promptVisible,
+  settingsOpen,
+  wifiPanelKeyboard,
+} from "./wifi-panel-state"
 import { PopupCatcher, PopupHost, type PopupSurfaceSpec } from "../../kit/popup-host"
 
 /**
- * The Wi-Fi surface body (spine AD-10): a factory, mounted by `PopupHost` only
- * while the popup is visible. The header is a SIBLING of the scrolledwindow so
- * it stays pinned; inside the scroll area it would scroll away.
+ * The REQ-007 Wi-Fi surface (spine AD-10): a factory mounted only while the
+ * popover is visible.
+ *
+ * 352 px, bar-anchored, one `surface.panel` glass box. The header is a sibling
+ * of the scrolledwindow so it stays pinned; the footer is a sibling too.
+ *
+ * Keyboard stays NONE unless typed input is on screen: the password field or
+ * the settings interval field (`wifiPanelKeyboard`). An unconditional
+ * ON_DEMAND would grab focus, make the bar swallow the first click and break
+ * same-spot collapse — the same rule the old WifiPopup documented.
  */
 export const wifiSurface: PopupSurfaceSpec = {
   id: "wifi",
-  width: 312,
-  // Keyboard mode NONE unless a field that needs TYPED input is on screen — the
-  // same rule the settings panel uses. ON_DEMAND is required at exactly two
-  // moments: the Wi-Fi password prompt, and the speed-test interval Gtk.Entry
-  // (which only exists while that section is expanded, with the radio on and no
-  // prompt up). An unconditional ON_DEMAND would grab keyboard focus, make the
-  // bar swallow the first click, and break same-spot collapse.
-  keyboard: createComputed(() => {
-    const stcFieldVisible = stcExpanded() && wifiEnabled() && !wifiPromptVisible()
-    return wifiPromptVisible() || stcFieldVisible
-  }),
-  body: ({ visible }) => (
-    <>
-      <box class="settings-nav-header" spacing={9}>
-        <label class="settings-nav-title" xalign={0} hexpand label="Wi-Fi" />
-        <box valign={Gtk.Align.CENTER}>
-          <WifiSwitch active={wifiEnabled} sensitive={wifiReady} onToggled={(v) => { void setWifiEnabled(v) }} />
-        </box>
-      </box>
-      <scrolledwindow
-        class="settings-scroll"
-        vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
-        hscrollbarPolicy={Gtk.PolicyType.NEVER}
-        propagateNaturalHeight
-        maxContentHeight={420}
-      >
-        <WifiContent visible={visible} />
-      </scrolledwindow>
-    </>
-  ),
+  width: 352,
+  keyboard: wifiPanelKeyboard,
+  body: ({ visible }) => <WifiPanelContent visible={visible} />,
 }
 
 export function WifiPopupCatcher(gdkmonitor: Gdk.Monitor) {
@@ -63,15 +48,46 @@ export function WifiPopupCatcher(gdkmonitor: Gdk.Monitor) {
   )
 }
 
+/**
+ * Escape is staged: close the sibling settings surface first, then the
+ * password prompt (back to the lists), then the popover. An outside click
+ * still dismisses the whole overlay through the catcher.
+ */
+function wifiEscape(): void {
+  if (settingsOpen()) {
+    closeWifiSettingsSurface()
+    return
+  }
+  if (promptVisible()) {
+    closePrompt()
+    return
+  }
+  closeWifiPopup()
+}
+
 export function WifiPopup(gdkmonitor: Gdk.Monitor) {
+  // The body (and the gear's popover) is unmounted on close; reset the
+  // UI-local surface state here so reopening never resurrects a prompt or
+  // flips ON_DEMAND for a settings field that is no longer on screen.
+  createEffect(() => {
+    if (wifiPopupVisible()) return
+    closeWifiSettingsSurface()
+    clearPromptTarget()
+  })
+
   return (
     <PopupHost
       spec={wifiSurface}
       name="wifi-popup"
+      windowClass="wifi-popup"
+      surfaceClass="wifi-surface"
       gdkmonitor={gdkmonitor}
       visible={wifiPopupVisible}
       anchorX={wifiIconX}
+      /* The REQ-007 anchor gap: the bar is 48 px tall, +8 px under the icon. */
+      marginTop={56}
       onClose={closeWifiPopup}
+      onEscape={wifiEscape}
     />
   )
 }

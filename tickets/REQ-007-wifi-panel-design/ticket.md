@@ -311,6 +311,31 @@ Implementation maps onto the current Wi-Fi service and `WifiContent`:
 - Visual → map `:root` chrome roles/radii to the appearance layer; the hero and
   lists use semantic state colours, not a palette role for green.
 
+## Implementation record (ticket branch)
+
+- Worktree: `.worktrees/REQ-007/` on `ticket/REQ-007-wifi-panel-design`,
+  fast-forwarded to `main` (`8d5b3ad`) before the work.
+- App: `components/wifi/WifiPanelContent.tsx` (header, hero, Known/Nearby,
+  password, footer), `components/wifi/WifiSpeedTestSettings.tsx` (sibling
+  settings popover reusing `IntervalMsControl` / `setConfigValue` /
+  `runSpeedTest`), `components/wifi/panel-model.ts` (pure partition/copy/format),
+  `components/wifi/wifi-panel-state.ts` (UI-local disclosure/prompt/settings),
+  `components/wifi/WifiPopup.tsx` (352 px `PopupHost` surface).
+- Service: `wifiScanning` + `scanNow()` in `services/wifi-service.ts` expose the
+  existing 6 s visibility-tied scan without a second timer.
+- Skin: prepared UNRELEASED on `dotfiles-assets`
+  `ticket/REQ-007-wifi-panel-skin` (see the branch commit); it paints the new
+  `.wifi-*` roles from `surface.panel` / cell / control / state / ink tokens.
+  No `surface.overlay` use and no literal hex; `validate-skins` is green.
+- Tests: `tests/ts/wifi-panel-model.test.ts` and
+  `tests/validation/wifi-panel-render.test.mjs`.
+- Gates: `make test`, `make typecheck` and
+  `CONTRACTS_ROOT=…/contracts make gates` pass on the branch. The mock harness
+  was skipped because this ticket ships no `harness.mjs`; the mock hash remains
+  `0f32f515…a715`.
+- Not done here by contract: composition pin, tag/release, provisioning,
+  clipboard/engine changes. Owner visual pass is still required.
+
 ## Batch context
 
 This design is part of the frozen redesign batch. Canonical architecture,

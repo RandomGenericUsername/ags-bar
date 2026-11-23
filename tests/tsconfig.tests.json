@@ -113,6 +113,7 @@
   "include": [
     "ts/**/*.ts",
     "../components/battery/presentation.ts",
+    "../components/wifi/panel-model.ts",
     "../components/battery/battery-icon.ts",
     "../audio/presentation/levels.ts",
     "../audio/presentation/bar-indicators.ts",

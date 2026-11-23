@@ -141,6 +141,10 @@ const [connectState, setConnectState] = createState<WifiConnectState>({
   ssid: null,
   reason: null,
 })
+//: True while a RequestScan + AP refresh is in flight. The popover uses it for
+//: the `Scanning…` header cue and the Scan action's busy label; it is set only
+//: by requestScan, so no surface owns a second scan timer.
+const [wifiScanning, setWifiScanning] = createState(false)
 
 const wifiEnabled = createComputed(
   () => wirelessEnabled() && wirelessHardwareEnabled(),
@@ -869,26 +873,35 @@ function scheduleScan(): void {
   )
 }
 
+let scanInFlight = false
+
 async function requestScan(): Promise<void> {
   const path = devicePath
-  if (path === null) return
+  if (path === null || scanInFlight) return
   const state = connectState()
   if (state.phase === "preparing" || state.phase === "activating") return
 
+  scanInFlight = true
+  setWifiScanning(true)
   try {
-    await call(
-      NM,
-      path,
-      NM_WIRELESS_IFACE,
-      "RequestScan",
-      new GLib.Variant("(a{sv})", [{}]),
-      8000,
-    )
-  } catch {
-    //: NM throttles rapid scans; the cached list is still authoritative.
+    try {
+      await call(
+        NM,
+        path,
+        NM_WIRELESS_IFACE,
+        "RequestScan",
+        new GLib.Variant("(a{sv})", [{}]),
+        8000,
+      )
+    } catch {
+      //: NM throttles rapid scans; the cached list is still authoritative.
+    }
+    if (path !== devicePath) return
+    await refreshAccessPoints()
+  } finally {
+    scanInFlight = false
+    setWifiScanning(false)
   }
-  if (path !== devicePath) return
-  await refreshAccessPoints()
 }
 
 // ── Activation ───────────────────────────────────────────────────────────
@@ -1086,6 +1099,11 @@ export function stopScanning(): void {
   }
 }
 
+/** Explicit `Scan` action: one scan without changing the visibility refcount. */
+export function scanNow(): void {
+  void requestScan()
+}
+
 /** Power toggle (manager `WirelessEnabled`), kept here so the UI stays thin. */
 export async function setWifiEnabled(enabled: boolean): Promise<void> {
   try {
@@ -1105,7 +1123,7 @@ export function toggleWifi(): void {
   void setWifiEnabled(!wifiEnabled())
 }
 
-export { connectState, deviceInfo, wifiEnabled, wifiNetworks, wifiReady }
+export { connectState, deviceInfo, wifiEnabled, wifiNetworks, wifiReady, wifiScanning }
 
 /** Opt-in tracing hook (`AGS_WIFI_DEBUG=1`) for the thin UI layer. */
 export function wifiLog(message: string): void {

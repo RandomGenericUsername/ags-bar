@@ -80,6 +80,11 @@ export interface PopupHostProps {
   readonly anchorX: Accessor<number | null>
   /** Close the surface: the catcher click and the Escape key both call this. */
   readonly onClose: () => void
+  /**
+   * Escape-specific close. A surface with staged dismissal (settings, then
+   * prompt, then panel) supplies this; the catcher still uses `onClose`.
+   */
+  readonly onEscape?: () => void
   /** Panel window CSS class; default `settings-panel`. */
   readonly windowClass?: string
   /** Surface box CSS class; default `settings-surface`. */
@@ -102,6 +107,7 @@ export function PopupHost({
   visible,
   anchorX,
   onClose,
+  onEscape,
   windowClass = "settings-panel",
   surfaceClass = "settings-surface",
   marginTop = 52,
@@ -161,7 +167,7 @@ export function PopupHost({
         const key = new Gtk.EventControllerKey()
         key.connect("key-pressed", (_controller, keyval) => {
           if (keyval === Gdk.KEY_Escape) {
-            onClose()
+            ;(onEscape ?? onClose)()
             return true
           }
           return false
