@@ -1135,22 +1135,17 @@ window.wifi-popup {
 .wifi-head-glyph {
   min-width: 34px;
   min-height: 34px;
-  border-radius: 999px;
-  border: 1px solid alpha(@on_surface, 0.12);
-  background-color: alpha(@on_surface, 0.055);
   color: alpha(@on_surface, 0.62);
 }
 .wifi-head-glyph.is-connected {
   color: @primary;
-  background-color: alpha(@primary, 0.11);
-  border-color: alpha(@primary, 0.26);
 }
 .wifi-head-glyph.is-off { opacity: 0.55; }
 .wifi-head-glyph-image {
   min-width: 19px;
   min-height: 19px;
-  /* Gtk.Box packs the 19 px image at start; the 7 px margins centre it inside
-     the 34 px badge without letting it expand the badge into an oval. */
+  /* No badge: the 34 px slot only keeps the header rhythm; the glyph itself
+     is the mock's bare Wi-Fi mark. */
   margin: 7px;
 }
 .wifi-head-title { font-size: 15px; font-weight: 650; }

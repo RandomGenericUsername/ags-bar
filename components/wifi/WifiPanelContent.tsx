@@ -166,19 +166,56 @@ function qualityWord(strength: number): string {
 // Header
 // ---------------------------------------------------------------------------
 
+const WIFI_GLYPH_PATHS =
+  '<path d="M2.5 8.5a15 15 0 0 1 19 0"></path>' +
+  '<path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>' +
+  '<path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>'
+
+function wifiGlyphSvg(name: string, colour: string, off: boolean): string {
+  const tail = off
+    ? '<path d="M4 4l16 16"></path>'
+    : `<circle cx="12" cy="19" r="1" fill="${colour}" stroke="none"></circle>`
+  const svg =
+    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
+    `stroke="${colour}" stroke-width="1.7" stroke-linecap="round" ` +
+    `aria-hidden="true">${WIFI_GLYPH_PATHS}${tail}</svg>`
+  const path = `${GLib.get_user_runtime_dir()}/ags-${name}.svg`
+  GLib.file_set_contents(path, svg)
+  return path
+}
+
 function HeadGlyph() {
-  const src = createComputed(() =>
-    registry.resolve("settings-panel", wifiEnabled() ? "wifi" : "wifi-off"),
-  )
+  // Bare mock Wi-Fi mark: no badge, no circle. The stroke follows the CSS
+  // `color` of `.wifi-head-glyph` (skin primary when connected), so the glyph
+  // is still skin-driven without an app-side palette read.
   return (
     <image
       class="wifi-head-glyph-image"
       pixel_size={19}
       $={(self: Gtk.Image) => {
+        const sync = () => {
+          const c = self.get_style_context().get_color()
+          const hex =
+            "#" +
+            [c.red, c.green, c.blue]
+              .map((n) => Math.round(n * 255).toString(16).padStart(2, "0"))
+              .join("")
+          const off = !wifiEnabled()
+          self.set_from_file(
+            wifiGlyphSvg(`head-${off ? "off" : "on"}-${hex}`, hex, off),
+          )
+        }
         createEffect(() => {
-          const path = src()
-          if (path !== null) self.set_from_file(path)
-          else self.set_from_file("")
+          wifiEnabled()
+          wifiNetworks()
+          GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            sync()
+            return false
+          })
+        })
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+          sync()
+          return false
         })
       }}
     />
