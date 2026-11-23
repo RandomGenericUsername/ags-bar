@@ -174,6 +174,8 @@ function qualityWord(strength: number): string {
  * mock's exact paths, written once into the runtime dir with the semantic
  * state colour baked in (the same app-owned green literal the CSS uses).
  */
+const SEMANTIC_OK = "#4ade80"
+
 const WIFI_GLYPH_PATHS =
   '<path d="M2.5 8.5a15 15 0 0 1 19 0"></path>' +
   '<path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>' +
@@ -192,7 +194,7 @@ function wifiGlyph(name: string, colour: string, off = false): string {
   return path
 }
 
-const WIFI_GLYPH_CONNECTED = wifiGlyph("wifi-connected", "#4ade80")
+const WIFI_GLYPH_CONNECTED = wifiGlyph("wifi-connected", SEMANTIC_OK)
 const WIFI_GLYPH_IDLE = wifiGlyph("wifi-idle", "#c6c5d0")
 const WIFI_GLYPH_OFF = wifiGlyph("wifi-off", "#90909a", true)
 
