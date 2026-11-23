@@ -132,17 +132,19 @@ function SignalBars({
   strength,
   connected = false,
   big = false,
+  valign = Gtk.Align.END,
 }: {
   strength: Accessor<number>
   connected?: boolean
   big?: boolean
+  valign?: Gtk.Align
 }) {
   const level = createComputed(() => signalLevel(strength()))
   return (
     <box
       class={`wifi-sig${big ? " wifi-sig-big" : ""}${connected ? " is-connected" : ""}`}
       spacing={big ? 3 : 2}
-      valign={Gtk.Align.END}
+      valign={valign}
     >
       {[0, 1, 2, 3].map((index) => (
         <box
@@ -296,14 +298,23 @@ function TestCell({
   label,
 }: {
   value: Accessor<string>
-  unit: string
+  unit: string | Accessor<string>
   label: string
 }) {
   return (
     <box class="wifi-test-cell" orientation={1} hexpand>
       <box spacing={2}>
         <label class="wifi-test-value" label={value} />
-        <label class="wifi-test-unit" valign={Gtk.Align.END} label={unit} visible={createComputed(() => value() !== "—")} />
+        <label
+          class="wifi-test-unit"
+          valign={Gtk.Align.END}
+          label={unit}
+          visible={createComputed(
+            () =>
+              value() !== "—" &&
+              (typeof unit === "string" ? unit !== "" : unit() !== ""),
+          )}
+        />
       </box>
       <label class="wifi-test-label" xalign={0} label={label} />
     </box>
@@ -333,9 +344,21 @@ function ConnectedHero({ nowMs }: { nowMs: Accessor<number> }) {
   const down = createComputed(() => formatMbps(lastResult()?.down_mbps))
   const up = createComputed(() => formatMbps(lastResult()?.up_mbps))
   const ping = createComputed(() => formatPing(lastResult()?.latency_ms))
+  // The Ran cell is a value + unit, exactly like the mock: "8 min" at the
+  // numeric size and "ago" at the small unit size. Passing the whole
+  // "8 min ago" through the value label made the cell 99 px wide; with a
+  // homogeneous four-column grid that forced the whole panel to 474 px and
+  // pushed its right edge off-screen. No result is the mock's "—" (the foot
+  // carries "No speed test has run…").
   const ran = createComputed(() => {
     nowMs()
-    return formatRanAt(Date.now(), lastRunAt())
+    if (lastRunAt() === null) return "—"
+    const label = formatRanAt(Date.now(), lastRunAt())
+    return label.endsWith(" ago") ? label.slice(0, -4) : label
+  })
+  const ranUnit = createComputed(() => {
+    if (lastRunAt() === null) return ""
+    return formatRanAt(Date.now(), lastRunAt()).endsWith(" ago") ? "ago" : ""
   })
 
   const foot = createComputed(() => {
@@ -412,7 +435,7 @@ function ConnectedHero({ nowMs }: { nowMs: Accessor<number> }) {
           <TestCell value={down} unit="Mbps" label="Download" />
           <TestCell value={up} unit="Mbps" label="Upload" />
           <TestCell value={ping} unit="ms" label="Ping" />
-          <TestCell value={ran} unit="" label="Ran" />
+          <TestCell value={ran} unit={ranUnit} label="Ran" />
         </box>
         <label
           class="wifi-test-error"
@@ -492,7 +515,11 @@ function NetworkRow({ network: item }: { network: WifiNetwork }) {
       }
     >
       <box spacing={9} hexpand>
-        <SignalBars strength={createComputed(() => live().strength)} connected={false} />
+        <SignalBars
+          strength={createComputed(() => live().strength)}
+          connected={false}
+          valign={Gtk.Align.CENTER}
+        />
         <box class="wifi-row-text" orientation={1} hexpand>
           <label class="wifi-row-name" xalign={0} ellipsize={Pango.EllipsizeMode.END} label={createComputed(() => live().ssid)} />
           <label class="wifi-row-sub" xalign={0} label={createComputed(() => rowSubline(live()))} />
@@ -551,6 +578,7 @@ function NetworksSection() {
         <box class="wifi-list-head wifi-nearby-head" spacing={4}>
           <button
             class="wifi-nearby-toggle"
+            hexpand
             onClicked={toggleNearby}
             $={(self: Gtk.Button) => {
               nearbyToggle = self
@@ -563,9 +591,14 @@ function NetworksSection() {
               })
             }}
           >
-            <label class="wifi-nearby-chevron" label={createComputed(() => nearbyOpen() ? "▾" : "▸")} />
-            <label class="wifi-list-title" label="Nearby" />
-            <label class="wifi-list-count" label={createComputed(() => `(${nearby().length})`)} />
+            {/* Gtk.Button takes ONE child. Three sibling labels kept only the
+                last one, so the header rendered as "(8) Scan" with no chevron
+                or "Nearby". Wrap them in the button's horizontal box. */}
+            <box spacing={4} hexpand>
+              <label class="wifi-nearby-chevron" label={createComputed(() => nearbyOpen() ? "▾" : "▸")} />
+              <label class="wifi-list-title" xalign={0} label="Nearby" />
+              <label class="wifi-list-count" label={createComputed(() => `(${nearby().length})`)} />
+            </box>
           </button>
           <button
             class="wifi-scan"
@@ -785,14 +818,18 @@ function PanelFooter() {
         }}
         $={(self: Gtk.Button) => accessibleLabel(self, "Network settings, opens nm-connection-editor")}
       >
-        <box class="wifi-foot-icon" valign={Gtk.Align.CENTER}>
-          <Glyph name="settings" pixelSize={16} />
+        {/* Gtk.Button takes ONE child; three sibling boxes kept only the
+            trailing "Open" hint. Wrap the footer row in its horizontal box. */}
+        <box spacing={9} hexpand>
+          <box class="wifi-foot-icon" valign={Gtk.Align.CENTER}>
+            <Glyph name="settings" pixelSize={16} />
+          </box>
+          <box class="wifi-foot-text" orientation={1} hexpand>
+            <label class="wifi-foot-title" xalign={0} label="Network settings" />
+            <label class="wifi-foot-sub" xalign={0} ellipsize={Pango.EllipsizeMode.END} label="opens nm-connection-editor" />
+          </box>
+          <label class="wifi-foot-hint" valign={Gtk.Align.CENTER} label="Open" />
         </box>
-        <box class="wifi-foot-text" orientation={1} hexpand>
-          <label class="wifi-foot-title" xalign={0} label="Network settings" />
-          <label class="wifi-foot-sub" xalign={0} ellipsize={Pango.EllipsizeMode.END} label="opens nm-connection-editor" />
-        </box>
-        <label class="wifi-foot-hint" valign={Gtk.Align.CENTER} label="Open" />
       </button>
     </box>
   )
