@@ -166,54 +166,19 @@ function qualityWord(strength: number): string {
 // Header
 // ---------------------------------------------------------------------------
 
-/**
- * The mock's header glyph is the standard three-arc Wi-Fi mark drawn with
- * `currentColor` at 19 px. The icon registry's `settings-panel/wifi` is the
- * capability badge and is contract-painted primary; the theme's symbolic
- * `network-wireless` is Qogir's filled wedge. Neither matches. These are the
- * mock's exact paths, written once into the runtime dir with the semantic
- * state colour baked in (the same app-owned green literal the CSS uses).
- */
-const SEMANTIC_OK = "#4ade80"
-
-const WIFI_GLYPH_PATHS =
-  '<path d="M2.5 8.5a15 15 0 0 1 19 0"></path>' +
-  '<path d="M5.5 12a10.5 10.5 0 0 1 13 0"></path>' +
-  '<path d="M8.7 15.4a6 6 0 0 1 6.6 0"></path>'
-
-function wifiGlyph(name: string, colour: string, off = false): string {
-  const slash = off
-    ? '<path d="M4 4l16 16"></path>'
-    : '<circle cx="12" cy="19" r="1" fill="' + colour + '" stroke="none"></circle>'
-  const svg =
-    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" ' +
-    `stroke="${colour}" stroke-width="1.7" stroke-linecap="round" ` +
-    `aria-hidden="true">${WIFI_GLYPH_PATHS}${slash}</svg>`
-  const path = `${GLib.get_user_runtime_dir()}/ags-${name}.svg`
-  GLib.file_set_contents(path, svg)
-  return path
-}
-
-const WIFI_GLYPH_CONNECTED = wifiGlyph("wifi-connected", SEMANTIC_OK)
-const WIFI_GLYPH_IDLE = wifiGlyph("wifi-idle", "#c6c5d0")
-const WIFI_GLYPH_OFF = wifiGlyph("wifi-off", "#90909a", true)
-
 function HeadGlyph() {
-  const src = createComputed(() => {
-    if (!wifiEnabled()) return WIFI_GLYPH_OFF
-    return wifiNetworks().some((network) => network.connected)
-      ? WIFI_GLYPH_CONNECTED
-      : WIFI_GLYPH_IDLE
-  })
+  const src = createComputed(() =>
+    registry.resolve("settings-panel", wifiEnabled() ? "wifi" : "wifi-off"),
+  )
   return (
     <image
       class="wifi-head-glyph-image"
       pixel_size={19}
-      halign={Gtk.Align.CENTER}
-      valign={Gtk.Align.CENTER}
       $={(self: Gtk.Image) => {
         createEffect(() => {
-          self.set_from_file(src())
+          const path = src()
+          if (path !== null) self.set_from_file(path)
+          else self.set_from_file("")
         })
       }}
     />

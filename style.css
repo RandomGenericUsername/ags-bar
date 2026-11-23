@@ -1,6 +1,3 @@
-@define-color signal_ok #4ade80;
-@define-color signal_ok_ink #baf7ca;
-
 window#bar {
   background-color: transparent;
   color: @on_surface;
@@ -1141,14 +1138,12 @@ window.wifi-popup {
   border-radius: 999px;
   border: 1px solid alpha(@on_surface, 0.12);
   background-color: alpha(@on_surface, 0.055);
-  /* Symbolic theme glyph follows this colour (the registry icon baked its
-     primary tint and could not show the semantic connected green). */
   color: alpha(@on_surface, 0.62);
 }
 .wifi-head-glyph.is-connected {
-  color: @signal_ok;
-  background-color: alpha(@signal_ok, 0.11);
-  border-color: alpha(@signal_ok, 0.26);
+  color: @primary;
+  background-color: alpha(@primary, 0.11);
+  border-color: alpha(@primary, 0.26);
 }
 .wifi-head-glyph.is-off { opacity: 0.55; }
 .wifi-head-glyph-image {
@@ -1219,11 +1214,11 @@ window.wifi-popup {
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: 650;
-  color: @signal_ok_ink;
-  background-color: alpha(@signal_ok, 0.13);
+  color: @primary;
+  background-color: alpha(@primary, 0.13);
 }
 
-/* Signal bars: geometry is app layout; on-colour is the semantic state. */
+/* Signal bars: geometry is app layout; connected on-colour uses the skin accent. */
 .wifi-sig { min-height: 14px; }
 .wifi-sig-bar { min-width: 3px; border-radius: 1px; background-color: alpha(@on_surface, 0.16); }
 .wifi-sig-bar.bar-1 { min-height: 4px; }
@@ -1237,7 +1232,7 @@ window.wifi-popup {
 .wifi-sig-big .wifi-sig-bar.bar-3 { min-height: 18px; }
 .wifi-sig-big .wifi-sig-bar.bar-4 { min-height: 24px; }
 .wifi-sig-bar.on { background-color: alpha(@on_surface, 0.58); }
-.wifi-sig.is-connected .wifi-sig-bar.on, .wifi-sig-big .wifi-sig-bar.on { background-color: @signal_ok; }
+.wifi-sig.is-connected .wifi-sig-bar.on, .wifi-sig-big .wifi-sig-bar.on { background-color: @primary; }
 
 /* Weak-security warning: palette warning role. */
 .wifi-weak {
@@ -1348,12 +1343,12 @@ window.wifi-popup {
   color: @on_surface;
 }
 .wifi-row:hover { background-color: alpha(@on_surface, 0.05); }
-.wifi-row.is-connected { background-color: alpha(@signal_ok, 0.07); }
+.wifi-row.is-connected { background-color: alpha(@primary, 0.07); }
 .wifi-row.is-busy { background-color: alpha(@primary, 0.07); }
 .wifi-row-text { min-width: 0; }
 .wifi-row-name { font-size: 13px; font-weight: 600; }
 .wifi-row-sub { font-size: 11.5px; color: alpha(@on_surface, 0.4); }
-.wifi-row.is-connected .wifi-row-sub { color: alpha(@signal_ok_ink, 0.66); }
+.wifi-row.is-connected .wifi-row-sub { color: alpha(@primary, 0.66); }
 .wifi-row-badge { min-height: 22px; }
 .wifi-row-action {
   min-height: 32px;
