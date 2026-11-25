@@ -1,4 +1,5 @@
 import { Accessor, createComputed, createEffect } from "ags"
+import GLib from "gi://GLib?version=2.0"
 import { Gtk } from "ags/gtk4"
 import Pango from "gi://Pango?version=1.0"
 import { registry } from "ags-platform/adapters/icon-registry"
@@ -221,7 +222,35 @@ export function BluetoothPanelContent({
   })
 
   return (
-    <box class="bt-panel" orientation={1}>
+    <box
+      class="bt-panel"
+      orientation={1}
+      $={(self: Gtk.Widget) => {
+        // A layer-shell surface keeps its initial size when the scroller's
+        // content shrinks (Nearby collapsed). Ask the toplevel to re-measure
+        // after the section/visibility state settles, so the popover height
+        // follows the content instead of leaving a blank block.
+        createEffect(() => {
+          bluetoothDevices()
+          bluetoothPowered()
+          visible()
+          GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            const root = self.get_root() as Gtk.Window | null
+            if (!root) return false
+            const [, natH] = self.measure(
+              Gtk.Orientation.VERTICAL,
+              self.get_width(),
+            )
+            if (natH <= 0) return false
+            const target = natH + 2
+            root.set_default_size(-1, target)
+            root.set_size_request(-1, target)
+            root.queue_resize()
+            return false
+          })
+        })
+      }}
+    >
       <PanelHeader />
       <scrolledwindow
         class="bt-scroll"

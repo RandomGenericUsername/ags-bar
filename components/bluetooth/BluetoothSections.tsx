@@ -1,4 +1,5 @@
 import { Accessor, For, createComputed, createEffect, createState } from "ags"
+import GLib from "gi://GLib?version=2.0"
 import { Gtk } from "ags/gtk4"
 import Pango from "gi://Pango?version=1.0"
 import { registry } from "ags-platform/adapters/icon-registry"
@@ -573,6 +574,33 @@ export function PairedSection() {
   )
 }
 
+
+/** Size the bar-anchored surface to the popover body. A layer-shell window
+ * keeps its mapped height when only scroller content shrinks, so expanding or
+ * collapsing Nearby must explicitly re-request the toplevel height. */
+function fitPopupToContent(anchor: Gtk.Widget): void {
+  const root = anchor.get_root()
+  if (!root) return
+  let panel: Gtk.Widget | null = null
+  const find = (w: Gtk.Widget): void => {
+    if (w.has_css_class("bt-panel")) panel = w
+    let child = w.get_first_child()
+    while (child) { find(child); child = child.get_next_sibling() }
+  }
+  find(root)
+  if (!panel) return
+  const [, natH] = (panel as Gtk.Widget).measure(
+    Gtk.Orientation.VERTICAL,
+    (panel as Gtk.Widget).get_width(),
+  )
+  if (natH <= 0) return
+  const target = natH + 2
+  const win = root as Gtk.Window
+  win.set_default_size(-1, target)
+  win.set_size_request(-1, target)
+  win.queue_resize()
+}
+
 export function NearbySection() {
   const { nearby } = usePartition()
   // TRI-STATE: `null` means the user has not expressed an intent yet, so the
@@ -607,7 +635,15 @@ export function NearbySection() {
         <button
           class="bt-nearby-toggle"
           hexpand
-          onClicked={() => setManuallyToggled(!expanded())}
+          onClicked={() => {
+            setManuallyToggled(!expanded())
+            if (toggle !== null) {
+              GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                if (toggle !== null) fitPopupToContent(toggle)
+                return false
+              })
+            }
+          }}
           $={(self: Gtk.Button) => {
             toggle = self
             createEffect(() => {
