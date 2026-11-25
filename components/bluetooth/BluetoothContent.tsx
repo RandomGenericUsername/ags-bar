@@ -1,12 +1,10 @@
 import { Accessor, createComputed, createEffect, createState, For } from "ags"
 import { Gtk } from "ags/gtk4"
-import GLib from "gi://GLib?version=2.0"
 import Pango from "gi://Pango?version=1.0"
 import { registry } from "ags-platform/adapters/icon-registry"
 import { appearance } from "../../lib/appearance"
 import { launchScopedApp } from "../../lib/scopedLauncher"
 import {
-  ageOutStaleReadings,
   bluetoothAdapterAddress,
   bluetoothBusy,
   bluetoothDevices,
@@ -15,16 +13,17 @@ import {
   connectDevice,
   disconnectDevice,
   pairDevice,
-  refreshBluetoothDevices,
-  routeAudioToDevice,
-  startBluetoothDiscovery,
-  stopBluetoothDiscovery,
   unpairDevice,
   type BluetoothDevice,
 } from "../../services/bluetooth-service"
-
-/** How often the reachability clock is re-checked while the panel is visible. */
-const TICK_MS = 10000
+import { batteryVariant, signalVariant } from "./panel-model"
+import {
+  closeUnpairConfirm,
+  confirmingAddress,
+  dismissUnpairConfirm,
+  openUnpairConfirm,
+} from "./confirm-state"
+import { useBluetoothView } from "./use-bluetooth-view"
 
 /**
  * Bluetooth list rhythm is a TSX-owned layout token in the v2 appearance plane
@@ -64,56 +63,11 @@ export {
 export type { BluetoothDevice }
 
 /**
- * The one open unpair-confirm, for the whole module.
- *
- * A single slot, not one flag per row: "exactly one confirm open at a time" is
- * then structural rather than enforced by each row politely closing its
- * neighbours. Both mounted surfaces (bar popup and settings subview) share this
- * state because they share this module, so a confirm opened in one is closed by
- * opening one in the other.
+ * The single confirm slot lives in `confirm-state.ts`, shared with the REQ-009
+ * popover. Re-exported here because this module's consumers historically
+ * imported it from the settings body.
  */
-const [confirmingAddress, setConfirmingAddress] = createState<string | null>(null)
-
-/**
- * Close any open unpair confirm.
- *
- * Exported for the dismissal paths that live outside this file — the popup's
- * catcher (`BluetoothPopup.tsx`) and `app.tsx`'s `popup-close` handler — which
- * should dismiss a confirm BEFORE the surface closes rather than after.
- */
-export function dismissUnpairConfirm(): void {
-  setConfirmingAddress(null)
-}
-
-
-
-/**
- * Battery level (BlueZ integer 0-100) → the panel's guard-exempt glyph
- * variant. Bucket boundaries mirror the bar's `getBatteryStateKey`
- * (`<25 / <50 / <75 / <100`, which takes a 0-1 fraction): one threshold
- * set serves both surfaces. The panel must never resolve bare `battery-*`
- * — those are guard-subject (status bar only).
- */
-function batteryVariant(level: number): string {
-  if (level < 25) return "system-battery-0"
-  if (level < 50) return "system-battery-25"
-  if (level < 75) return "system-battery-50"
-  if (level < 100) return "system-battery-75"
-  return "system-battery-100"
-}
-
-/**
- * RSSI (dBm, negative = present) → `settings-panel` signal level.
- * Fixed contract thresholds (design D5): ≥−60 full, ≥−70 good, ≥−80 medium,
- * else low. `high` was renamed `full` so the ladder reads the same as
- * `wifi-signal-*` (`lib/wifi-signal.ts`); the boundaries did not move.
- */
-function signalVariant(rssi: number): string {
-  if (rssi >= -60) return "full"
-  if (rssi >= -70) return "good"
-  if (rssi >= -80) return "medium"
-  return "low"
-}
+export { dismissUnpairConfirm }
 
 /**
  * Leading circle-badged signal glyph, at the Wi-Fi row's size: `.settings-net-signal`
@@ -228,7 +182,7 @@ export function BluetoothRow({ device: item }: { device: BluetoothDevice }) {
     // Clicking a confirming row's background is click-OUTSIDE for that row: it
     // dismisses rather than, say, disconnecting a device mid-unpair.
     if (confirming()) {
-      setConfirmingAddress(null)
+      closeUnpairConfirm()
       return
     }
     // `!inRange()` IS a refusal. OWNER DECISION 2026-10-05: out of range means
@@ -254,13 +208,13 @@ export function BluetoothRow({ device: item }: { device: BluetoothDevice }) {
   function openConfirm() {
     console.error(`BluetoothContent: openConfirm(${item.address}) busy=${anyBusy()}`)
     if (anyBusy()) return
-    setConfirmingAddress(item.address)
+    openUnpairConfirm(item.address)
   }
 
   function confirmUnpair() {
     console.error(`BluetoothContent: confirmUnpair(${item.address}) busy=${anyBusy()}`)
     if (anyBusy()) return
-    setConfirmingAddress(null)
+    closeUnpairConfirm()
     unpairDevice(item.address)
   }
 
@@ -385,7 +339,7 @@ export function BluetoothRow({ device: item }: { device: BluetoothDevice }) {
               here and JSX shape is not. */}
           <button
             class="settings-rowact"
-            onClicked={() => setConfirmingAddress(null)}
+            onClicked={() => closeUnpairConfirm()}
             canFocus={false}
             valign={Gtk.Align.CENTER}
             visible={createComputed(() => confirming())}
@@ -567,137 +521,18 @@ const [manuallyToggled, setManuallyToggled] = createState<boolean | null>(
     return nearbyDevices().length > 0
   })
 
-  // Discovery runs while this content is visible and the adapter is powered;
-  // hiding it (or powering off) stops it so BlueZ does not scan forever. The
-  // service keys holders by OWNER ID, so a popup close racing a subview open
-  // cannot stop a scan the other surface just started — and a leaked effect
-  // re-acquiring this same surface is a no-op rather than a leak.
-  createEffect(() => {
-    if (!visible()) return
-    if (!bluetoothPowered()) return
-    startBluetoothDiscovery(owner)
-    return () => stopBluetoothDiscovery(owner)
-  })
+  useBluetoothView(visible, owner)
 
-  // Devices that connected outside the panel (auto-connect) still need the audio
-  // sink defaulted.
-  //
-  // Transition-triggered, NOT on every device-list change. `bluetoothDevices()`
-  // is re-published on every RSSI update, and an active scan produces those
-  // constantly, so an effect that routed on each run would re-route the same
-  // headset over and over. Each re-route calls `setAudioTarget(null)` before it
-  // finds the endpoint again, so the default sink would flicker between "unset"
-  // and the headset on every advertisement frame.
-  //
-  // The old comment here said "routing is idempotent". It was not — see the
-  // routeInFlight guard in bluetooth-service.ts.
-  const routedAddresses = new Set<string>()
-  createEffect(() => {
-    if (!visible()) return
-    if (!bluetoothPowered()) return
-    const connected = bluetoothDevices().filter((device) => device.connected)
-    const stillConnected = new Set(connected.map((device) => device.address))
-    for (const device of connected) {
-      if (routedAddresses.has(device.address)) continue
-      routedAddresses.add(device.address)
-      void routeAudioToDevice(device.alias || device.name)
-    }
-    // Forget devices that dropped, so reconnecting routes again.
-    for (const address of [...routedAddresses]) {
-      if (!stillConnected.has(address)) routedAddresses.delete(address)
-    }
-  })
-
-  // Click-outside / Escape dismissal, as far as THIS file can own it. The
-  // popup's catcher and `app.tsx`'s `popup-close` handler live elsewhere (tasks
-  // 5.3/5.4) and both do nothing but flip `visible`; resetting here means an
-  // open confirm can never outlive its surface, so you are never returned to a
-  // stale "Remove from paired devices". For the literal before-the-surface
-  // ordering, those two files call `dismissUnpairConfirm()` first.
-  createEffect(() => {
-    if (visible()) return
-    setConfirmingAddress(null)
-  })
-
-  // The scanning indicator. `Gtk.Spinner`, deliberately NOT a bespoke loader:
-  // the supplied spinner pack's artwork cannot be animated smoothly here (GTK
-  // 4.22.5 exposes no widget rotation, and this stylesheet records that GTK
-  // honours @keyframes only best-effort), and the native widget is one boolean
-  // with no timer and no assets. It is the same widget and the same class as
-  // the in-flight action spinner on each row, and as WifiContent.tsx:366.
-  // Findings, measurements and the bespoke-loader cost:
-  // docs/Animated_Icon_Loader_Findings.md
-  //
-  // ONE indicator, TWO positions (owner rulings, 2026-10-05), keyed on whether
-  // the Available Devices section is OPEN and whether its list has items:
-  //
-  //   open,   empty -> spinner + "Scanning..." as the list's empty state, in the
-  //                     rows' place. There is nothing else on screen saying a
-  //                     scan is running.
-  //   open,   items -> spinner in the section header. The list already shows the
-  //                     scan by growing, so a centred line between two populated
-  //                     lists is noise.
-  //   CLOSED, any  -> spinner in the section header. The list is not on screen,
-  //                     so the header is the only visible part of the section and
-  //                     the only place the indicator can live.
-  //
-  // The `CLOSED` case is why the header is not simply "the list has items" case:
-  // collapsing the section used to leave BOTH wrong -- the placeholder stayed
-  // visible below a collapsed header, and the header spinner went away, so a
-  // collapsed list during a scan showed nothing at all.
-  //
-  // The two are exhaustive and mutually exclusive: exactly one shows while
-  // scanning, and neither shows when not scanning.
+  // The one scanning indicator's two exhaustive positions, unchanged from the
+  // pre-REQ-009 body: expanded-and-empty owns the centred placeholder; every
+  // other scanning state puts the spinner in the section header.
   const scanning = createComputed(() => powered() && bluetoothDiscovering())
   const scanningPlaceholder = createComputed(
     () => scanning() && expanded() && nearbyDevices().length === 0,
   )
   const scanningInHeader = createComputed(
-    () =>
-      scanning() &&
-      (!expanded() || nearbyDevices().length > 0),
+    () => scanning() && (!expanded() || nearbyDevices().length > 0),
   )
-
-  // Re-read reachability whenever the panel becomes visible.
-  //
-  // BlueZ emits no event when a paired device merely stops advertising — it
-  // just stops reporting RSSI — so the cached value can be minutes or hours
-  // old. A fresh read costs one GetAll per cached device and only happens
-  // while someone is looking, which is the only time the answer is read.
-  //
-  // This read restores the frozen BlueZ value but deliberately does NOT touch
-  // `lastHeardAt`: a re-read is not a reception, and treating it as one would
-  // make a switched-off device look freshly heard on every open. The separate
-  // tick below is what eventually stops believing the value.
-  createEffect(() => {
-    if (!visible()) return
-    void refreshBluetoothDevices()
-  })
-
-  // ── reachability tick ────────────────────────────────────────────────
-  // The refresh above runs once on open; this keeps the reachability answer
-  // honest while the panel stays open. `ageOutStaleReadings` is a timestamp
-  // comparison over the local cache — no D-Bus, no discovery — and it no-ops
-  // unless a scan is running, so a closed or non-scanning panel never ages
-  // anything out on the strength of its own silence.
-  //
-  // TICK_MS is far shorter than RSSI_STALE_MS on purpose: the tick is the
-  // resolution at which a 120s deadline can be noticed, not the deadline
-  // itself. At 10s the row corrects within ~130s rather than up to ~240s.
-  //
-  // The source is created INSIDE the effect, matching the discovery effect
-  // above. Creating it out here and removing it in the cleanup would leave the
-  // ticker permanently dead after the first hide — the cleanup can remove a
-  // source, but only the effect body recreates one.
-  createEffect(() => {
-    if (!visible()) return
-    ageOutStaleReadings()
-    const ticker = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_MS, () => {
-      ageOutStaleReadings()
-      return GLib.SOURCE_CONTINUE
-    })
-    return () => GLib.source_remove(ticker)
-  })
 
   return (
     <box
@@ -709,7 +544,7 @@ const [manuallyToggled, setManuallyToggled] = createState<boolean | null>(
         // gesture, so clicking `Keep` dismisses through its own handler rather
         // than through here.
         const click = new Gtk.GestureClick({ button: 1 })
-        click.connect("released", () => setConfirmingAddress(null))
+        click.connect("released", () => closeUnpairConfirm())
         self.add_controller(click)
       }}
     >

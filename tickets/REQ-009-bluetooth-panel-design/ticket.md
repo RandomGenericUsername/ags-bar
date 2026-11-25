@@ -282,23 +282,23 @@ frozen.
 
 ## Implementation acceptance (follow-up)
 
-- [ ] The Bluetooth drawer is replaced by the 352 px anchored popover: persistent
+- [x] The Bluetooth drawer is replaced by the 352 px anchored popover: persistent
       header, `Connected` cards, flat `Paired` rows, `Nearby (n)` disclosure,
       pinned adapter line and `Bluetooth Settings` footer.
-- [ ] The popover body is split from the settings body without regressing
+- [x] The popover body is split from the settings body without regressing
       `settings-panel/views/BluetoothView.tsx` (see the sharing note below).
-- [ ] Multiple connected devices render as stacked cards; no connected device is
+- [x] Multiple connected devices render as stacked cards; no connected device is
       duplicated in `Paired`; connected-only battery and the dBm tooltip are
       preserved.
-- [ ] Out-of-range refusal, inline confirm with no reflow, single-flight busy
+- [x] Out-of-range refusal, inline confirm with no reflow, single-flight busy
       state and the 30 s note are preserved.
-- [ ] `Nearby` keeps the tri-state auto-open and collapsed count/spinner; the
+- [x] `Nearby` keeps the tri-state auto-open and collapsed count/spinner; the
       scanning placeholder and idle empty copy match the mock.
-- [ ] Discovery stays visibility-tied; failures stay notifications; audio
+- [x] Discovery stays visibility-tied; failures stay notifications; audio
       routing stays silent and no audio-route row is added.
-- [ ] Keyboard mode stays NONE; no PIN/passkey prompt is added.
-- [ ] `make test` / `make typecheck` / `make gates` pass; composition pin bumped
-      if the bar tag changes.
+- [x] Keyboard mode stays NONE; no PIN/passkey prompt is added.
+- [x] `make test` / `make typecheck` / `make gates` pass; composition pin NOT
+      bumped (no tag/merge/release in this ticket branch).
 
 ## Mock path
 
@@ -474,6 +474,49 @@ width, pinned adapter line and footer belong to the popover variant only.
   adapter line visibility and the off/no-adapter copy.
 - `make test` / `make typecheck` / `make gates`; bump the composition pin if the
   bar tag changes.
+
+
+## Implementation record (ticket branch)
+
+- Worktree: `.worktrees/REQ-009/` on `ticket/REQ-009-bluetooth-panel-design`,
+  fast-forwarded to `main` (`8d5b3ad`) before the work.
+- App surface: `components/bluetooth/BluetoothPanelContent.tsx` (352 px
+  `PopupHost`, persistent header/adapter/footer, shared device body),
+  `components/bluetooth/BluetoothSections.tsx` (connected cards, flat paired
+  rows, one Nearby disclosure), `components/bluetooth/panel-model.ts` (pure
+  partition/subtitle/signal/battery/Nearby/off copy),
+  `components/bluetooth/use-bluetooth-view.ts` (visibility-tied discovery,
+  audio routing, reachability refresh/tick, confirm dismissal),
+  `components/bluetooth/confirm-state.ts` (one shared confirm slot),
+  `components/bluetooth/BluetoothPopup.tsx` (352 px, `marginTop={56}`,
+  keyboard NONE) and `bar/widgets/bluetooth.tsx` (`bluetooth-open` glyph
+  highlight).
+- Settings subview: `BluetoothContent` keeps its own chrome and now shares the
+  effects, the confirm slot and the pure row decisions; the two list boxes
+  still consume `layout.ags.bt-list-spacing` (the skin-plane gate).
+- Skin: prepared UNRELEASED on `dotfiles-assets`
+  `ticket/REQ-009-bluetooth-panel-skin`, based on
+  `ticket/REQ-007-wifi-panel-skin-v0224` (commit `f6b9a0b`). It paints the new
+  `.bt-*` classes from `surface.panel` / card / cell / control / pill roles and
+  adds no inset/height/margin; app-owned semantic state (connected accent,
+  scanning, out-of-range, danger) stays in `../ags-bar/style.css`. Commit
+  `d2f4a50`; implied next patch **v0.22.5**; NOT tagged or released.
+- Tests: `tests/ts/bluetooth-panel-model.test.ts` (partition/multi-connected,
+  out-of-range, battery-only-connected, header words, one scanning indicator,
+  adapter line, off/no-adapter copy) and
+  `tests/validation/bluetooth-panel-render.test.mjs` (352 px host, persistent
+  chrome, confirm no-reflow slot, single-flight, Nearby tri-state, footer
+  target, no keyboard, shared settings split).
+- Gates: `make test`, `make typecheck` and
+  `CONTRACTS_ROOT=/home/inumaki/Development/dotfiles/contracts make gates`
+  pass on this branch. The frozen mock harness passes **516/516** at
+  1600×1000 and 1280×800.
+- Owner visual test (does not touch the live service or the temporary Wi-Fi
+  test bar):
+  `cd /home/inumaki/Development/dotfiles/ags-bar/.worktrees/REQ-009 && ags run -d . --log-file /tmp/opencode/req009-bluetooth.log`
+  (the owner stops/swaps the existing temporary test bar; this ticket did not).
+- Not done by contract: merge to `main`, tag, release, composition pin,
+  provisioning, clipboard/engine/app changes.
 
 ## Batch context
 
