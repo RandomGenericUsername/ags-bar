@@ -115,6 +115,7 @@
     "../components/battery/presentation.ts",
     "../components/wifi/panel-model.ts",
     "../components/battery/battery-icon.ts",
+    "../components/bluetooth/panel-model.ts",
     "../audio/presentation/levels.ts",
     "../audio/presentation/bar-indicators.ts",
     "../settings/domain.ts",

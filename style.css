@@ -1088,6 +1088,7 @@ window.settings-panel {
   background-color: alpha(@on_surface, 0.05);
 }
 
+
 /* ── Wi-Fi popover (REQ-007) ──────────────────────────────────────────────
    STRUCTURE + FALLBACK. The runtime-selected skin paints the `wifi-*` role
    surfaces through `dotfiles-assets/skins/templates/ags.gtk.css.j2`; these
@@ -1481,3 +1482,289 @@ popover.wifi-settings-popover > contents {
 }
 .wifi-run-now:disabled { opacity: 0.62; }
 .wifi-settings-foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid alpha(@on_surface, 0.07); font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+
+
+/* ── Bluetooth popover (REQ-009) ──────────────────────────────────────────
+   STRUCTURE + FALLBACK. The runtime-selected skin paints the `bt-*` role
+   surfaces through `dotfiles-assets/skins/templates/ags.gtk.css.j2`; these
+   declarations are the bundled glass fallback and the app-owned layout. The
+   width (352) is an app literal, not a layout token; the skin's
+   `surface.panel.padding` is deliberately NOT applied inside this surface —
+   the header/sections/footer own their insets (the Wi-Fi extra-inset lesson).
+
+   Connected state and the primary action use the skin accent (`@primary`),
+   the owner-approved Wi-Fi treatment. Danger is the palette `@error` role.
+   No arbitrary colour literals: everything is a palette role or an alpha of
+   one. */
+
+window.bluetooth-popup {
+  background-color: transparent;
+  color: @on_surface;
+}
+
+.bt-surface {
+  background-color: alpha(@surface, 0.94);
+  border: 1px solid alpha(@on_surface, 0.13);
+  border-radius: 18px;
+  padding: 0;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.26);
+}
+
+/* Bar glyph highlight while the popover is open. Neutral like the mock's
+   active chip; the base bar rule is "no button chrome", so this stays a soft
+   plate rather than a primary-filled block. */
+.bluetooth-widget.bluetooth-open {
+  background-color: alpha(@on_surface, 0.12);
+  border-radius: 8px;
+}
+
+.bt-panel {
+  padding: 0;
+}
+
+/* Header */
+.bt-head {
+  min-height: 56px;
+  padding: 9px 16px;
+  border-bottom: 1px solid alpha(@on_surface, 0.07);
+}
+.bt-head-text { min-width: 0; }
+.bt-head-glyph {
+  min-width: 20px;
+  min-height: 26px;
+  opacity: 0.62;
+}
+.bt-head-glyph.is-off { opacity: 0.4; }
+.bt-head-glyph-image { min-width: 20px; min-height: 26px; }
+.bt-head-title { font-size: 15px; font-weight: 650; }
+.bt-head-sub { font-size: 11px; color: alpha(@on_surface, 0.62); }
+.bt-head-actions { min-width: 0; }
+
+/* Scroll + section rhythm */
+.bt-scroll, .bt-scroll viewport, .bt-scroll-body, .bt-device-area,
+.bt-settings-body, .bt-body {
+  background-color: transparent;
+  border: none;
+}
+.bt-scroll scrollbar slider {
+  min-width: 5px;
+  border-radius: 5px;
+  background-color: alpha(@on_surface, 0.22);
+}
+.bt-scroll-body { padding: 2px 0 6px; }
+
+/* Off / no-adapter */
+.bt-state {
+  min-height: 330px;
+  padding: 34px 26px 30px;
+}
+.bt-state-settings {
+  min-height: 0;
+  padding: 18px 8px;
+}
+.bt-state-glyph {
+  min-width: 56px;
+  min-height: 56px;
+  margin-bottom: 13px;
+  border-radius: 999px;
+  background-color: alpha(@on_surface, 0.055);
+  border: 1px solid alpha(@on_surface, 0.07);
+  color: alpha(@on_surface, 0.4);
+}
+.bt-state-title { font-size: 15px; font-weight: 650; }
+.bt-state-copy {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: alpha(@on_surface, 0.62);
+}
+
+/* Section labels */
+.bt-section-label {
+  padding: 9px 16px 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: alpha(@on_surface, 0.62);
+}
+.bt-settings-body .bt-section-label { padding: 8px 8px 2px; }
+
+/* Connected stacks: one card per device, a faint accent wash, no nested glass */
+.bt-card-list { padding: 2px 0; }
+.bt-card {
+  margin: 5px 8px;
+  /* Bundled fallback only; the skin supplies host radius/border width. */
+  border: 1px solid alpha(@on_surface, 0.10);
+  border-radius: 12px;
+  color: @on_surface;
+}
+/* Per-item/content accent is APP-owned, so the connected wash keeps its
+   specificity over the skin's base `.bt-card` role paint. Only the colour is
+   replaced: the border width/radius stay host-owned. The confirming state
+   replaces the accent rather than stacking. */
+.bt-card.is-connected {
+  border-color: alpha(@primary, 0.26);
+  background-color: alpha(@primary, 0.06);
+}
+.bt-card.is-connected:hover { border-color: alpha(@primary, 0.4); }
+.bt-card.is-connected.is-confirming {
+  border-color: alpha(@on_surface, 0.2);
+  background-color: alpha(@on_surface, 0.045);
+}
+.bt-card.is-connected.is-busy { border-color: alpha(@primary, 0.36); }
+.bt-card-top { padding: 10px 10px 0; }
+.bt-card-foot {
+  min-height: 56px;
+  padding: 4px 10px 9px;
+}
+.bt-card-meta { min-width: 0; }
+.bt-dev-text { min-width: 0; }
+.bt-dev-name { font-size: 13px; font-weight: 600; }
+.bt-dev-sub { font-size: 11.5px; color: alpha(@on_surface, 0.4); }
+.bt-dev-note { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.bt-badge {
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: @primary;
+  background-color: alpha(@primary, 0.14);
+}
+.bt-meta-stat {
+  font-size: 11.5px;
+  color: alpha(@on_surface, 0.62);
+}
+.bt-meta-icon { min-width: 18px; min-height: 10px; color: alpha(@on_surface, 0.62); }
+.bt-busy-line, .bt-busy-meta { font-size: 11.5px; color: alpha(@on_surface, 0.62); }
+.bt-confirm-q {
+  font-size: 11.5px;
+  color: @on_surface;
+}
+.bt-actions { min-width: 0; }
+.bt-sig-slot { min-width: 30px; min-height: 30px; }
+.bt-sig { min-width: 30px; min-height: 30px; color: alpha(@on_surface, 0.62); }
+.bt-spinner { min-width: 13px; min-height: 13px; color: alpha(@on_surface, 0.62); }
+
+/* Paired / Nearby flat rows */
+.bt-row-list { padding: 2px 0; }
+.bt-row {
+  min-height: 52px;
+  margin: 0 8px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  color: @on_surface;
+}
+.bt-row:hover { background-color: alpha(@on_surface, 0.05); }
+.bt-row.is-confirming { background-color: alpha(@on_surface, 0.06); }
+.bt-row.is-busy { background-color: alpha(@primary, 0.07); }
+.bt-row.out-of-range { opacity: 0.45; }
+.bt-row.out-of-range:hover { background-color: transparent; }
+
+/* Buttons: cell/control roles; the accent state replaces the base border */
+.bt-pill {
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid alpha(@on_surface, 0.22);
+  background-color: transparent;
+  color: alpha(@on_surface, 0.62);
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: none;
+  background-image: none;
+}
+.bt-pill:hover { border-color: alpha(@on_surface, 0.42); color: @on_surface; }
+.bt-pill.accent {
+  border-color: alpha(@primary, 0.55);
+  color: @primary;
+  background-color: alpha(@primary, 0.08);
+}
+.bt-pill.accent:hover {
+  border-color: @primary;
+  background-color: alpha(@primary, 0.16);
+}
+.bt-pill.quiet {
+  padding: 0 8px;
+  border-color: transparent;
+  color: alpha(@on_surface, 0.4);
+}
+.bt-pill.quiet:hover {
+  border-color: alpha(@on_surface, 0.18);
+  color: alpha(@on_surface, 0.62);
+  background-color: transparent;
+}
+.bt-pill.danger {
+  border-color: alpha(@error, 0.55);
+  color: @error;
+}
+.bt-pill.danger:hover {
+  border-color: @error;
+  background-color: alpha(@error, 0.08);
+}
+.bt-pill:disabled { opacity: 0.42; }
+
+/* Nearby: the only disclosure */
+.bt-nearby-head { margin: 7px 8px 0; padding: 0 8px; }
+.bt-nearby-toggle {
+  min-height: 40px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  color: @on_surface;
+}
+.bt-nearby-toggle:hover { background-color: alpha(@on_surface, 0.045); }
+.bt-nearby-chevron { color: alpha(@on_surface, 0.4); }
+.bt-nearby-label {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: alpha(@on_surface, 0.62);
+}
+.bt-nearby-count { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.bt-scan-cue { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.bt-nearby-body { padding-bottom: 4px; }
+.bt-nearby-empty { padding: 16px 22px 18px; }
+.bt-placeholder-row { font-size: 11.5px; color: alpha(@on_surface, 0.4); }
+.bt-empty-title { font-size: 13px; font-weight: 600; color: alpha(@on_surface, 0.62); }
+.bt-empty-copy {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: alpha(@on_surface, 0.4);
+}
+
+/* Adapter line: metadata, pinned above the footer, visible only when powered */
+.bt-adapter {
+  padding: 7px 16px;
+  font-size: 10.5px;
+  color: alpha(@on_surface, 0.4);
+}
+.bt-adapter-settings { padding: 7px 8px; }
+
+/* Footer: whole-row target, external cue, no decorative chevron */
+.bt-foot {
+  border-top: 1px solid alpha(@on_surface, 0.07);
+  background-color: alpha(@surface, 0.28);
+}
+.bt-foot-row {
+  min-height: 48px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+.bt-foot-row:hover { background-color: alpha(@on_surface, 0.04); }
+.bt-foot-icon {
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 7px;
+  background-color: alpha(@on_surface, 0.055);
+  color: alpha(@on_surface, 0.4);
+}
+.bt-foot-text { min-width: 0; }
+.bt-foot-title { font-size: 12.5px; font-weight: 600; }
+.bt-foot-sub { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.bt-foot-cue { color: alpha(@on_surface, 0.4); }
+.bt-foot-settings .bt-foot-row { padding-left: 8px; padding-right: 8px; }

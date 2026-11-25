@@ -3,6 +3,7 @@ import { overlays } from "../../kit/overlay"
 import type { DescriptorSpec } from "../../kit/widget"
 import { createBluetoothReadModel } from "../../domains/bluetooth/astal"
 import type { BluetoothReading } from "../../domains/bluetooth/read-model"
+import { bluetoothPopupVisible } from "../../components/bluetooth/state"
 
 /**
  * The status-bar Bluetooth indicator (design §3, the `bluetooth` bar group), as
@@ -18,6 +19,11 @@ import type { BluetoothReading } from "../../domains/bluetooth/read-model"
  * the slash in the glyph's SHAPE, never by opacity or tint.
  */
 
+interface BluetoothWidgetState extends BluetoothReading {
+  /** True while the REQ-009 popover is open — keeps the bar glyph highlighted. */
+  open: boolean
+}
+
 function bluetoothStateKey(powered: boolean): string {
   // NOTE the keys: `bluetooth-on` / `bluetooth-off`, NOT bare `on` / `off`.
   // YAML 1.1 resolves a bare `on:`/`off:` key to a boolean, so the manifest
@@ -26,16 +32,20 @@ function bluetoothStateKey(powered: boolean): string {
   return powered ? "bluetooth-on" : "bluetooth-off"
 }
 
-export function createBluetoothWidget(): DescriptorSpec<BluetoothReading> {
+export function createBluetoothWidget(): DescriptorSpec<BluetoothWidgetState> {
   const reading = createBluetoothReadModel()
 
   return {
     id: "bluetooth",
-    read: () => reading(),
+    class: "bluetooth-widget",
+    // Reading the popover's visibility registers a reactive dependency inside
+    // the shell's `createComputed`, so the class updates on open/close.
+    read: () => ({ ...reading(), open: bluetoothPopupVisible() }),
     tooltip: () => "Bluetooth",
-    icon: iconByStateKey("bluetooth", (s: BluetoothReading) =>
+    icon: iconByStateKey("bluetooth", (s: BluetoothWidgetState) =>
       bluetoothStateKey(s.powered),
     ),
+    stateClass: (s) => (s.open ? "bluetooth-open" : null),
     // Mutual exclusion is the coordinator's job: it closes the settings panel
     // and every other surface before opening Bluetooth, so one connectivity
     // surface is up at a time.
