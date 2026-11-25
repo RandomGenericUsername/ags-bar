@@ -2,7 +2,7 @@
 id: REQ-009
 title: "Redesign the Bluetooth panel as an anchored popover"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
@@ -526,3 +526,14 @@ This design is part of the frozen redesign batch. Canonical architecture,
 live state and the pending design index (including this ticket and its mock):
 `dotfiles-v3/docs/117-redesign-batch.md` (workspace path). Follow the
 appearance/skin rules and the in-page-panel/popover lesson there.
+
+## Closure (2026-11-25)
+
+- Implemented and merged into `ags-bar` v0.6.35 with the approved Wi-Fi panel.
+- Followed the established `surface.panel` / paint-only skin architecture;
+  connected/busy state uses skin palette roles, and the popover re-measures its
+  height when Nearby collapses/expands.
+- Assets v0.22.5, engine v0.1.99, composition v0.2.12.
+- Live link: `~/.config/ags` -> `apps/bar/v0.6.35`; assets v0.22.5 installed.
+- Live apply: `ok=1166 changed=32 failed=0`; verify exit 0; doctor clean.
+- Owner signed off the Bluetooth panel before release.

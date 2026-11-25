@@ -2,7 +2,7 @@
 id: REQ-007
 title: "Redesign the Wi-Fi panel as an anchored popover"
 kind: requirement
-status: in-progress
+status: done
 lane: direct
 links:
   openspec: none
@@ -342,3 +342,12 @@ This design is part of the frozen redesign batch. Canonical architecture,
 live state and the pending design index (including this ticket and its mock):
 `dotfiles-v3/docs/117-redesign-batch.md` (workspace path). Follow the
 appearance/skin rules and the in-page-panel/popover lesson there.
+
+## Closure (2026-11-25)
+
+- Merged into `ags-bar` v0.6.35 with the approved Bluetooth panel.
+- Assets v0.22.5 (Wi-Fi + Bluetooth skins), engine v0.1.99, composition
+  v0.2.12.
+- Live link: `~/.config/ags` -> `apps/bar/v0.6.35`; assets v0.22.5 installed.
+- Live apply: `ok=1166 changed=32 failed=0`; verify exit 0; doctor clean.
+- Owner signed off the Wi-Fi panel before release.
