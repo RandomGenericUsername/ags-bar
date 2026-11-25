@@ -102,20 +102,21 @@ export function BluetoothSignalIcon({ rssi }: { rssi: Accessor<number> }) {
       : null,
   )
   return (
-    <image
-      class="bt-sig"
-      pixel_size={30}
-      valign={Gtk.Align.CENTER}
-      visible={seen}
-      tooltipText={createComputed(() =>
-        seen() ? `Signal: −${Math.abs(rssi())} dBm` : "",
-      )}
-      $={(self: Gtk.Image) => {
-        createEffect(() => {
-          self.set_from_file(src() ?? "")
-        })
-      }}
-    />
+    <box class="bt-sig-slot" valign={Gtk.Align.CENTER}>
+      <image
+        class="bt-sig"
+        pixel_size={30}
+        visible={seen}
+        tooltipText={createComputed(() =>
+          seen() ? `Signal: −${Math.abs(rssi())} dBm` : "",
+        )}
+        $={(self: Gtk.Image) => {
+          createEffect(() => {
+            self.set_from_file(src() ?? "")
+          })
+        }}
+      />
+    </box>
   )
 }
 

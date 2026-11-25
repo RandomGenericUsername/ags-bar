@@ -1244,11 +1244,8 @@ window.bluetooth-popup {
   color: @on_surface;
 }
 .bt-actions { min-width: 0; }
-.bt-sig {
-  min-width: 30px;
-  min-height: 30px;
-  color: alpha(@on_surface, 0.62);
-}
+.bt-sig-slot { min-width: 30px; min-height: 30px; }
+.bt-sig { min-width: 30px; min-height: 30px; color: alpha(@on_surface, 0.62); }
 .bt-spinner { min-width: 13px; min-height: 13px; color: alpha(@on_surface, 0.62); }
 
 /* Paired / Nearby flat rows */

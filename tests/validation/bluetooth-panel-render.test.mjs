@@ -119,6 +119,7 @@ check("connected card: signal, name + tooltip, badge, connected-only battery, dB
     'label="Connected"',
     "BatteryStat",
     "Signal: −${Math.abs(rssi())} dBm",
+    "bt-sig-slot",
   ]) {
     assert.ok(sections.includes(needle), `connected card is missing ${needle}`)
   }
