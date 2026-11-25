@@ -1087,3 +1087,397 @@ window.settings-panel {
 .battery-deeplink:focus {
   background-color: alpha(@on_surface, 0.05);
 }
+
+/* ── Wi-Fi popover (REQ-007) ──────────────────────────────────────────────
+   STRUCTURE + FALLBACK. The runtime-selected skin paints the `wifi-*` role
+   surfaces through `dotfiles-assets/skins/templates/ags.gtk.css.j2`; these
+   declarations are the bundled glass fallback and the app-owned layout. The
+   width (352) is an app literal, not a layout token; the skin's
+   `surface.panel.padding` applies inside it.
+
+   The connected/warn colours are the one semantic signal pair, exposed only
+   through `.wifi-state-*` classes and never via a palette role: the skin owns
+   surfaces/ink, the app owns the semantic signal (the same precedent as the
+   sound panel's live dot). */
+
+window.wifi-popup {
+  background-color: transparent;
+  color: @on_surface;
+}
+
+.wifi-surface {
+  background-color: alpha(@surface, 0.94);
+  border: 1px solid alpha(@on_surface, 0.13);
+  border-radius: 18px;
+  padding: 0;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.26);
+}
+
+/* Bar glyph highlight while the popover is open. Neutral like the mock's
+   active chip; the base bar rule is "no button chrome", so this stays a soft
+   plate rather than a primary-filled block. */
+.network-widget.wifi-open {
+  background-color: alpha(@on_surface, 0.12);
+  border-radius: 8px;
+}
+
+.wifi-panel {
+  padding: 0;
+}
+
+/* Header */
+.wifi-head {
+  min-height: 52px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid alpha(@on_surface, 0.07);
+}
+.wifi-head-id, .wifi-head-text { min-width: 0; }
+.wifi-head-glyph {
+  min-width: 34px;
+  min-height: 34px;
+  color: alpha(@on_surface, 0.62);
+}
+.wifi-head-glyph.is-connected {
+  color: @primary;
+}
+.wifi-head-glyph.is-off { opacity: 0.55; }
+.wifi-head-glyph-image {
+  min-width: 19px;
+  min-height: 19px;
+  /* No badge: the 34 px slot only keeps the header rhythm; the glyph itself
+     is the mock's bare Wi-Fi mark. */
+  margin: 7px;
+}
+.wifi-head-title { font-size: 15px; font-weight: 650; }
+.wifi-head-sub { font-size: 11.5px; color: alpha(@on_surface, 0.62); }
+.wifi-head-actions { min-width: 0; }
+.wifi-gear, .wifi-scan, .wifi-nearby-toggle, .wifi-notice-dismiss, .wifi-pw-reveal, .wifi-foot-row, .wifi-row, .wifi-run-btn, .wifi-empty-action, .wifi-btn, .wifi-run-now {
+  background-image: none;
+  box-shadow: none;
+}
+.wifi-gear {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background-color: transparent;
+  color: alpha(@on_surface, 0.66);
+}
+.wifi-gear:hover, .wifi-gear.is-active {
+  background-color: alpha(@on_surface, 0.10);
+  color: @on_surface;
+}
+
+/* Scroll + section rhythm */
+.wifi-scroll, .wifi-scroll viewport, .wifi-scroll-body {
+  background-color: transparent;
+  border: none;
+}
+.wifi-scroll scrollbar slider {
+  min-width: 5px;
+  border-radius: 5px;
+  background-color: alpha(@on_surface, 0.22);
+}
+.wifi-off-state, .wifi-hero, .wifi-networks, .wifi-password { padding: 12px 16px; }
+.wifi-off-state { padding-top: 30px; padding-bottom: 28px; }
+
+/* Off / empty */
+.wifi-off-glyph, .wifi-empty-glyph {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 999px;
+  background-color: alpha(@on_surface, 0.045);
+  border: 1px solid alpha(@on_surface, 0.07);
+}
+.wifi-off-title, .wifi-empty-title { font-size: 15px; font-weight: 650; }
+.wifi-off-copy, .wifi-empty-copy {
+  font-size: 11.5px;
+  color: alpha(@on_surface, 0.62);
+  margin-top: 4px;
+}
+
+/* Hero */
+.wifi-hero { border-bottom: 1px solid alpha(@on_surface, 0.07); }
+.wifi-hero-ssid { font-size: 16px; font-weight: 650; }
+.wifi-hero-meta { font-size: 11.5px; color: alpha(@on_surface, 0.62); }
+.wifi-meta-dot { color: alpha(@on_surface, 0.4); }
+.wifi-hero-percent { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-pill-connected {
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: @primary;
+  background-color: alpha(@primary, 0.13);
+}
+
+/* Signal bars: geometry is app layout; connected on-colour uses the skin accent. */
+.wifi-sig { min-height: 14px; }
+.wifi-sig-bar { min-width: 3px; border-radius: 1px; background-color: alpha(@on_surface, 0.16); }
+.wifi-sig-bar.bar-1 { min-height: 4px; }
+.wifi-sig-bar.bar-2 { min-height: 7px; }
+.wifi-sig-bar.bar-3 { min-height: 10px; }
+.wifi-sig-bar.bar-4 { min-height: 14px; }
+.wifi-sig-big { min-height: 25px; }
+.wifi-sig-big .wifi-sig-bar { min-width: 5px; border-radius: 2px; }
+.wifi-sig-big .wifi-sig-bar.bar-1 { min-height: 7px; }
+.wifi-sig-big .wifi-sig-bar.bar-2 { min-height: 12px; }
+.wifi-sig-big .wifi-sig-bar.bar-3 { min-height: 18px; }
+.wifi-sig-big .wifi-sig-bar.bar-4 { min-height: 24px; }
+.wifi-sig-bar.on { background-color: alpha(@on_surface, 0.58); }
+.wifi-sig.is-connected .wifi-sig-bar.on, .wifi-sig-big .wifi-sig-bar.on { background-color: @primary; }
+
+/* Weak-security warning: palette warning role. */
+.wifi-weak {
+  margin-top: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background-color: alpha(@warning, 0.09);
+  color: @warning;
+}
+.wifi-weak-icon { min-width: 15px; min-height: 15px; }
+.wifi-weak-text { font-size: 11.5px; }
+
+/* Details + speed test */
+.wifi-details {
+  margin-top: 10px;
+  padding-top: 5px;
+  border-top: 1px solid alpha(@on_surface, 0.07);
+}
+.wifi-detail-row { min-height: 24px; font-size: 11.5px; }
+.wifi-detail-key { min-width: 68px; color: alpha(@on_surface, 0.4); }
+.wifi-detail-val { color: alpha(@on_surface, 0.62); }
+.wifi-test-block {
+  margin-top: 7px;
+  padding-top: 8px;
+  border-top: 1px solid alpha(@on_surface, 0.07);
+}
+.wifi-test-title { font-size: 11.5px; font-weight: 600; color: alpha(@on_surface, 0.62); }
+.wifi-run-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid alpha(@primary, 0.40);
+  background-color: alpha(@primary, 0.08);
+  color: @primary;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.wifi-run-btn:hover { background-color: alpha(@primary, 0.14); }
+.wifi-run-btn:disabled { opacity: 0.62; }
+.wifi-test-grid { padding: 5px 0 1px; }
+.wifi-test-cell { min-width: 0; }
+.wifi-test-value { font-size: 15px; font-weight: 650; }
+.wifi-test-unit { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-test-label { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-test-block.is-running .wifi-test-value { opacity: 0.48; }
+.wifi-test-error { margin-top: 4px; font-size: 10.5px; color: @error; }
+.wifi-test-foot { margin-top: 3px; font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+
+/* Notices */
+.wifi-notice {
+  margin: 8px 16px 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background-color: alpha(@warning, 0.09);
+  color: @warning;
+}
+.wifi-notice-icon { min-width: 15px; min-height: 15px; }
+.wifi-notice-title { font-size: 11.5px; font-weight: 650; }
+.wifi-notice-body { font-size: 10.5px; }
+.wifi-notice-dismiss {
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid alpha(@warning, 0.28);
+  background-color: transparent;
+  color: @warning;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* Known / Nearby */
+.wifi-list-head { min-height: 34px; padding: 0 16px; margin-top: 2px; }
+.wifi-list-title { font-size: 11.5px; font-weight: 650; color: alpha(@on_surface, 0.62); }
+.wifi-list-count { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-nearby-head { padding: 0 8px 0 10px; }
+.wifi-nearby-toggle {
+  min-height: 34px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+}
+.wifi-nearby-toggle:hover { background-color: alpha(@on_surface, 0.05); }
+.wifi-nearby-chevron { font-size: 11px; color: alpha(@on_surface, 0.4); }
+.wifi-scan {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 7px;
+  border: none;
+  background-color: transparent;
+  color: alpha(@on_surface, 0.52);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.wifi-scan:hover { background-color: alpha(@on_surface, 0.10); color: alpha(@on_surface, 0.7); }
+.wifi-scan:disabled { opacity: 0.6; }
+.wifi-net-list { padding: 0 8px; }
+.wifi-nearby-body { padding-bottom: 2px; }
+.wifi-list-empty { padding: 8px 10px 10px; font-size: 11.5px; color: alpha(@on_surface, 0.4); }
+
+/* Rows: cell role; connected replaces the base surface rather than stacking. */
+.wifi-row {
+  min-height: 50px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 10px;
+  background-color: transparent;
+  color: @on_surface;
+}
+.wifi-row:hover { background-color: alpha(@on_surface, 0.05); }
+.wifi-row.is-connected { background-color: alpha(@primary, 0.07); }
+.wifi-row.is-busy { background-color: alpha(@primary, 0.07); }
+.wifi-row-text { min-width: 0; }
+.wifi-row-name { font-size: 13px; font-weight: 600; }
+.wifi-row-sub { font-size: 11.5px; color: alpha(@on_surface, 0.4); }
+.wifi-row.is-connected .wifi-row-sub { color: alpha(@primary, 0.66); }
+.wifi-row-badge { min-height: 22px; }
+.wifi-row-action {
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 8px;
+  border: 1px solid alpha(@on_surface, 0.2);
+  color: alpha(@on_surface, 0.66);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.wifi-row-action.is-busy { border-color: alpha(@primary, 0.4); color: @primary; }
+.wifi-row-pending { opacity: 0; }
+.wifi-spinner { min-width: 14px; min-height: 14px; color: @primary; }
+
+/* Empty network state */
+.wifi-empty-state { padding: 26px 24px 22px; }
+.wifi-empty-action {
+  min-height: 40px;
+  margin-top: 14px;
+  padding: 0 16px;
+  border-radius: 9px;
+  border: 1px solid alpha(@on_surface, 0.22);
+  background-color: transparent;
+  color: @on_surface;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Password */
+.wifi-password { padding: 18px 16px; }
+.wifi-pw-kicker { font-size: 11.5px; color: alpha(@on_surface, 0.4); }
+.wifi-pw-title { font-size: 16px; font-weight: 650; }
+.wifi-pw-sub { margin-top: 4px; font-size: 11.5px; color: alpha(@on_surface, 0.62); }
+.wifi-pw-label { margin: 15px 0 6px; font-size: 11.5px; font-weight: 600; color: alpha(@on_surface, 0.62); }
+.wifi-pw-field {
+  min-height: 44px;
+  padding: 0 5px 0 12px;
+  border-radius: 10px;
+  background-color: alpha(@on_surface, 0.045);
+  border: 1px solid alpha(@on_surface, 0.16);
+}
+.wifi-pw-field:focus-within { border-color: alpha(@primary, 0.68); }
+.wifi-pw-input {
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: @on_surface;
+  caret-color: @primary;
+}
+.wifi-pw-input:focus { border: none; background-color: transparent; box-shadow: none; }
+.wifi-pw-reveal {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: alpha(@on_surface, 0.4);
+}
+.wifi-pw-reveal:hover { background-color: alpha(@on_surface, 0.10); color: @on_surface; }
+.wifi-pw-reveal.is-on { color: @primary; background-color: alpha(@primary, 0.10); }
+.wifi-pw-error { margin-top: 8px; font-size: 11.5px; color: @error; }
+.wifi-pw-actions { margin-top: 15px; }
+.wifi-btn {
+  min-height: 40px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 650;
+  background-color: transparent;
+}
+.wifi-btn.cancel { border: 1px solid alpha(@on_surface, 0.24); color: @on_surface; }
+.wifi-btn.join { border: 1px solid transparent; background-color: @primary; color: @on_primary; }
+.wifi-btn:disabled { opacity: 0.58; }
+
+/* Footer */
+.wifi-foot {
+  border-top: 1px solid alpha(@on_surface, 0.07);
+  background-color: alpha(@surface, 0.28);
+}
+.wifi-foot-row {
+  min-height: 48px;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+.wifi-foot-row:hover { background-color: alpha(@on_surface, 0.04); }
+.wifi-foot-icon {
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 7px;
+  background-color: alpha(@on_surface, 0.045);
+  color: alpha(@on_surface, 0.5);
+}
+.wifi-foot-title { font-size: 12.5px; font-weight: 600; }
+.wifi-foot-sub { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-foot-hint { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-foot-message { padding: 6px 16px 0; font-size: 10.5px; color: @error; }
+
+/* Sibling speed-test settings surface */
+popover.wifi-settings-popover,
+popover.wifi-settings-popover > contents {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+}
+.wifi-settings-surface {
+  padding: 14px;
+  border-radius: 14px;
+  background-color: alpha(@surface, 0.98);
+  border: 1px solid alpha(@on_surface, 0.13);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.56);
+  color: @on_surface;
+}
+.wifi-settings-head { font-size: 15px; font-weight: 650; }
+.wifi-settings-sub { margin-top: 2px; font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-settings-section { margin-top: 11px; padding-top: 10px; border-top: 1px solid alpha(@on_surface, 0.07); }
+.wifi-settings-label { font-size: 11.5px; font-weight: 600; color: alpha(@on_surface, 0.62); }
+.wifi-settings-row { padding: 10px 0; border-top: 1px solid alpha(@on_surface, 0.07); }
+.wifi-settings-name { font-size: 11.5px; font-weight: 600; }
+.wifi-settings-help { font-size: 10.5px; color: alpha(@on_surface, 0.4); }
+.wifi-run-now {
+  min-height: 40px;
+  margin-top: 10px;
+  border-radius: 9px;
+  border: 1px solid alpha(@primary, 0.34);
+  background-color: alpha(@primary, 0.10);
+  color: @primary;
+  font-size: 12px;
+  font-weight: 650;
+}
+.wifi-run-now:disabled { opacity: 0.62; }
+.wifi-settings-foot { margin-top: 10px; padding-top: 9px; border-top: 1px solid alpha(@on_surface, 0.07); font-size: 10.5px; color: alpha(@on_surface, 0.4); }

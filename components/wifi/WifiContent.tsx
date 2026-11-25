@@ -83,7 +83,7 @@ let observedConnectedSsid: string | null = null
 let connectionObserved = false
 
 
-const STC_CHIPS = [
+export const STC_CHIPS = [
   { label: "5m", ms: 300000 },
   { label: "15m", ms: 900000 },
   { label: "30m", ms: 1800000 },
@@ -97,7 +97,7 @@ function humanizeMs(ms: number): string {
   return `${Math.round((ms / 60000) * 10) / 10} min`
 }
 
-function IntervalMsControl() {
+export function IntervalMsControl() {
   const [draft, setDraft] = createState(String(stcIntervalMs()))
   //: Draft follows the COMMITTED value only (chips, migration, the other
   //: mounted instance) — never the draft itself, so typing is never clobbered.

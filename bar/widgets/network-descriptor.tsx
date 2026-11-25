@@ -4,6 +4,7 @@ import { overlays } from "../../kit/overlay"
 import { launchScopedApp } from "../../lib/scopedLauncher"
 import { isRunning as speedTestRunning } from "../../services/speedtest-service"
 import { createNetworkReadModel } from "../../domains/network/astal"
+import { wifiPopupVisible } from "../../components/wifi/state"
 import {
   networkIconState,
   networkLabel,
@@ -27,6 +28,8 @@ import {
 export interface NetworkWidgetState extends NetworkReading {
   /** True while the Wi-Fi speed test runs — drives the `speedtesting` class. */
   speedTesting: boolean
+  /** True while the REQ-007 popover is open — keeps the bar glyph highlighted. */
+  wifiOpen: boolean
 }
 
 const networkReading = createNetworkReadModel()
@@ -34,14 +37,24 @@ const networkReading = createNetworkReadModel()
 function read(): NetworkWidgetState {
   // Reading the adapter registers its reactive dependency inside the kit's
   // `createComputed`, so the icon re-resolves on every device property change.
-  return { ...networkReading(), speedTesting: speedTestRunning() }
+  return {
+    ...networkReading(),
+    speedTesting: speedTestRunning(),
+    wifiOpen: wifiPopupVisible(),
+  }
 }
 
 export const networkWidget: BarWidgetSpec<NetworkWidgetState> = {
   id: "network",
   read,
   class: "network-widget",
-  stateClass: (state) => (state.speedTesting ? "speedtesting" : null),
+  stateClass: (state) => {
+    const classes = [
+      state.speedTesting ? "speedtesting" : "",
+      state.wifiOpen ? "wifi-open" : "",
+    ].filter(Boolean)
+    return classes.length > 0 ? classes.join(" ") : null
+  },
   icon: iconByStateKey("network", networkIconState),
   label: networkLabel,
   primary: (_state, anchorX) => overlays.toggle("wifi", anchorX),
