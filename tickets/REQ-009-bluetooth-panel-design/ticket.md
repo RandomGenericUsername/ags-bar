@@ -498,9 +498,11 @@ width, pinned adapter line and footer belong to the popover variant only.
   `ticket/REQ-009-bluetooth-panel-skin`, based on
   `ticket/REQ-007-wifi-panel-skin-v0224` (commit `f6b9a0b`). It paints the new
   `.bt-*` classes from `surface.panel` / card / cell / control / pill roles and
-  adds no inset/height/margin; app-owned semantic state (connected accent,
-  scanning, out-of-range, danger) stays in `../ags-bar/style.css`. Commit
-  `d2f4a50`; implied next patch **v0.22.5**; NOT tagged or released.
+  adds no inset/height/margin; the connected/busy accent and confirming
+  neutral fills are painted from skin tokens so the state survives the
+  USER-priority composed provider, while the app still owns the state
+  decisions (and the out-of-range dim / danger fallbacks). Commits `d2f4a50`
+  and `18d5f1c`; implied next patch **v0.22.5**; NOT tagged or released.
 - Tests: `tests/ts/bluetooth-panel-model.test.ts` (partition/multi-connected,
   out-of-range, battery-only-connected, header words, one scanning indicator,
   adapter line, off/no-adapter copy) and
