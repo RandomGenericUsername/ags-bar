@@ -71,22 +71,51 @@ function Glyph({
   )
 }
 
-/** Bare Bluetooth rune from the status-bar icon group (no circle badge), the
- * same visual variant as the Wi-Fi header's bare mark. */
+/** Bare Bluetooth rune, generated with the skin's CSS colour. The status-bar
+ * icon family has the right bare shape, but its SVG bakes `on_backdrop`; the
+ * header needs the panel ink/primary ramp like the Wi-Fi bare mark. */
+const BT_RUNE_ON = "M324 699.5L699 324.5L511.5 137V887L699 699.5L324 324.5"
+const BT_RUNE_OFF =
+  "M324 699.5L511.5 512M511.5 512V887L699 699.5M511.5 512L174 174.5M511.5 512L849 849.5M617.445 406.055L699 324.5L511.5 137V300.11"
+
+function btGlyphSvg(name: string, colour: string, off: boolean): string {
+  const path = off ? BT_RUNE_OFF : BT_RUNE_ON
+  const svg =
+    '<svg width="20" height="20" viewBox="0 0 1024 1024" fill="none" ' +
+    `stroke="${colour}" stroke-width="66.6667" stroke-linecap="round" ` +
+    `stroke-linejoin="round" aria-hidden="true"><path d="${path}"></path></svg>`
+  const file = `${GLib.get_user_runtime_dir()}/ags-${name}.svg`
+  GLib.file_set_contents(file, svg)
+  return file
+}
+
 function BluetoothHeadGlyph() {
-  const src = createComputed(() =>
-    registry.resolve(
-      "bluetooth",
-      bluetoothReady() && bluetoothPowered() ? "bluetooth-on" : "bluetooth-off",
-    ),
-  )
   return (
     <image
       class="bt-head-glyph-image"
       pixel_size={20}
       $={(self: Gtk.Image) => {
+        const sync = () => {
+          const c = self.get_style_context().get_color()
+          const hex =
+            "#" +
+            [c.red, c.green, c.blue]
+              .map((n) => Math.round(n * 255).toString(16).padStart(2, "0"))
+              .join("")
+          const off = !(bluetoothReady() && bluetoothPowered())
+          self.set_from_file(btGlyphSvg(`bt-head-${off ? "off" : "on"}-${hex}`, hex, off))
+        }
         createEffect(() => {
-          self.set_from_file(src() ?? "")
+          bluetoothReady()
+          bluetoothPowered()
+          GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            sync()
+            return false
+          })
+        })
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+          sync()
+          return false
         })
       }}
     />
@@ -104,10 +133,9 @@ function PanelHeader() {
     })
   })
 
-  // The header is decorative state, not a connected-state accent: the mock
-  // keeps it ink-dim (faint when off). `bluetooth-off` is the on_surface
-  // variant of the same settings-panel glyph, so the slot stays on the icon
-  // corpus while its opacity carries the on/off reading.
+  // Powered state uses the skin primary (same reading as the Wi-Fi header);
+  // the off/no-adapter state falls back to dim ink. The rune itself is bare,
+  // with no circular badge.
   const glyphClass = createComputed(() =>
     !bluetoothReady() || !bluetoothPowered()
       ? "bt-head-glyph is-off"

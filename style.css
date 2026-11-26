@@ -1532,9 +1532,9 @@ window.bluetooth-popup {
 .bt-head-glyph {
   min-width: 20px;
   min-height: 26px;
-  opacity: 0.62;
+  color: @primary;
 }
-.bt-head-glyph.is-off { opacity: 0.4; }
+.bt-head-glyph.is-off { color: alpha(@on_surface, 0.4); }
 .bt-head-glyph-image { min-width: 20px; min-height: 26px; }
 .bt-head-title { font-size: 15px; font-weight: 650; }
 .bt-head-sub { font-size: 11px; color: alpha(@on_surface, 0.62); }
