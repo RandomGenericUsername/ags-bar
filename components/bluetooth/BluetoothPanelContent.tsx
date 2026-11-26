@@ -71,6 +71,28 @@ function Glyph({
   )
 }
 
+/** Bare Bluetooth rune from the status-bar icon group (no circle badge), the
+ * same visual variant as the Wi-Fi header's bare mark. */
+function BluetoothHeadGlyph() {
+  const src = createComputed(() =>
+    registry.resolve(
+      "bluetooth",
+      bluetoothReady() && bluetoothPowered() ? "bluetooth-on" : "bluetooth-off",
+    ),
+  )
+  return (
+    <image
+      class="bt-head-glyph-image"
+      pixel_size={20}
+      $={(self: Gtk.Image) => {
+        createEffect(() => {
+          self.set_from_file(src() ?? "")
+        })
+      }}
+    />
+  )
+}
+
 function PanelHeader() {
   const subtitle = createComputed(() => {
     const connected = partitionDevices(bluetoothDevices()).connected
@@ -95,7 +117,7 @@ function PanelHeader() {
   return (
     <box class="bt-head" spacing={10}>
       <box class={glyphClass} valign={Gtk.Align.CENTER}>
-        <Glyph name="bluetooth-off" pixelSize={20} cls="bt-head-glyph-image" />
+        <BluetoothHeadGlyph />
       </box>
       <box class="bt-head-text" orientation={1} hexpand>
         <label class="bt-head-title" xalign={0} label="Bluetooth" />
