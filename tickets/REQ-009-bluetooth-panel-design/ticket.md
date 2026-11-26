@@ -537,3 +537,9 @@ appearance/skin rules and the in-page-panel/popover lesson there.
 - Live link: `~/.config/ags` -> `apps/bar/v0.6.35`; assets v0.22.5 installed.
 - Live apply: `ok=1166 changed=32 failed=0`; verify exit 0; doctor clean.
 - Owner signed off the Bluetooth panel before release.
+
+### Post-release (v0.6.36)
+
+The header glyph now uses the bare status-bar Bluetooth rune (`bluetooth`
+group on/off), matching the Wi-Fi header's bare-mark variant without a circular
+badge. Released as bar v0.6.36; composition v0.2.14.
