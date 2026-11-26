@@ -538,8 +538,8 @@ appearance/skin rules and the in-page-panel/popover lesson there.
 - Live apply: `ok=1166 changed=32 failed=0`; verify exit 0; doctor clean.
 - Owner signed off the Bluetooth panel before release.
 
-### Post-release (v0.6.36)
+### Post-release (v0.6.36–v0.6.37)
 
-The header glyph now uses the bare status-bar Bluetooth rune (`bluetooth`
-group on/off), matching the Wi-Fi header's bare-mark variant without a circular
-badge. Released as bar v0.6.36; composition v0.2.14.
+The header glyph is the bare Bluetooth rune with no circular badge, now tinted
+from the skin primary (`@primary`) like the Wi-Fi header. Released as bar
+v0.6.36 then v0.6.37; composition v0.2.15.
